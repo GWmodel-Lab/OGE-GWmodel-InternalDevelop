@@ -5,29 +5,69 @@ import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Coordinate, Geometry}
 import whu.edu.cn.oge.Feature
 import whu.edu.cn.util.ShapeFileUtil
+import scala.collection.immutable.List
+import scala.collection.mutable.{ArrayBuffer, Map}
+import scala.math.{abs, max, min, pow, sqrt}
+
+import org.apache.spark.mllib.linalg._
+import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.stat.Correlation
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.mllib.stat.Statistics
 
-import scala.collection.mutable.{Map}
-import scala.math.{abs, max, min, pow, sqrt}
+import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 
 object testRun {
   def main(args: Array[String]): Unit = {
     //    val time1: Long = System.currentTimeMillis()
-    //    println(time1)
-    val shppath: String = "testdata\\LNHP100.shp"//我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
-    val testshp=loadshp(shppath)
-    mytest(testshp)
-  }
-  def loadshp (shpPath: String):RDD[(String, (Geometry, Map[String, Any]))]={
+    //    println(time1)]
     val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
     val sc = new SparkContext(conf)
-    val shpload = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
-//    println(shpload.partitions.length)//划分了多少
-    shpload
+
+    val shpPath: String = "testdata\\LNHP100.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
+    val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
+
+    val apoint=getCoorXY(shpfile)
+
+    val arr4=apoint.take(4)
+    val arr5=apoint.take(5)
+
+    println("arr4")
+    arr4.foreach(println)
+    println("arr5")
+    arr5.foreach(println)
+
+    val arrd=arrDist(arr4,arr5)
+    println("dis")
+    arrd.foreach(println)
+
+    val dmat1= new DenseMatrix(arr4.length, arr5.length, arrd)
+    println(dmat1)
+    val dmat2 = dmatArrDist(arr5,arr4)
+    println(dmat2)
+
+
+//    val rddcX1 = shpfile.map(t => t._2._1.getCoordinate)
+//    val rddcX2 = shpfile.map(t => t._2._1.getCoordinate)
+//    println(shpfile.collect().length)
+//    println(rddcX2.collect().length)
+//
+//    val arrbuf = arrbufDist(rddcX1, rddcX2)
+//    val rdist=rddarrDist(sc,shpfile,shpfile)
+//    val adist=arrSelfDist(shpfile)
+//    val dmat=dmatRddDist(sc,shpfile,shpfile)
+//    println("arrbuf:")
+//    arrbuf.take(5).foreach(println)
+//    println("rdist:")
+//    rdist.take(5).foreach(println)
+//    println("adist:")
+//    adist.take(5).foreach(println)
+//    println("dmat:")
+//    println(dmat)
+
   }
 
-  def mytest(testshp: RDD[(String, (Geometry, Map[String, Any]))]) : Unit={
+  def testcorr(testshp: RDD[(String, (Geometry, Map[String, Any]))]) : Unit={
     val time0: Long = System.currentTimeMillis()
     val list1:List[Any] = Feature.get(testshp,"PURCHASE")//FLOORSZ,PROF
     val list2:List[Any] = Feature.getNumber(testshp,"FLOORSZ")
@@ -43,8 +83,6 @@ object testRun {
     val coor2 = corr2ml(testshp,"PURCHASE","FLOORSZ")
 
   }
-
-  //这是用ml这个库写的
 
   def corr2list(lst1: List[Double], lst2: List[Double]): Double = {
     val sum1 = lst1.sum
