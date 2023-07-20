@@ -15,7 +15,7 @@ object testRun {
   def main(args: Array[String]): Unit = {
     //    val time1: Long = System.currentTimeMillis()
     //    println(time1)
-    val shppath: String = "D:\\Java\\testdata\\LNHP100.shp"
+    val shppath: String = "testdata\\LNHP100.shp"//我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
     val testshp=loadshp(shppath)
     mytest(testshp)
   }
