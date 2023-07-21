@@ -30,40 +30,21 @@ object testRun {
     val apoint=getCoorXY(shpfile)
 
     val arr4=apoint.take(4)
-    val arr5=apoint.take(5)
+    val arr3=apoint.take(3)
 
     println("arr4")
     arr4.foreach(println)
-    println("arr5")
-    arr5.foreach(println)
+    println("arr3")
+    arr3.foreach(println)
 
-    val arrd=arrDist(arr4,arr5)
+    val arrd=arrayDist(arr4,arr3)
     println("dis")
     arrd.foreach(println)
 
-    val dmat1= new DenseMatrix(arr4.length, arr5.length, arrd)
+    val dmat1= new DenseMatrix(arr4.length, arr3.length, arrd)
     println(dmat1)
-    val dmat2 = dmatArrDist(arr5,arr4)
+    val dmat2 = getArrDistDmat(arr3,arr4)
     println(dmat2)
-
-
-//    val rddcX1 = shpfile.map(t => t._2._1.getCoordinate)
-//    val rddcX2 = shpfile.map(t => t._2._1.getCoordinate)
-//    println(shpfile.collect().length)
-//    println(rddcX2.collect().length)
-//
-//    val arrbuf = arrbufDist(rddcX1, rddcX2)
-//    val rdist=rddarrDist(sc,shpfile,shpfile)
-//    val adist=arrSelfDist(shpfile)
-//    val dmat=dmatRddDist(sc,shpfile,shpfile)
-//    println("arrbuf:")
-//    arrbuf.take(5).foreach(println)
-//    println("rdist:")
-//    rdist.take(5).foreach(println)
-//    println("adist:")
-//    adist.take(5).foreach(println)
-//    println("dmat:")
-//    println(dmat)
 
   }
 

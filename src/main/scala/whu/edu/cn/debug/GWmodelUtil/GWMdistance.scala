@@ -23,7 +23,7 @@ object GWMdistance {
     dis
   }
 
-  def arrDist(Arr1: Array[(Double, Double)], Arr2: Array[(Double, Double)]): Array[Double] = {
+  def arrayDist(Arr1: Array[(Double, Double)], Arr2: Array[(Double, Double)]): Array[Double] = {
     var arrbuf: ArrayBuffer[Array[Double]] = ArrayBuffer()
     for (i <- 0 until Arr2.length) {
       //      var targeti = targetArr(i)
@@ -42,7 +42,7 @@ object GWMdistance {
     arrdist
   }
 
-  def arrbufDist(sourceCoor: RDD[Coordinate], targetCoor: RDD[Coordinate]): ArrayBuffer[Array[Double]] = {
+  def getCoorDistArrbuf(sourceCoor: RDD[Coordinate], targetCoor: RDD[Coordinate]): ArrayBuffer[Array[Double]] = {
     val targetArr = targetCoor.collect()
     var arrbufdist: ArrayBuffer[Array[Double]] = ArrayBuffer()
     for (i <- 0 until targetArr.length) {
@@ -52,29 +52,29 @@ object GWMdistance {
     arrbufdist
   }
 
-  def rddarrDist(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Array[Double]] = {
+  def getRDDDistRDD(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Array[Double]] = {
     val RDDcoor1 = RDDX1.map(t => t._2._1.getCoordinate)
     val RDDcoor2 = RDDX2.map(t => t._2._1.getCoordinate)
-    val arrbuf = arrbufDist(RDDcoor1, RDDcoor2)
+    val arrbuf = getCoorDistArrbuf(RDDcoor1, RDDcoor2)
     val RDDarr = sc.makeRDD(arrbuf)
     RDDarr
   }
 
-  def arrSelfDist(inputshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Double] = {
+  def getSelfDistArr(inputshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Double] = {
     val coorshp = inputshp.map(t => t._2._1.getCoordinate)
-    val arrbuf = arrbufDist(coorshp, coorshp).flatMap(t => t).toArray
-    arrbuf
+    val arr = getCoorDistArrbuf(coorshp, coorshp).flatMap(t => t).toArray
+    arr
   }
 
-  def dmatRddDist(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): DenseMatrix ={
-    val RDDarr=rddarrDist(sc,RDDX1,RDDX2)
+  def getRDDDistDmat(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): DenseMatrix ={
+    val RDDarr=getRDDDistRDD(sc,RDDX1,RDDX2)
     val arrflat = RDDarr.flatMap(t => t).collect()
     val dmat = new DenseMatrix(RDDX1.collect().length, RDDX2.collect().length, arrflat)
     dmat
   }
 
-  def dmatArrDist(Arr1: Array[(Double, Double)], Arr2: Array[(Double, Double)]): DenseMatrix = {
-    val arrdist = arrDist(Arr1, Arr2)
+  def getArrDistDmat(Arr1: Array[(Double, Double)], Arr2: Array[(Double, Double)]): DenseMatrix = {
+    val arrdist = arrayDist(Arr1, Arr2)
     val dmat= new DenseMatrix(Arr1.length, Arr2.length, arrdist)
     dmat
   }
