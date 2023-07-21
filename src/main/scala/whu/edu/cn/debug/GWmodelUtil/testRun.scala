@@ -9,13 +9,16 @@ import scala.collection.immutable.List
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math.{abs, max, min, pow, sqrt}
 
-import org.apache.spark.mllib.linalg._
+//import org.apache.spark.mllib.linalg._
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.stat.Correlation
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.mllib.stat.Statistics
+import breeze.numerics._
+import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
 
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
+import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
 object testRun {
   def main(args: Array[String]): Unit = {
@@ -27,24 +30,51 @@ object testRun {
     val shpPath: String = "testdata\\LNHP100.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
     val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
 
-    val apoint=getCoorXY(shpfile)
+    val rdddist=getRDDDistRDD(sc,shpfile,shpfile)
+    val rddweight:RDD[DenseVector[Double]]=spatialweightRDD(rdddist,5000,"bisquare")
 
-    val arr4=apoint.take(4)
-    val arr3=apoint.take(3)
+    rddweight.collect().foreach(println)
+//    val arrweight=rddweight.flatMap(t=>DenseVector2Array(t)).collect()
 
-    println("arr4")
-    arr4.foreach(println)
-    println("arr3")
-    arr3.foreach(println)
 
-    val arrd=arrayDist(arr4,arr3)
-    println("dis")
-    arrd.foreach(println)
+//    val apoint=getCoorXY(shpfile)
+//    val aX=apoint.take(1)
+//    val arr0=arrayDist(aX,apoint)
+//    //    arr0.foreach(println)
+//    val dv: DenseVector[Double] = new DenseVector(arr0)
+////    arr0.sorted.take(20).foreach(println)
+//    val weight = spatialweightSingle(dv,10,"bisquare",true)
+//    weight.foreach(println)
 
-    val dmat1= new DenseMatrix(arr4.length, arr3.length, arrd)
-    println(dmat1)
-    val dmat2 = getArrDistDmat(arr3,arr4)
-    println(dmat2)
+//    println("gaussianKernelFunction")
+//    val weight1 = GaussianKernelFunction(dv,bw)
+//    weight1.foreach(println)
+//    println("exponentialKernelFunction")
+//    val weight2 = ExponentialKernelFunction(dv, bw)
+//    weight2.foreach(println)
+//    println("BisquareKernelFunction")
+//    val weight3 = bisquareKernelFunction(dv, bw)
+//    weight3.foreach(println)
+//    println("TricubeKernelFunction")
+//    val weight4 = tricubeKernelFunction(dv, bw)
+//    weight4.foreach(println)
+//    println("BoxcarKernelFunction")
+//    val weight5 = boxcarKernelFunction(dv, bw)
+//    weight5.foreach(println)
+
+//    val arr4=apoint.take(4)
+//    val arr3=apoint.take(3)
+//    println("arr4")
+//    arr4.foreach(println)
+//    println("arr3")
+//    arr3.foreach(println)
+//    val arrd=arrayDist(arr4,arr3)
+//    println("dis")
+//    arrd.foreach(println)
+//    val dmat1= new DenseMatrix(arr3.length, arr4.length, arrd)
+//    println(dmat1.transpose)
+//    val dmat2 = getArrDistDmat(arr4,arr3)
+//    println(dmat2)
 
   }
 

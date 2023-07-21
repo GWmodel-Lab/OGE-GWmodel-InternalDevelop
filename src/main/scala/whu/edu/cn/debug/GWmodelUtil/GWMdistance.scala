@@ -10,6 +10,9 @@ import org.apache.spark.mllib.linalg._
 
 object GWMdistance {
 
+  /**
+   * 输入RDD，获得Array[(Double, Double)]
+   */
   def getCoorXY(featureRDD: RDD[(String, (Geometry, Map[String, Any]))]): Array[(Double, Double)] = {
     val coorxy = featureRDD.map(t => {
       val coor = t._2._1.getCoordinate
@@ -23,35 +26,65 @@ object GWMdistance {
     dis
   }
 
+  /**
+   * 输入两个Array[(Double, Double)]，输出他们之间的距离，结果为Array
+   *
+   * @param Arr1 Array[(Double, Double)]的形式
+   * @param Arr2 Array[(Double, Double)]的形式
+   * @return Array[Double] 结果Array应按顺序存储了Arr1第i个坐标和Arr2每个坐标的距离
+   */
   def arrayDist(Arr1: Array[(Double, Double)], Arr2: Array[(Double, Double)]): Array[Double] = {
     var arrbuf: ArrayBuffer[Array[Double]] = ArrayBuffer()
-    for (i <- 0 until Arr2.length) {
+    for (i <- 0 until Arr1.length) {
       //      var targeti = targetArr(i)
-      arrbuf += ( Arr1.map(t => pointDist(t,Arr2(i))) )
+      arrbuf += ( Arr2.map(t => pointDist(t,Arr1(i))) )
     }
     arrbuf.flatMap(t=>t).toArray
   }
 
-  def rddcoorDist(sourceCoor: RDD[Coordinate], targetCoor: Coordinate): RDD[Double] = {
-    val RDDdist = sourceCoor.map(t => t.distance(targetCoor))
+  def rddcoorDist(sourceCoor: Coordinate, targetCoor: RDD[Coordinate]): RDD[Double] = {
+    val RDDdist = targetCoor.map(t => t.distance(sourceCoor))
     RDDdist
   }
 
-  def arrcoorDist(sourceCoor: RDD[Coordinate], targetCoor: Coordinate): Array[Double] = {
-    val arrdist = sourceCoor.map(t => t.distance(targetCoor)).collect()
+  /**
+   * 输入源数据为Coordinate，输出与计算目标RDD[Coordinate]之间每一个的距离，输出结果为Array
+   *
+   * @param sourceCoor Coordinate的形式
+   * @param targetCoor RDD[Coordinate]的形式
+   * @return Array[Double] 结果Array应按顺序存储了source和target每个元素的距离
+   */
+  def arrcoorDist(sourceCoor: Coordinate, targetCoor: RDD[Coordinate]): Array[Double] = {
+    val arrdist = targetCoor.map(t => t.distance(sourceCoor)).collect()
     arrdist
   }
 
+  /**
+   * 输入两个RDD[Coordinate]获得距离，返回ArrayBuffer
+   *
+   * @param sourceCoor RDD[Coordinate]的形式
+   * @param targetCoor RDD[Coordinate]的形式
+   * @return ArrayBuffer[Array[Double]] 结果中每个Array应按顺序存储了source第i个元素和target所有元素的距离
+   *         ArrayBuffer形式可以进行后续变换
+   */
   def getCoorDistArrbuf(sourceCoor: RDD[Coordinate], targetCoor: RDD[Coordinate]): ArrayBuffer[Array[Double]] = {
-    val targetArr = targetCoor.collect()
+    val sourceArr = sourceCoor.collect()
     var arrbufdist: ArrayBuffer[Array[Double]] = ArrayBuffer()
-    for (i <- 0 until targetArr.length) {
+    for (i <- 0 until sourceArr.length) {
       //      var targeti = targetArr(i)
-      arrbufdist += arrcoorDist(sourceCoor, targetArr(i))
+      arrbufdist += arrcoorDist(sourceArr(i), targetCoor)
     }
     arrbufdist
   }
 
+  /**
+   * 输入两个RDD以及SparkContext获得距离，返回RDD
+   *
+   * @param sc    SparkContext，需要在计算中生成RDD
+   * @param RDDX1 项目默认矢量RDD的形式
+   * @param RDDX2 项目默认矢量RDD的形式
+   * @return RDD[Array[Double]] 结果中每个Array应按顺序存储了RDDX1第i个元素和RDDX2所有元素的距离
+   */
   def getRDDDistRDD(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Array[Double]] = {
     val RDDcoor1 = RDDX1.map(t => t._2._1.getCoordinate)
     val RDDcoor2 = RDDX2.map(t => t._2._1.getCoordinate)
@@ -66,17 +99,36 @@ object GWMdistance {
     arr
   }
 
+  /**
+   * 输入两个RDD以及SparkContext获得Dmat
+   *
+   * @param sc SparkContext，引入是因为需要在计算中生成RDD
+   * @param RDDX1 项目默认矢量RDD的形式
+   * @param RDDX2 项目默认矢量RDD的形式
+   * @return Dmat结果为转置后的结果，转置的原因是，Dmat默认按列存储。
+   *         输出的第一行为RDDX1第一个元素和RDDX2所有元素的距离。
+   *         如有后续计算需要，可以考虑将转置取消
+   */
   def getRDDDistDmat(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): DenseMatrix ={
     val RDDarr=getRDDDistRDD(sc,RDDX1,RDDX2)
     val arrflat = RDDarr.flatMap(t => t).collect()
     val dmat = new DenseMatrix(RDDX1.collect().length, RDDX2.collect().length, arrflat)
-    dmat
+    dmat.transpose
   }
 
+  /**
+   * 输入两个Array获得Dmat
+   *
+   * @param Arr1 需要是(Double, Double)的形式
+   * @param Arr2 需要是(Double, Double)的形式
+   * @return Dmat结果为转置后的结果，转置的原因是，Dmat默认按列存储。
+   *         输出的第一行为Arr1第一个元素和Arr2所有元素的距离。
+   *         如有后续计算需要，可以考虑将转置取消
+   */
   def getArrDistDmat(Arr1: Array[(Double, Double)], Arr2: Array[(Double, Double)]): DenseMatrix = {
     val arrdist = arrayDist(Arr1, Arr2)
-    val dmat= new DenseMatrix(Arr1.length, Arr2.length, arrdist)
-    dmat
+    val dmat= new DenseMatrix(Arr2.length, Arr1.length, arrdist)
+    dmat.transpose
   }
 
 }
