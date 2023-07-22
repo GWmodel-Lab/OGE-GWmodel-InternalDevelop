@@ -105,7 +105,7 @@ object GWMspatialweight {
 
   def filterwithBw(dist:DenseVector[Double],weight:DenseVector[Double], bw:Double): DenseVector[Double]={
     for(i <-0 until dist.length){
-      if (dist(i) >= bw ){
+      if (dist(i) > bw ){
         weight(i) = 0.0
       }
     }
@@ -115,7 +115,7 @@ object GWMspatialweight {
     val distcopy=dist.copy.toArray.sorted
     var fbw=distcopy.max
     if (abw < distcopy.length) {
-      fbw = distcopy(abw+1)
+      fbw = distcopy(abw-1)
     }
     else{
       println("Error bandwidth, biggest bandwidth has been set")

@@ -31,7 +31,7 @@ object testRun {
     val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
 
     val rdddist=getRDDDistRDD(sc,shpfile,shpfile)
-    val rddweight:RDD[DenseVector[Double]]=spatialweightRDD(rdddist,5000,"bisquare")
+    val rddweight:RDD[DenseVector[Double]]=spatialweightRDD(rdddist,10,"bisquare",true)
 
     rddweight.collect().foreach(println)
 //    val arrweight=rddweight.flatMap(t=>DenseVector2Array(t)).collect()
