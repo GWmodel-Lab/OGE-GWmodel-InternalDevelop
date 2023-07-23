@@ -27,13 +27,29 @@ object testRun {
     val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
     val sc = new SparkContext(conf)
 
-    val shpPath: String = "testdata\\LNHP100.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
+    val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
     val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
 
-    val rdddist=getRDDDistRDD(sc,shpfile,shpfile)
-    val rddweight:RDD[DenseVector[Double]]=spatialweightRDD(rdddist,10,"bisquare",true)
+    val geom=shpfile.map(t=>t._2._1)
+    val nb=getNeighborBool(geom)
+    val arrnb=nb.map(t=>t.toVector).collect()
+    arrnb.foreach(println)
+    val idx=boolNeighborIndex(nb)
+    val arridx=idx.map(t=>t.toVector).collect()
+    arridx.foreach(println)
+    val weinb=boolNeighborWeight(nb)
+    val arrweinb=weinb.map(t=>t.toVector).collect()
+    arrweinb.foreach(println)
 
-    rddweight.collect().foreach(println)
+    //    val testshp=shpfile.map(t=>{
+    //      val geom=t._2._1
+    //      val prop=t._2._2("Avg_AQI")
+    //      (geom,prop)
+    //    })
+//    val rdddist=getRDDDistRDD(sc,shpfile,shpfile)
+//    val rddweight:RDD[DenseVector[Double]]=spatialweightRDD(rdddist,10,"bisquare",true)
+//
+//    rddweight.collect().foreach(println)
 //    val arrweight=rddweight.flatMap(t=>DenseVector2Array(t)).collect()
 
 
