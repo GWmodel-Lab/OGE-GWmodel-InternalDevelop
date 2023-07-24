@@ -19,7 +19,7 @@ import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
 
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
-
+import whu.edu.cn.debug.GWmodelUtil.sp_autocorrelation._
 
 object testRun {
   def main(args: Array[String]): Unit = {
@@ -32,14 +32,13 @@ object testRun {
     val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
     println(getGeometryType(shpfile))
 
+    val re=globalMoranI(shpfile,"HR60")
+    println(s"global Moran's I is: $re")
 
-//    val geom=getGeometry(shpfile)
-//    val nb=getNeighborBool(geom)
-//    val idx=boolNeighborIndex(nb).collect()
-//    printArrArr(idx)
-    val nb_weight=getNeighborWeight(shpfile)
-    nb_weight.collect().foreach(println)
-
+    //    val geom=getGeometry(shpfile)
+    //    val nb=getNeighborBool(geom)
+    //    val idx=boolNeighborIndex(nb).collect()
+    //    printArrArr(idx)
 
 //    val time1: Long = System.currentTimeMillis()
 //    val rdddist=getRDDDistRDD(sc,shpfile)
