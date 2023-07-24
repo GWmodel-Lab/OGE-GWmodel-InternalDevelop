@@ -7,7 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Coordinate, Geometry}
 import org.sparkproject.dmg.pmml.False
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, Map}
 //import cern.colt.matrix._
 import org.apache.spark.mllib.linalg._
 
@@ -17,6 +17,19 @@ object GWMspatialweight {
   //    val gaussian, exponential, bisquare, tricube, boxcar = Value
   //  }
 
+  /**
+   * 对距离RDD进行权重向量求解，尤其是通过getRDDDistRDD函数得到的距离
+   *
+   * @param distRDD     \~english Distance RDD[Array[Double]] \~chinese 距离 RDD[Array[Double]]类型
+   * @param bw       \~english Bandwidth size \~chinese 带宽大小
+   * @param kernel   \~english Kernel function, default is "gaussian" \~chinese 核函数，默认为高斯核函数
+   * @param adaptive \~english bandwidth type: adaptive(true) or fixed(false, default) \~chinese 带宽类型，可变带宽为true，固定带宽为false，默认为固定带宽
+   * @return \~english Weight value of RDD \~chinese RDD形式的权重向量
+   */
+  def getSpatialweight(distRDD: RDD[Array[Double]], bw: Double, kernel: String = "gaussian", adaptive: Boolean = false): RDD[DenseVector[Double]] = {
+    val RDDdvec = distRDD.map(t => Array2DenseVector(t))
+    RDDdvec.map(t => getSpatialweightSingle(t, bw, kernel, adaptive))
+  }
 
   /**
    * 对单个距离向量进行权重向量求解
@@ -27,7 +40,7 @@ object GWMspatialweight {
    * @param adaptive \~english bandwidth type: adaptive(true) or fixed(false, default) \~chinese 带宽类型，可变带宽为true，固定带宽为false，默认为固定带宽
    * @return \~english Weight value \~chinese 权重向量
    */
-  def spatialweightSingle(dist: DenseVector[Double], bw: Double, kernel: String = "gaussian", adaptive: Boolean = false): DenseVector[Double] = {
+  def getSpatialweightSingle(dist: DenseVector[Double], bw: Double, kernel: String = "gaussian", adaptive: Boolean = false): DenseVector[Double] = {
     var weight: DenseVector[Double] = DenseVector.zeros(dist.length)
     if (adaptive == false) {
       kernel match {
@@ -52,11 +65,6 @@ object GWMspatialweight {
       throw new IllegalArgumentException("Illegal Argument of adaptive")
     }
     weight
-  }
-
-  def spatialweightRDD(distRDD: RDD[Array[Double]], bw: Double, kernel: String = "gaussian", adaptive: Boolean = false): RDD[DenseVector[Double]] = {
-    val RDDdvec = distRDD.map(t => Array2DenseVector(t))
-    RDDdvec.map(t => spatialweightSingle(t, bw, kernel, adaptive))
   }
 
   def Array2DenseVector(inputArr: Array[Double]): DenseVector[Double] = {
@@ -124,6 +132,30 @@ object GWMspatialweight {
       println("Error bandwidth, biggest bandwidth has been set")
     }
     fbw
+  }
+
+  /**
+   * 获取一个面状矢量RDD的邻接权重矩阵，输入如果不是面状数据，输出所有权重将是0
+   *
+   * @param polyRDD 输入的面状数据，项目矢量RDD类型
+   * @return RDD形式的权重向量
+   */
+  def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[DenseVector[Double]]={
+    val geomtype=getGeometryType(polyRDD)
+    if ("Point"==geomtype) {
+      println(s" Remind!!! The geometry type of input RDD is: $geomtype")
+    }
+    val geomRDD=getGeometry(polyRDD)
+    val nb_bool=getNeighborBool(geomRDD)
+    boolNeighborWeight(nb_bool).map(t=>t*(t/t.sum))
+  }
+
+  def getGeometry(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Geometry]={
+    geomRDD.map(t=>t._2._1)
+  }
+
+  def getGeometryType(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): String = {
+    geomRDD.map(t => t._2._1).first().getGeometryType
   }
 
   def getNeighborBool(polyrdd: RDD[(Geometry)]): RDD[Array[Boolean]] = {
