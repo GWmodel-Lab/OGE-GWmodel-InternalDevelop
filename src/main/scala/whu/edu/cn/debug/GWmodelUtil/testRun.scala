@@ -32,8 +32,17 @@ object testRun {
     val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
     println(getGeometryType(shpfile))
 
-    val re=globalMoranI(shpfile,"HR60")
-    println(s"global Moran's I is: $re")
+    val globali=globalMoranI(shpfile,"HR60")
+    println(s"global Moran's I is: $globali")
+
+    println("-------------")
+    val locali=localMoranI(shpfile,"HR60")
+    println("-----------local moran's I--------------")
+    locali._1.foreach(println)
+    println("-------------expectation------------")
+    locali._2.foreach(println)
+
+
 
     //    val geom=getGeometry(shpfile)
     //    val nb=getNeighborBool(geom)
@@ -48,51 +57,6 @@ object testRun {
 //    rddweight.collect().foreach(println)
 //    val time3: Long = System.currentTimeMillis()
 //    println(time3-time2,time2-time1)
-
-//    val apoint=getCoorXY(shpfile)
-//    val aX=apoint.take(1)
-//    val arr0=arrayDist(aX,apoint)
-//    //    arr0.foreach(println)
-//    val dv: DenseVector[Double] = new DenseVector(arr0)
-////    arr0.sorted.take(20).foreach(println)
-//    val weight = getSpatialweightSingle(dv,10,"bisquare",true)
-//    weight.foreach(println)
-
-//    println("gaussianKernelFunction")
-//    val weight1 = GaussianKernelFunction(dv,bw)
-//    weight1.foreach(println)
-//    println("exponentialKernelFunction")
-//    val weight2 = ExponentialKernelFunction(dv, bw)
-//    weight2.foreach(println)
-//    println("BisquareKernelFunction")
-//    val weight3 = bisquareKernelFunction(dv, bw)
-//    weight3.foreach(println)
-//    println("TricubeKernelFunction")
-//    val weight4 = tricubeKernelFunction(dv, bw)
-//    weight4.foreach(println)
-//    println("BoxcarKernelFunction")
-//    val weight5 = boxcarKernelFunction(dv, bw)
-//    weight5.foreach(println)
-
-//    val arr4=apoint.take(4)
-//    val arr3=apoint.take(3)
-//    println("arr4")
-//    arr4.foreach(println)
-//    println("arr3")
-//    arr3.foreach(println)
-//    val arrd=arrayDist(arr4,arr3)
-//    println("dis")
-//    arrd.foreach(println)
-//    val dmat1= new DenseMatrix(arr3.length, arr4.length, arrd)
-//    println(dmat1.transpose)
-//    val dmat2 = getArrDistDmat(arr4,arr3)
-//    println(dmat2)
-
-    //    val testshp=shpfile.map(t=>{
-    //      val geom=t._2._1
-    //      val prop=t._2._2("Avg_AQI")
-    //      (geom,prop)
-    //    })
 
   }
 

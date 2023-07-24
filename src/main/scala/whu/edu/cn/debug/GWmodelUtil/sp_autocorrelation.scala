@@ -33,8 +33,27 @@ object sp_autocorrelation {
 //    remain to be coded
   }
 
-  def localMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String)={
+  def localMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String): Tuple2[Array[Double],Array[Double]] = {
+    val nb_weight = getNeighborWeight(featRDD)
+    val arr = featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
+    val arr_mean = meandiff(arr)
+    val arr_mul = arr_mean.map(t => {
+      val re = arr_mean.clone()
+      DenseVector(re)
+    })
+    val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
+    val rightup = weight_m_arr.map(t => t.sum)
+    val leftdn = arr_mean.map(t => t * t).sum / (arr_mean.length)
+//    > m2 <- sum(z * z) / n
+//    > - (z ^ 2 * Wi) / ((n - 1) * m2)
+    val dvec_mean=DenseVector(arr_mean)
+    val expectation = - dvec_mean*dvec_mean/((arr_mean.length-1)*(dvec_mean*dvec_mean).sum/arr_mean.length)
+    val local_moranI = (dvec_mean / leftdn * DenseVector(rightup)).toArray
+    (local_moranI,expectation.toArray)
+  }
 
+  def localMoranItest(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String) = {
+    //    remain to be coded
   }
 
   def arrdvec2multi(arr1:Array[DenseVector[Double]], arr2:Array[DenseVector[Double]]): Array[DenseVector[Double]]={
@@ -44,13 +63,13 @@ object sp_autocorrelation {
     re.toArray
   }
 
-  def arr2multi(arr1: Array[Double], arr2:Array[Double]): DenseVector[Double]={
-    val re=new Array[Double](arr1.length)
-    for (i <- 0 until arr1.length if arr1.length==arr2.length){
-        re(i)=arr1(i)*arr2(i)
-      }
-    DenseVector(re)
-  }
+//  def arr2multi(arr1: Array[Double], arr2:Array[Double]): Array[Double]={
+//    val re=new Array[Double](arr1.length)
+//    for (i <- 0 until arr1.length if arr1.length==arr2.length){
+//        re(i)=arr1(i)*arr2(i)
+//      }
+//    re
+//  }
 
   def meandiff(arr:Array[Double]):Array[Double]={
     val ave=arr.sum/arr.length
