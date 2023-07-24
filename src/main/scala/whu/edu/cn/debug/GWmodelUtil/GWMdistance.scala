@@ -78,6 +78,20 @@ object GWMdistance {
   }
 
   /**
+   * 输入一个RDD以及SparkContext获得RDD自身的距离，返回RDD
+   *
+   * @param sc    SparkContext，需要在计算中生成RDD
+   * @param inputRDD 项目默认矢量RDD的形式
+   * @return 输入RDD的距离矩阵，以RDD[Array[Double]]的形式
+   */
+  def getRDDDistRDD(sc: SparkContext, inputRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Array[Double]] = {
+    val RDDcoor = inputRDD.map(t => t._2._1.getCentroid.getCoordinate)
+    val arrbuf = getCoorDistArrbuf(RDDcoor, RDDcoor)
+    val RDDarr = sc.makeRDD(arrbuf)
+    RDDarr
+  }
+
+  /**
    * 输入两个RDD以及SparkContext获得距离，返回RDD
    *
    * @param sc    SparkContext，需要在计算中生成RDD
@@ -85,9 +99,9 @@ object GWMdistance {
    * @param RDDX2 项目默认矢量RDD的形式
    * @return RDD[Array[Double]] 结果中每个Array应按顺序存储了RDDX1第i个元素和RDDX2所有元素的距离
    */
-  def getRDDDistRDD(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Array[Double]] = {
-    val RDDcoor1 = RDDX1.map(t => t._2._1.getCoordinate)
-    val RDDcoor2 = RDDX2.map(t => t._2._1.getCoordinate)
+  def get2RDDDistRDD(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Array[Double]] = {
+    val RDDcoor1 = RDDX1.map(t => t._2._1.getCentroid.getCoordinate)
+    val RDDcoor2 = RDDX2.map(t => t._2._1.getCentroid.getCoordinate)
     val arrbuf = getCoorDistArrbuf(RDDcoor1, RDDcoor2)
     val RDDarr = sc.makeRDD(arrbuf)
     RDDarr
@@ -109,8 +123,8 @@ object GWMdistance {
    *         输出的第一行为RDDX1第一个元素和RDDX2所有元素的距离。
    *         如有后续计算需要，可以考虑将转置取消
    */
-  def getRDDDistDmat(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): DenseMatrix ={
-    val RDDarr=getRDDDistRDD(sc,RDDX1,RDDX2)
+  def get2RDDDistDmat(sc: SparkContext, RDDX1: RDD[(String, (Geometry, Map[String, Any]))], RDDX2: RDD[(String, (Geometry, Map[String, Any]))]): DenseMatrix ={
+    val RDDarr=get2RDDDistRDD(sc,RDDX1,RDDX2)
     val arrflat = RDDarr.flatMap(t => t).collect()
     val dmat = new DenseMatrix(RDDX1.collect().length, RDDX2.collect().length, arrflat)
     dmat.transpose

@@ -8,7 +8,7 @@ import whu.edu.cn.util.ShapeFileUtil
 import scala.collection.immutable.List
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math.{abs, max, min, pow, sqrt}
-
+import scala.reflect.ClassTag
 //import org.apache.spark.mllib.linalg._
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.stat.Correlation
@@ -20,6 +20,7 @@ import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
+
 object testRun {
   def main(args: Array[String]): Unit = {
     //    val time1: Long = System.currentTimeMillis()
@@ -27,15 +28,27 @@ object testRun {
     val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
     val sc = new SparkContext(conf)
 
-    val shpPath: String = "testdata\\LNHP100.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
+    val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
     val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
+    println(getGeometryType(shpfile))
 
-    val rdddist=getRDDDistRDD(sc,shpfile,shpfile)
-    val rddweight:RDD[DenseVector[Double]]=spatialweightRDD(rdddist,10,"bisquare",true)
 
-    rddweight.collect().foreach(println)
-//    val arrweight=rddweight.flatMap(t=>DenseVector2Array(t)).collect()
+//    val geom=getGeometry(shpfile)
+//    val nb=getNeighborBool(geom)
+//    val idx=boolNeighborIndex(nb).collect()
+//    printArrArr(idx)
+    val nb_weight=getNeighborWeight(shpfile)
+    nb_weight.collect().foreach(println)
 
+
+//    val time1: Long = System.currentTimeMillis()
+//    val rdddist=getRDDDistRDD(sc,shpfile)
+////    printArrArr(rdddist.collect())
+//    val time2: Long = System.currentTimeMillis()
+//    val rddweight=getSpatialweight(rdddist,50,"gaussian",true)
+//    rddweight.collect().foreach(println)
+//    val time3: Long = System.currentTimeMillis()
+//    println(time3-time2,time2-time1)
 
 //    val apoint=getCoorXY(shpfile)
 //    val aX=apoint.take(1)
@@ -43,7 +56,7 @@ object testRun {
 //    //    arr0.foreach(println)
 //    val dv: DenseVector[Double] = new DenseVector(arr0)
 ////    arr0.sorted.take(20).foreach(println)
-//    val weight = spatialweightSingle(dv,10,"bisquare",true)
+//    val weight = getSpatialweightSingle(dv,10,"bisquare",true)
 //    weight.foreach(println)
 
 //    println("gaussianKernelFunction")
@@ -76,6 +89,17 @@ object testRun {
 //    val dmat2 = getArrDistDmat(arr4,arr3)
 //    println(dmat2)
 
+    //    val testshp=shpfile.map(t=>{
+    //      val geom=t._2._1
+    //      val prop=t._2._2("Avg_AQI")
+    //      (geom,prop)
+    //    })
+
+  }
+
+  def printArrArr[T: ClassTag](arrarr: Array[Array[T]]) = {
+    val arrvec=arrarr.map(t=>t.toVector)
+    arrvec.foreach(println)
   }
 
   def testcorr(testshp: RDD[(String, (Geometry, Map[String, Any]))]) : Unit={
