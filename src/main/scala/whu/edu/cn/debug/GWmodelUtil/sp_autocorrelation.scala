@@ -9,6 +9,13 @@ import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
 object sp_autocorrelation {
 
+  /**
+   * 输入RDD直接计算全局莫兰指数
+   *
+   * @param featRDD   RDD
+   * @param property  要计算的属性，String
+   * @return  （全局莫兰指数，峰度）(Double,Double)形式
+   */
   def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String): (Double,Double)={
     val nb_weight=getNeighborWeight(featRDD)
     val sum_weight=sumWeight(nb_weight)
@@ -33,6 +40,13 @@ object sp_autocorrelation {
 //    remain to be coded
   }
 
+  /**
+   * 输入RDD直接计算局部莫兰指数
+   *
+   * @param featRDD  RDD
+   * @param property 要计算的属性，String
+   * @return （局部莫兰指数，预测值）Tuple2[Array,Array]形式
+   */
   def localMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String): Tuple2[Array[Double],Array[Double]] = {
     val nb_weight = getNeighborWeight(featRDD)
     val arr = featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()

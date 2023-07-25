@@ -35,33 +35,27 @@ object testRun {
     val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
     val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
 //    val geom=println(getGeometryType(shpfile))
-    println("-------------")
+
+    val globali = globalMoranI(shpfile, "HR60")
+    println(s"global Moran's I is: ${globali._1}")
+
     val locali=localMoranI(shpfile,"HR60")
     println("-----------local moran's I--------------")
-//    locali._1.foreach(println)
+    locali._1.foreach(println)
 
-//    val shpRDDidx = shpfile.collect().zipWithIndex
-//    shpRDDidx.map(t => {
-//      t._1._2._2 += ("locali" -> locali._1(t._2))
-//    })
-//    val outputshpRDD=sc.makeRDD(shpRDDidx.map(t => t._1))
+//    val result1=writeRDD(sc,shpfile,locali._1,"moran_i")
+//    val result2=writeRDD(sc,result1,locali._2,"expect")
 //    val outputpath="testdata\\MississippiMoranI.shp"
-//
-//    createShp(outputpath, "utf-8", classOf[MultiPolygon], outputshpRDD.map(t => {
-//              t._2._2 + (DEF_GEOM_KEY -> t._2._1)
-//            }).collect().map(_.asJava).toList.asJava)
-//    println(s"shpfile written successfully in $outputpath")
-
-    val result1=writeRDD(sc,shpfile,locali._1,"moran_i")
-    val result2=writeRDD(sc,result1,locali._2,"expect")
-    val outputpath="testdata\\MississippiMoranI.shp"
-    writeshpfile(result2,outputpath)
-
-//    val globali = globalMoranI(shpfile, "HR60")
-//    println(s"global Moran's I is: $globali")
+//    writeshpfile(result2,outputpath)
 
   }
 
+  /**
+   * 输入写出的RDD和路径，写出shpfile。添加了一定的类型判断，没有测试
+   *
+   * @param outputshpRDD 要写出的RDD
+   * @param outputshpPath 要写出的路径
+   */
   def writeshpfile(outputshpRDD: RDD[(String, (Geometry, Map[String, Any]))], outputshpPath:String)={
     val geom=getGeometryType(outputshpRDD)
     geom match {
@@ -79,7 +73,19 @@ object testRun {
     println(s"shpfile written successfully in $outputshpPath")
   }
 
+  /**
+   * 输入要添加的属性数据和RDD，输出RDD
+   *
+   * @param sc  SparkContext
+   * @param shpRDD 源RDD
+   * @param writeArray  要写入的属性数据，Array形式
+   * @param propertyName  属性名，String类型，需要少于10个字符
+   * @return  RDD
+   */
   def writeRDD(sc: SparkContext, shpRDD: RDD[(String, (Geometry, Map[String, Any]))], writeArray:Array[Double], propertyName:String): RDD[(String, (Geometry, Map[String, Any]))] ={
+    if(propertyName.length >= 10){
+      throw new IllegalArgumentException("the length of property name must not longer than 10!!")
+    }
     val shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1._2._2 += (propertyName -> writeArray(t._2))
