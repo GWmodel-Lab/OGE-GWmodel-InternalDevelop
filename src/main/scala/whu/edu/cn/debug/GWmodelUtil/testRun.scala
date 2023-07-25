@@ -3,7 +3,7 @@ package whu.edu.cn.debug.GWmodelUtil
 import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry, LineString}
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, Point}
 import whu.edu.cn.oge.Feature
 import whu.edu.cn.util.ShapeFileUtil._
 
@@ -34,67 +34,57 @@ object testRun {
 
     val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
     val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
-    val geom=println(getGeometryType(shpfile))
+//    val geom=println(getGeometryType(shpfile))
     println("-------------")
     val locali=localMoranI(shpfile,"HR60")
     println("-----------local moran's I--------------")
 //    locali._1.foreach(println)
 
-    val shp = shpfile.map(t => t._2._2).collect()
-    for (i <- 0 until locali._1.length) {
-      shp(i) += ("locali" -> locali._1(i))
-    }
-//    println("-------shp-----------")
-//    shp.foreach(println)
-
-    val outdata = shpfile.collect().zipWithIndex
-    outdata.map(t => {
-      t._1._2._2 += ("locali"->locali._1(t._2))
-    })
-    val result=sc.makeRDD(outdata.map(t=>t._1))
-    println("-------------result------------------")
-    result.collect().foreach(println)
-
-    createShp("testdata\\MississippiMorani.shp","utf-8",classOf[MultiPolygon],result.map(t => {
-      t._2._2 + (DEF_GEOM_KEY -> t._2._1)
-    }).collect().map(_.asJava).toList.asJava)
-    println("成功落地shp")
-
-//    var data=shpfile.collect()
-//    data.map(shpt=>{
-////      shpt._2._2 += ("locali",0.0)
-//      shpt._2._2=shp.foreach(t=>t)
+//    val shpRDDidx = shpfile.collect().zipWithIndex
+//    shpRDDidx.map(t => {
+//      t._1._2._2 += ("locali" -> locali._1(t._2))
 //    })
-//    println("-------------re------------------")
-//    data.map(t=>t._2._2).foreach(println)
+//    val outputshpRDD=sc.makeRDD(shpRDDidx.map(t => t._1))
+//    val outputpath="testdata\\MississippiMoranI.shp"
+//
+//    createShp(outputpath, "utf-8", classOf[MultiPolygon], outputshpRDD.map(t => {
+//              t._2._2 + (DEF_GEOM_KEY -> t._2._1)
+//            }).collect().map(_.asJava).toList.asJava)
+//    println(s"shpfile written successfully in $outputpath")
 
+    val result1=writeRDD(sc,shpfile,locali._1,"moran_i")
+    val result2=writeRDD(sc,result1,locali._2,"expect")
+    val outputpath="testdata\\MississippiMoranI.shp"
+    writeshpfile(result2,outputpath)
 
 //    val globali = globalMoranI(shpfile, "HR60")
 //    println(s"global Moran's I is: $globali")
 
-    //    val geom=getGeometry(shpfile)
-    //    val nb=getNeighborBool(geom)
-    //    val idx=boolNeighborIndex(nb).collect()
-    //    printArrArr(idx)
-
-//    val time1: Long = System.currentTimeMillis()
-//    val rdddist=getRDDDistRDD(sc,shpfile)
-////    printArrArr(rdddist.collect())
-//    val time2: Long = System.currentTimeMillis()
-//    val rddweight=getSpatialweight(rdddist,50,"gaussian",true)
-//    rddweight.collect().foreach(println)
-//    val time3: Long = System.currentTimeMillis()
-//    println(time3-time2,time2-time1)
-
   }
 
-  def makenewdata(data: Array[Map[String, Any]], geom: Array[Geometry])={
-        for (i <- 0 until geom.length) {
-          data.map(t=>{
-            (geom(i),t)
-          })
-
+  def writeshpfile(outputshpRDD: RDD[(String, (Geometry, Map[String, Any]))], outputshpPath:String)={
+    val geom=getGeometryType(outputshpRDD)
+    geom match {
+      case "MultiPolygon" => createShp(outputshpPath, "utf-8", classOf[MultiPolygon], outputshpRDD.map(t => {
+        t._2._2 + (DEF_GEOM_KEY -> t._2._1)
+      }).collect().map(_.asJava).toList.asJava)
+      case "Point" => createShp(outputshpPath, "utf-8", classOf[Point], outputshpRDD.map(t => {
+        t._2._2 + (DEF_GEOM_KEY -> t._2._1)
+      }).collect().map(_.asJava).toList.asJava)
+      case "LineString" => createShp(outputshpPath, "utf-8", classOf[LineString], outputshpRDD.map(t => {
+        t._2._2 + (DEF_GEOM_KEY -> t._2._1)
+      }).collect().map(_.asJava).toList.asJava)
+      case _ => throw new IllegalArgumentException("can not modified geometry type, please retry")
     }
+    println(s"shpfile written successfully in $outputshpPath")
+  }
+
+  def writeRDD(sc: SparkContext, shpRDD: RDD[(String, (Geometry, Map[String, Any]))], writeArray:Array[Double], propertyName:String): RDD[(String, (Geometry, Map[String, Any]))] ={
+    val shpRDDidx = shpRDD.collect().zipWithIndex
+    shpRDDidx.map(t => {
+      t._1._2._2 += (propertyName -> writeArray(t._2))
+    })
+    sc.makeRDD(shpRDDidx.map(t => t._1))
   }
 
   def printArrArr[T: ClassTag](arrarr: Array[Array[T]]) = {
