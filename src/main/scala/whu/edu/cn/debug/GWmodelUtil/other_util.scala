@@ -14,15 +14,49 @@ import scala.reflect.ClassTag
 
 object other_util {
 
-  def readcsv(implicit sc: SparkContext, csvPath: String): RDD[Array[String]]={
+  def readcsv(implicit sc: SparkContext, csvPath: String): RDD[Array[(String, Int)]]={
     val data = sc.textFile(csvPath)
     val csvdata = data.map(line => {
       val reader = new CSVReader(new StringReader((line)))
       reader.readNext()
     })
-    csvdata
+    csvdata.map(t=>t.zipWithIndex)
   }
 
+  def attributeSelectHead(csvRDD: RDD[Array[(String, Int)]], property: String): Array[String] = {
+    val head = csvRDD.collect()(0)
+    val csvArr = csvRDD.collect().drop(1)
+    var resultArr = new Array[String](csvArr.length)
+    var idx: Int = -1
+    head.map(t => {
+      if (t._1 == property) idx = t._2
+    })
+    //    println(idx)
+    if (idx == -1) {
+      throw new IllegalArgumentException("property name didn't exist!!")
+    } else {
+      val df = csvArr.map(t => t.filter(i => i._2 == idx).map(t => t._1))
+      resultArr = df.flatMap(t => t)
+    }
+    //    resultArr.foreach(println)
+    resultArr
+  }
+
+  def attributeSelectNum(csvRDD: RDD[Array[(String, Int)]], number: Int): Array[String] = {
+    val head = csvRDD.collect()(0)
+    val csvArr = csvRDD.collect().drop(1)
+    var resultArr = new Array[String](csvArr.length)
+    val idx: Int = number - 1 //从1开始算
+    //    println(idx)
+    if (idx >= head.length || idx < 0) {
+      throw new IllegalArgumentException("property number didn't exist!!")
+    } else {
+      val df = csvArr.map(t => t.filter(i => i._2 == idx).map(t => t._1))
+      resultArr = df.flatMap(t => t)
+    }
+    //    resultArr.foreach(println)
+    resultArr
+  }
 
   /**
    * 输入要添加的属性数据和RDD，输出RDD

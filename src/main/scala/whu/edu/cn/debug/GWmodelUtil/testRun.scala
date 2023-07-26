@@ -21,8 +21,7 @@ import org.apache.spark.mllib.stat.Statistics
 import breeze.numerics._
 import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
 import scala.collection.JavaConverters._
-import java.io.{StringReader,StringWriter}
-import au.com.bytecode.opencsv._
+import java.text.SimpleDateFormat
 
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
@@ -58,16 +57,39 @@ object testRun {
     val csvdata=readcsv(sc,csvpath)
 //    printArrArr(csvdata.collect())
 
-    val dt=csvdata.map(t=>t.zipWithIndex).collect()
-//    dt.map(t=>t.foreach(println))
-    val dt2=csvdata.flatMap(t=>t.zipWithIndex).collect()
-    val dt3=dt.drop(1)
-    dt3.map(t=>t.foreach(println))
-    val idx0=dt2.filter(t=>t._2==3).map(t=>t._1)
-    idx0.foreach(println)
-    println(dt2.length,dt3.length)
+    val timep=attributeSelectHead(csvdata,"time_point")
+    val timepattern = "yyyy/MM/dd"
+    val date=timep.map(t=>{
+      val date = new SimpleDateFormat(timepattern).parse(t)
+      date
+    })
+    date.foreach(println)
+    println((date(300).getTime - date(0).getTime)/1000/60/60/24)
 
+//    val tem=attributeSelectHead(csvdata,"temperature")
+//    tem.foreach(println)
+//    val db_tem=tem.map(t=>t.toDouble)
+//    println(db_tem.sum)
 
+//    val aqi = attributeSelectNum(csvdata, 2)
+////    aqi.foreach(println)
+//    val db_aqi = aqi.map(t => t.toDouble)
+//    println(db_aqi.sum)
+
+  }
+
+  def readtimeExample(sc: SparkContext)={
+    val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
+    val csvdata = readcsv(sc, csvpath)
+
+    val timep = attributeSelectHead(csvdata, "time_point")
+    val timepattern = "yyyy/MM/dd"
+    val date = timep.map(t => {
+      val date = new SimpleDateFormat(timepattern).parse(t)
+      date
+    })
+    date.foreach(println)
+    println((date(300).getTime - date(0).getTime) / 1000 / 60 / 60 / 24)
   }
 
 }
