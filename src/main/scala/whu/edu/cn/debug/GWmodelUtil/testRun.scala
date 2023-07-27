@@ -57,19 +57,22 @@ object testRun {
     val csvdata=readcsv(sc,csvpath)
 //    printArrArr(csvdata.collect())
 
-    val timep=attributeSelectHead(csvdata,"time_point")
-    val timepattern = "yyyy/MM/dd"
-    val date=timep.map(t=>{
-      val date = new SimpleDateFormat(timepattern).parse(t)
-      date
-    })
-    date.foreach(println)
-    println((date(300).getTime - date(0).getTime)/1000/60/60/24)
+//    //test date calculator
+//    val timep=attributeSelectHead(csvdata,"time_point")
+//    val timepattern = "yyyy/MM/dd"
+//    val date=timep.map(t=>{
+//      val date = new SimpleDateFormat(timepattern).parse(t)
+//      date
+//    })
+//    date.foreach(println)
+//    println((date(300).getTime - date(0).getTime)/1000/60/60/24)
 
-//    val tem=attributeSelectHead(csvdata,"temperature")
+    val tem=attributeSelectHead(csvdata,"temperature")
 //    tem.foreach(println)
-//    val db_tem=tem.map(t=>t.toDouble)
-//    println(db_tem.sum)
+    val db_tem=tem.map(t=>t.toDouble)
+    println(db_tem.sum)
+    val tem_acf = timeseiresacf(db_tem,5)
+    println(s"temperature acf is $tem_acf")
 
 //    val aqi = attributeSelectNum(csvdata, 2)
 ////    aqi.foreach(println)
