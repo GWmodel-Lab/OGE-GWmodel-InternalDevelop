@@ -19,9 +19,10 @@ import org.apache.spark.ml.stat.Correlation
 import org.apache.spark.sql.{DataFrame, Row, SparkSession, functions}
 import org.apache.spark.mllib.stat.Statistics
 import breeze.numerics._
-import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
+import breeze.linalg.{linspace, Vector, DenseVector, Matrix , DenseMatrix}
 import scala.collection.JavaConverters._
 import java.text.SimpleDateFormat
+import breeze.plot._
 
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
@@ -42,7 +43,7 @@ object testRun {
     val globali = globalMoranI(shpfile, "HR60")
     println(s"global Moran's I is: ${globali._1}")
 
-//    val locali=localMoranI(shpfile,"HR60")
+    val locali=localMoranI(shpfile,"HR60",plot = true)
 //    println("-----------local moran's I--------------")
 //    locali._1.foreach(println)
 
