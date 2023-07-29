@@ -5,8 +5,10 @@ import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.oge.Feature
-import java.io.{StringReader,StringWriter}
+
+import java.io.{StringReader, StringWriter}
 import au.com.bytecode.opencsv._
+import breeze.linalg.DenseVector
 
 import scala.collection.mutable.Map
 import scala.math.pow

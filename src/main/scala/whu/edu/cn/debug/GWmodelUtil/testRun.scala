@@ -29,6 +29,8 @@ import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 import whu.edu.cn.debug.GWmodelUtil.sp_autocorrelation._
 import whu.edu.cn.debug.GWmodelUtil.other_util._
 
+import whu.edu.cn.debug.GWmodelUtil.SARmodels
+
 object testRun {
   def main(args: Array[String]): Unit = {
 
@@ -40,10 +42,10 @@ object testRun {
     val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
     val geom=println(getGeometryType(shpfile))
 
-    val globali = globalMoranI(shpfile, "HR60")
-    println(s"global Moran's I is: ${globali._1}")
-
-    val locali=localMoranI(shpfile,"HR60",plot = true)
+//    val globali = globalMoranI(shpfile, "HR60")
+//    println(s"global Moran's I is: ${globali._1}")
+//
+//    val locali=localMoranI(shpfile,"HR60")
 //    println("-----------local moran's I--------------")
 //    locali._1.foreach(println)
 
@@ -54,8 +56,8 @@ object testRun {
 
 //    testcorr(shpfile)
 
-    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
-    val csvdata=readcsv(sc,csvpath)
+//    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
+//    val csvdata=readcsv(sc,csvpath)
 //    printArrArr(csvdata.collect())
 
 //    //test date calculator
@@ -68,18 +70,29 @@ object testRun {
 //    date.foreach(println)
 //    println((date(300).getTime - date(0).getTime)/1000/60/60/24)
 
-    val tem=attributeSelectHead(csvdata,"temperature")
-//    tem.foreach(println)
-    val db_tem=tem.map(t=>t.toDouble)
-    println(db_tem.sum)
-    val tem_acf = timeseiresacf(db_tem,5)
-    println(s"temperature acf is $tem_acf")
+//    val tem=attributeSelectHead(csvdata,"temperature")
+////    tem.foreach(println)
+//    val db_tem=tem.map(t=>t.toDouble)
+//    println(db_tem.sum)
+//    val tem_acf = timeseiresacf(db_tem,5)
+//    println(s"temperature acf is $tem_acf")
 
 //    val aqi = attributeSelectNum(csvdata, 2)
 ////    aqi.foreach(println)
 //    val db_aqi = aqi.map(t => t.toDouble)
 //    println(db_aqi.sum)
 
+    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+    val x=Array(DenseVector(x1),DenseVector(x2))
+//    x.foreach(println)
+    var mdl=new SARlagmodel
+    mdl.init(shpfile)
+    mdl.setX(x)
+    mdl.setY(y)
+    mdl.setweight()
+    mdl.get_env()
   }
 
   def readtimeExample(sc: SparkContext)={
