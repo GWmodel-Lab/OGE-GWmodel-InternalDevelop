@@ -1,13 +1,13 @@
 package whu.edu.cn.debug.GWmodelUtil
 
-import breeze.linalg.{DenseMatrix, DenseVector}
+import breeze.linalg.{DenseMatrix, DenseVector, inv, linspace}
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import scala.math.pow
+
+import scala.math.{exp, pow, sqrt}
 import scala.collection.mutable.Map
 import java.text.SimpleDateFormat
 import breeze.plot._
-
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
 object sp_autocorrelation {
@@ -19,7 +19,7 @@ object sp_autocorrelation {
    * @param property  要计算的属性，String
    * @return  （全局莫兰指数，峰度）(Double,Double)形式
    */
-  def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String): (Double,Double)={
+  def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, test:Boolean=false): (Double,Double)={
     val nb_weight=getNeighborWeight(featRDD)
     val sum_weight=sumWeight(nb_weight)
     val arr=featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
@@ -34,13 +34,25 @@ object sp_autocorrelation {
     val weight_m_arr=arrdvec2multi(nb_weight.collect(),arr_mul)
     val rightup=weight_m_arr.map(t=>t.sum).sum
     val rightdn=arr_mean.map(t=>t*t).sum
-    val moran_i=arr.length/sum_weight*rightup/rightdn
-    val kurtosis= (arr.length * arr_mean.map(t=>pow(t,4)).sum) / pow(rightdn,2)
+    val n=arr.length
+    val moran_i=n/sum_weight*rightup/rightdn
+    val kurtosis= (n * arr_mean.map(t=>pow(t,4)).sum) / pow(rightdn,2)
+    if(test) {
+      val E_I = -1.0 / (n - 1)
+      val S_1 = 0.5 * nb_weight.map(t => t.map(t => t * 2 * t * 2).sum).sum()
+      val S_2 = nb_weight.map(t => t.sum * 2).sum()
+      val E_A = n * ((n * n - 3 * n + 3) * S_1) - n * S_2 + 3 * sum_weight * sum_weight
+      val E_B = (arr_mean.map(t => t * t * t * t).sum / (rightdn * rightdn)) * ((n * n - n) * S_1 - 2 * n * S_2 + 6 * sum_weight * sum_weight)
+      val E_C = (n - 1) * (n - 2) * (n - 3) * sum_weight * sum_weight
+      val V_I = (E_A - E_B) / E_C - pow(E_I, 2)
+      val Z_I = (moran_i - E_I) / (sqrt(V_I))
+      val Pvalue = (1 / (sqrt(V_I) * sqrt(2 * 3.14159265))) * exp(-pow(Z_I - E_I, 2) / (2 * V_I))
+      if(Pvalue < 0.01){
+        println(s"Z-Score is: $Z_I, p < 0.01")
+      }
+      println(E_I, V_I, Z_I, Pvalue)
+    }
     (moran_i,kurtosis)
-  }
-
-  def globalMoranItest(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String)={
-//    remain to be coded
   }
 
   /**
@@ -60,30 +72,50 @@ object sp_autocorrelation {
     })
     val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
     val rightup = weight_m_arr.map(t => t.sum)
-    val leftdn = arr_mean.map(t => t * t).sum / (arr_mean.length)
-//    > m2 <- sum(z * z) / n
-//    > - (z ^ 2 * Wi) / ((n - 1) * m2)
     val dvec_mean=DenseVector(arr_mean)
-    val expectation = - dvec_mean*dvec_mean/((arr_mean.length-1)*(dvec_mean*dvec_mean).sum/arr_mean.length)
-    val local_moranI = (dvec_mean / leftdn * DenseVector(rightup)).toArray
+
+    val n  = arr.length //加个判断变换
+    val s2 = arr_mean.map(t => t * t).sum / n
+    val lz = DenseVector(rightup)
+    val z  = dvec_mean
+    val m2 = ((dvec_mean*dvec_mean).sum/ n )
+    val expectation = - z*z / ((n-1)* m2 )
+    val local_moranI = (z / s2 * lz)
     if(plot==true){
-      plotmoran(featRDD,local_moranI)
+      plotmoran(arr,nb_weight)
     }
-    (local_moranI,expectation.toArray)
+//    b2 <- (sum(z^4, na.rm = NAOK)/n)/(s2^2)
+    val b2=((z*z*z*z).sum/ n)/ (s2*s2)
+    val wi2=DenseVector(nb_weight.map(t=>(t*t).sum).collect())
+//    res[,3] <- ((z / m2) ^ 2 * (n / (n - 2)) * (Wi2 - (Wi ^ 2 / (n - 1))) * (m2 - (z ^ 2 / (n - 1))))
+    val var_I=(z/m2)*(z/m2) * (n/(n-2.0)) * (wi2 - (wi2 * wi2 / (n-1.0))) * (m2 - (z * z / (n - 1.0)))
+    val Z_I =( local_moranI- expectation) / var_I.map(t=>sqrt(t))
+    println(var_I)
+    println(Z_I)
+
+    (local_moranI.toArray,expectation.toArray)
   }
 
-  def localMoranItest(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String) = {
-    //    remain to be coded
-  }
-
-  def plotmoran(featRDD: RDD[(String, (Geometry, Map[String, Any]))], resultArr: Array[Double])={
-    val x=featRDD.map(t=>t._2._1.getCoordinate.x).collect()
-    val y=resultArr
+  def plotmoran(x: Array[Double], w: RDD[DenseVector[Double]])={
+    val xx=x
+    val wx=w.map(t=> t dot DenseVector(x)).collect()
     val f = Figure()
     val p = f.subplot(0)
-    p += plot(x, y, '.')
-    p.xlabel = "x axis"
-    p.ylabel = "morani"
+    p += plot(xx, wx, '+')
+    val xxmean=DenseVector.ones[Double](x.length) :*= (xx.sum/xx.length)
+    val wxmean=DenseVector.ones[Double](x.length) :*= (wx.sum/wx.length)
+    val xxy=linspace(wx.min-2,wx.max+2,x.length)
+    val wxy=linspace(xx.min-2,xx.max+2,x.length)
+//    val xt=DenseMatrix(DenseVector.ones[Double](x.length),DenseVector(x))
+//    val yxt=inv(xt) * DenseVector(wx)
+//    val y=DenseMatrix(wxy,DenseVector.ones[Double](x.length)).t * yxt
+    p.xlim = (xx.min-2,xx.max+2)
+    p.ylim = (wx.min-2,wx.max+2)
+//    p += plot(wxy,y)
+    p += plot(xxmean,xxy,lines = false,shapes=true, style = '.', colorcode="[0,0,0]")
+    p += plot(wxy,wxmean,lines = false,shapes=true, style = '.', colorcode="[0,0,0]")
+    p.xlabel = "x"
+    p.ylabel = "wx"
   }
 
   def arrdvec2multi(arr1:Array[DenseVector[Double]], arr2:Array[DenseVector[Double]]): Array[DenseVector[Double]]={

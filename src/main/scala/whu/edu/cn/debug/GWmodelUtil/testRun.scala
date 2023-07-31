@@ -42,12 +42,14 @@ object testRun {
     val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
     val geom=println(getGeometryType(shpfile))
 
-//    val globali = globalMoranI(shpfile, "HR60")
-//    println(s"global Moran's I is: ${globali._1}")
+    val globali = globalMoranI(shpfile, "HR60",test=true)
+    println(s"global Moran's I is: ${globali._1}")
 //
-//    val locali=localMoranI(shpfile,"HR60")
-//    println("-----------local moran's I--------------")
-//    locali._1.foreach(println)
+    val locali=localMoranI(shpfile,"HR60",plot = false)
+    println("-----------local moran's I--------------")
+    locali._1.foreach(println)
+    println("-----------expection--------------")
+    locali._2.foreach(println)
 
 //    val result1=writeRDD(sc,shpfile,locali._1,"moran_i")
 //    val result2=writeRDD(sc,result1,locali._2,"expect")
@@ -82,17 +84,18 @@ object testRun {
 //    val db_aqi = aqi.map(t => t.toDouble)
 //    println(db_aqi.sum)
 
-    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
-    val x=Array(DenseVector(x1),DenseVector(x2))
-//    x.foreach(println)
-    var mdl=new SARlagmodel
-    mdl.init(shpfile)
-    mdl.setX(x)
-    mdl.setY(y)
-    mdl.setweight()
-    mdl.get_env()
+    //test class of sarmodels
+//    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+//    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+//    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+//    val x=Array(DenseVector(x1),DenseVector(x2))
+////    x.foreach(println)
+//    var mdl=new SARlagmodel
+//    mdl.init(shpfile)
+//    mdl.setX(x)
+//    mdl.setY(y)
+//    mdl.setweight()
+//    mdl.get_env()
   }
 
   def readtimeExample(sc: SparkContext)={
