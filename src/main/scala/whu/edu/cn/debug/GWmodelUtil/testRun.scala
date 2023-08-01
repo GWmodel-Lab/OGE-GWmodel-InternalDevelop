@@ -45,11 +45,13 @@ object testRun {
     val globali = globalMoranI(shpfile, "HR60",test=true)
     println(s"global Moran's I is: ${globali._1}")
 //
-    val locali=localMoranI(shpfile,"HR60",plot = false)
+    val locali=localMoranI(shpfile,"HR60",plot = true)
     println("-----------local moran's I--------------")
     locali._1.foreach(println)
-    println("-----------expection--------------")
-    locali._2.foreach(println)
+//    println("-----------p-value--------------")
+//    locali._5.foreach(println)
+
+
 
 //    val result1=writeRDD(sc,shpfile,locali._1,"moran_i")
 //    val result2=writeRDD(sc,result1,locali._2,"expect")
@@ -84,7 +86,7 @@ object testRun {
 //    val db_aqi = aqi.map(t => t.toDouble)
 //    println(db_aqi.sum)
 
-    //test class of sarmodels
+////    test class of sarmodels
 //    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
 //    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
 //    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
