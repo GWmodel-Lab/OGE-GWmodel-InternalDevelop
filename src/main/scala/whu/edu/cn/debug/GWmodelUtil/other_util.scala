@@ -8,7 +8,8 @@ import whu.edu.cn.oge.Feature
 
 import java.io.{StringReader, StringWriter}
 import au.com.bytecode.opencsv._
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseVector, linspace}
+import breeze.plot._
 
 import scala.collection.mutable.Map
 import scala.math.pow
@@ -25,7 +26,27 @@ object other_util {
     csvdata.map(t=>t.zipWithIndex)
   }
 
-  def timeseiresacf(timeArr: Array[Double], timelag: Int): Double={
+  def timeSeries_acf(timeArr: Array[Double], timelag: Int=20): Array[Double] = {
+    val acfarr = DenseVector.zeros[Double](timelag+1).toArray
+    if (timelag > 0) {
+      val f = Figure()
+      val p = f.subplot(0)
+      for (i <- 0 until timelag+1){
+        acfarr(i)=getacf(timeArr,i)
+        val x=DenseVector.ones[Double](5) :*= i.toDouble
+        val y=linspace(0,acfarr(i),5)
+        p += plot(x,y,colorcode="[0,0,255]")
+      }
+      p.xlim = (-0.1,timelag+0.1)
+      p.xlabel = "lag"
+      p.ylabel = "ACF"
+    } else {
+      throw new IllegalArgumentException("Illegal Argument of time lag")
+    }
+    acfarr
+  }
+
+  def getacf(timeArr: Array[Double], timelag: Int): Double={
     val lagArr=timeArr.drop(timelag)
     val tarridx=timeArr.take(lagArr.length).zipWithIndex
     val avg = timeArr.sum / timeArr.length
