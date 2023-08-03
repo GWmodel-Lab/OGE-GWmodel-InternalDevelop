@@ -11,8 +11,9 @@ import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
 class SARlagmodel extends SARmodels {
 
-  var betas: DenseVector[Double]= _
-  var xlength=0
+  var _betas: DenseVector[Double]= _
+
+  var _xlength=0
   var _dX:DenseMatrix[Double] = null
 
   var lm_null: DenseVector[Double]=_
@@ -24,8 +25,8 @@ class SARlagmodel extends SARmodels {
 
   override def setX(x: Array[DenseVector[Double]]) = {
     _X = x
-    xlength = _X(0).length
-    _dX =DenseMatrix.create(rows=xlength,cols=_X.length,data = _X.flatMap(t=>t.toArray))
+    _xlength = _X(0).length
+    _dX =DenseMatrix.create(rows=_xlength,cols=_X.length,data = _X.flatMap(t=>t.toArray))
   }
 
   override def setY(y: Array[Double]) = {
@@ -46,7 +47,7 @@ class SARlagmodel extends SARmodels {
 //    _Y - y_hat
 //  }
 
-  def specify_res(X: DenseMatrix[Double]= _dX , Y: DenseVector[Double]= _Y , W: DenseMatrix[Double] = DenseMatrix.eye(xlength)): DenseVector[Double] = {
+  def specify_res(X: DenseMatrix[Double]= _dX , Y: DenseVector[Double]= _Y , W: DenseMatrix[Double] = DenseMatrix.eye(_xlength)): DenseVector[Double] = {
     val xtw = X.t * W
     val xtwx = xtw * X
     val xtwy = xtw * Y
@@ -65,7 +66,7 @@ class SARlagmodel extends SARmodels {
   }
 
   //not completed
-  def func4optimize(rho: DenseVector[Double]): Unit = {
+  def func4optimize(rho: DenseVector[Double]) = {
     get_env()
     val e_a=lm_null * lm_null
     val e_b=lm_w * lm_null

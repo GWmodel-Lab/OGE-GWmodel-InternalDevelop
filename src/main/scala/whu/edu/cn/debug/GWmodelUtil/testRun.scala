@@ -75,14 +75,19 @@ object testRun {
     val tem=attributeSelectHead(csvdata,"temperature")
 //    tem.foreach(println)
     val db_tem=tem.map(t=>t.toDouble)
-    println(db_tem.sum)
-    val tem_acf = timeSeries_acf(db_tem,10)
-    tem_acf.foreach(println)
+//    println(db_tem.sum)
+//    val tem_acf = timeSeries_acf(db_tem,10)
+//    tem_acf.foreach(println)
 
-//    val aqi = attributeSelectNum(csvdata, 2)
-////    aqi.foreach(println)
-//    val db_aqi = aqi.map(t => t.toDouble)
-//    println(db_aqi.sum)
+    val aqi = attributeSelectNum(csvdata, 2).map(t=>t.toDouble)
+//    aqi.foreach(println)
+    val per=attributeSelectHead(csvdata, "precipitation").map(t=>t.toDouble)
+
+    val x=Array(DenseVector(db_tem),DenseVector(per))
+    val re=global_regression.linearRegression(x,DenseVector(aqi))
+    println(re._1)
+    println(re._2)
+    println(re._3)
 
 ////    test class of sarmodels
 //    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
@@ -98,7 +103,7 @@ object testRun {
 //    mdl.get_env()
   }
 
-  def readtimeExample(sc: SparkContext)={
+  def readtimeExample(sc: SparkContext): Unit = {
     val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
     val csvdata = readcsv(sc, csvpath)
 
