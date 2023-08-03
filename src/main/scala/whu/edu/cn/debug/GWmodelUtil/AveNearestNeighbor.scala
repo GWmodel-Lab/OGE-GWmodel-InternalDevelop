@@ -57,7 +57,7 @@ object AveNearestNeighbor {
     val ANN = Do/De  //平均最近邻指数  ANN>1离散  ANN<1聚集
     val SE = 0.26136/(sqrt(pow(RDDsize, 2)/ A))
     val z = (Do - De)/SE
-    println(ANN,z)
+    println("平均最近邻汇总")
+    println("最近邻比率:"+ANN,"平均观测距离:"+Do,"预期平均距离:"+De,"z得分:"+z,"要素最小外接矩阵面积:"+A)
   }
-
 }
