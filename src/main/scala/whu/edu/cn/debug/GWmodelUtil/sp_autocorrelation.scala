@@ -20,8 +20,8 @@ object sp_autocorrelation {
    * @param property  要计算的属性，String
    * @return  （全局莫兰指数，峰度）(Double,Double)形式
    */
-  def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, test:Boolean=false): (Double,Double)={
-    val nb_weight=getNeighborWeight(featRDD)
+  def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, test:Boolean=false, style:String="W"): (Double,Double)={
+    val nb_weight=getNeighborWeight(featRDD,style)
     val sum_weight=sumWeight(nb_weight)
     val arr=featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
     val arr_mean=meandiff(arr)

@@ -37,13 +37,13 @@ object testRun {
     val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
     val sc = new SparkContext(conf)
 
-//    val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
-////    val shpPath: String = "testdata\\LNHP.shp"
-//    val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
-//    val geom=println(getGeometryType(shpfile))
-//
-//    val globali = globalMoranI(shpfile, "HR60",test=true)
-//    println(s"global Moran's I is: ${globali._1}")
+    val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
+//    val shpPath: String = "testdata\\LNHP100.shp"
+    val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
+    val geom=println(getGeometryType(shpfile))
+
+    val globali = globalMoranI(shpfile, "HR60",test=true)
+    println(s"global Moran's I is: ${globali._1}")
 //
 //    val locali=localMoranI(shpfile,"HR60",plot = false)
 //    println("-----------local moran's I--------------")
@@ -58,8 +58,8 @@ object testRun {
 
 //    testcorr(shpfile)
 
-    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
-    val csvdata=readcsv(sc,csvpath)
+//    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
+//    val csvdata=readcsv(sc,csvpath)
 //    printArrArr(csvdata.collect())
 
 //    //test date calculator
@@ -72,22 +72,22 @@ object testRun {
 //    date.foreach(println)
 //    println((date(300).getTime - date(0).getTime)/1000/60/60/24)
 
-    val tem=attributeSelectHead(csvdata,"temperature")
-//    tem.foreach(println)
-    val db_tem=tem.map(t=>t.toDouble)
-//    println(db_tem.sum)
-//    val tem_acf = timeSeries_acf(db_tem,10)
-//    tem_acf.foreach(println)
-
-    val aqi = attributeSelectNum(csvdata, 2).map(t=>t.toDouble)
-//    aqi.foreach(println)
-    val per=attributeSelectHead(csvdata, "precipitation").map(t=>t.toDouble)
-
-    val x=Array(DenseVector(db_tem),DenseVector(per))
-    val re=global_regression.linearRegression(x,DenseVector(aqi))
-    println(re._1)
-    println(re._2)
-    println(re._3)
+//    val tem=attributeSelectHead(csvdata,"temperature")
+////    tem.foreach(println)
+//    val db_tem=tem.map(t=>t.toDouble)
+////    println(db_tem.sum)
+////    val tem_acf = timeSeries_acf(db_tem,10)
+////    tem_acf.foreach(println)
+//
+//    val aqi = attributeSelectNum(csvdata, 2).map(t=>t.toDouble)
+////    aqi.foreach(println)
+//    val per=attributeSelectHead(csvdata, "precipitation").map(t=>t.toDouble)
+//
+//    val x=Array(DenseVector(db_tem),DenseVector(per))
+//    val re=global_regression.linearRegression(x,DenseVector(aqi))
+//    println(re._1)
+//    println(re._2)
+//    println(re._3)
 
 ////    test class of sarmodels
 //    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()

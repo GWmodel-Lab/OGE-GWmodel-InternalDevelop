@@ -140,14 +140,22 @@ object GWMspatialweight {
    * @param polyRDD 输入的面状数据，项目矢量RDD类型
    * @return RDD形式的权重向量
    */
-  def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[DenseVector[Double]]={
+  def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style:String = "W"): RDD[DenseVector[Double]]={
     val geomtype=getGeometryType(polyRDD)
     if ("Point"==geomtype) {
       println(s" Remind!!! The geometry type of input RDD is: $geomtype")
     }
     val geomRDD=getGeometry(polyRDD)
     val nb_bool=getNeighborBool(geomRDD)
-    boolNeighborWeight(nb_bool).map(t=>t*(t/t.sum))
+    val nb_weight=boolNeighborWeight(nb_bool)
+    val sum_nb:Double =nb_weight.collect().map(t=>t.toArray.sum).sum
+    val avg_nb:Double =nb_weight.collect().length.toDouble
+    style match {
+      case "W" => nb_weight.map(t=>t*(t/t.sum))
+      case "B" => nb_weight.map(t=>t)
+      case "C" => nb_weight.map(t=>( t* (1.0 * avg_nb / sum_nb)))
+      case "U" => nb_weight.map(t=>( t* (1.0 / sum_nb)))
+    }
   }
 
   def getGeometry(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Geometry]={
