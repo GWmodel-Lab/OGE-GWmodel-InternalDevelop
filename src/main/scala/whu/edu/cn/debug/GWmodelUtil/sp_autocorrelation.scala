@@ -20,8 +20,8 @@ object sp_autocorrelation {
    * @param property  要计算的属性，String
    * @return  （全局莫兰指数，峰度）(Double,Double)形式
    */
-  def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, test:Boolean=false, style:String="W"): (Double,Double)={
-    val nb_weight=getNeighborWeight(featRDD,style)
+  def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, plot:Boolean = false, test:Boolean=false, weightstyle:String="W"): (Double,Double)={
+    val nb_weight=getNeighborWeight(featRDD,weightstyle)
     val sum_weight=sumWeight(nb_weight)
     val arr=featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
     val arr_mean=meandiff(arr)
@@ -38,6 +38,9 @@ object sp_autocorrelation {
     val n=arr.length
     val moran_i=n/sum_weight*rightup/rightdn
     val kurtosis= (n * arr_mean.map(t=>pow(t,4)).sum) / pow(rightdn,2)
+    if (plot == true) {
+      plotmoran(arr, nb_weight, moran_i)
+    }
     if(test) {
       val E_I = -1.0 / (n - 1)
       val S_1 = 0.5 * nb_weight.map(t => (t*2.0 * t*2.0).sum).sum()
@@ -49,10 +52,8 @@ object sp_autocorrelation {
       val Z_I = (moran_i - E_I) / (sqrt(V_I))
       val gaussian = breeze.stats.distributions.Gaussian(0, 1)
       val Pvalue = 2 * (1.0 - gaussian.cdf(Z_I))
-//      if(Pvalue < 0.01){
-//        println(s"Z-Score is: $Z_I, p < 0.01")
-//      }
-      println(E_I, V_I, Z_I, Pvalue)
+      println(s"global Moran's I is: $moran_i")
+      println(s"Z-Score is: ${Z_I} , p-value is: ${Pvalue}")
     }
     (moran_i,kurtosis)
   }
@@ -64,7 +65,7 @@ object sp_autocorrelation {
    * @param property 要计算的属性，String
    * @return （局部莫兰指数，均值，方差，Z值，P值）的Tuple形式，每个单独的值为一个Array
    */
-  def localMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, plot:Boolean = false, adjust:Boolean = false):
+  def localMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, adjust:Boolean = false):
                   Tuple5[Array[Double],Array[Double],Array[Double],Array[Double],Array[Double]] = {
     val nb_weight = getNeighborWeight(featRDD)
     val arr = featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
@@ -76,10 +77,6 @@ object sp_autocorrelation {
     val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
     val rightup = weight_m_arr.map(t => t.sum)
     val dvec_mean=DenseVector(arr_mean)
-    if (plot == true) {
-      val global_i = globalMoranI(featRDD , property)
-      plotmoran(arr, nb_weight, global_i._1)
-    }
     var n  = arr.length
     if (adjust==true){
         n  = arr.length-1

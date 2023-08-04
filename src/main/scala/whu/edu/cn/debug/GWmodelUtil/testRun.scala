@@ -40,14 +40,14 @@ object testRun {
     val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
 //    val shpPath: String = "testdata\\LNHP100.shp"
     val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
-    val geom=println(getGeometryType(shpfile))
+    println(getGeometryType(shpfile))
 
-    val globali = globalMoranI(shpfile, "HR60",test=true)
+    val globali = globalMoranI(shpfile, "HR60",plot=true,test=true)
     println(s"global Moran's I is: ${globali._1}")
-//
-//    val locali=localMoranI(shpfile,"HR60",plot = false)
-//    println("-----------local moran's I--------------")
-//    locali._1.foreach(println)
+
+    val locali=localMoranI(shpfile,"HR60")
+    println("-----------local moran's I--------------")
+    locali._1.foreach(println)
 //    println("-----------p-value--------------")
 //    locali._5.foreach(println)
 
