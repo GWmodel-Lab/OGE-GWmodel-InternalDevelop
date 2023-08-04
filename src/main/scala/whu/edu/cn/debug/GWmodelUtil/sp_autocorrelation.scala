@@ -18,6 +18,9 @@ object sp_autocorrelation {
    *
    * @param featRDD   RDD
    * @param property  要计算的属性，String
+   * @param plot   bool类型，是否画散点图，默认为否(false)
+   * @param test  是否进行测试(计算P值等)
+   * @param weightstyle  邻接矩阵的权重类型，参考 getNeighborWeight 函数
    * @return  （全局莫兰指数，峰度）(Double,Double)形式
    */
   def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, plot:Boolean = false, test:Boolean=false, weightstyle:String="W"): (Double,Double)={
@@ -63,6 +66,7 @@ object sp_autocorrelation {
    *
    * @param featRDD  RDD
    * @param property 要计算的属性，String
+   * @param adjust 是否调整n的取值。false(默认):n；true:n-1
    * @return （局部莫兰指数，均值，方差，Z值，P值）的Tuple形式，每个单独的值为一个Array
    */
   def localMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, adjust:Boolean = false):

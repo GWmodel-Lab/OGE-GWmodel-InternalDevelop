@@ -138,6 +138,8 @@ object GWMspatialweight {
    * 获取一个面状矢量RDD的邻接权重矩阵，输入如果不是面状数据，输出所有权重将是0
    *
    * @param polyRDD 输入的面状数据，项目矢量RDD类型
+   * @param style 邻接矩阵的权重计算类型，计算结果只针对邻接的对象算权重，非邻接的对象权重均为0。默认为W类型。
+   *              W：1/邻居数； B：1； C：1/平均邻居数； U：1/总邻居数；
    * @return RDD形式的权重向量
    */
   def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style:String = "W"): RDD[DenseVector[Double]]={
