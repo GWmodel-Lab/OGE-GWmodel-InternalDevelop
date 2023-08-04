@@ -42,12 +42,12 @@ object testRun {
     val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
     println(getGeometryType(shpfile))
 
-    val globali = globalMoranI(shpfile, "HR60",plot=true,test=true)
-    println(s"global Moran's I is: ${globali._1}")
-
-    val locali=localMoranI(shpfile,"HR60")
-    println("-----------local moran's I--------------")
-    locali._1.foreach(println)
+//    val globali = globalMoranI(shpfile, "HR60",plot=true,test=true)
+//    println(s"global Moran's I is: ${globali._1}")
+//
+//    val locali=localMoranI(shpfile,"HR60")
+//    println("-----------local moran's I--------------")
+//    locali._1.foreach(println)
 //    println("-----------p-value--------------")
 //    locali._5.foreach(println)
 
@@ -89,18 +89,22 @@ object testRun {
 //    println(re._2)
 //    println(re._3)
 
-////    test class of sarmodels
-//    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-//    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-//    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
-//    val x=Array(DenseVector(x1),DenseVector(x2))
-////    x.foreach(println)
-//    var mdl=new SARlagmodel
-//    mdl.init(shpfile)
-//    mdl.setX(x)
-//    mdl.setY(y)
-//    mdl.setweight()
-//    mdl.get_env()
+//    test class of sarmodels
+    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+    val x=Array(DenseVector(x1),DenseVector(x2))
+//    x.foreach(println)
+    var mdl=new SARlagmodel
+    mdl.init(shpfile)
+    mdl.setX(x)
+    mdl.setY(y)
+    mdl.setweight()
+    val a=mdl.func4optimize(-1.742396)
+    println(a)
+    val inte=mdl.getinterval()
+    println(inte)
+    val rho=mdl.goldenSelection(inte._1,inte._2)
   }
 
   def readtimeExample(sc: SparkContext): Unit = {

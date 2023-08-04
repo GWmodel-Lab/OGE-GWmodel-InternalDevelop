@@ -8,6 +8,7 @@ import scala.collection.mutable.{ArrayBuffer, Map}
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
+//后续改写成抽象类
 class SARmodels {
 
   protected var _X: Array[DenseVector[Double]]=_
