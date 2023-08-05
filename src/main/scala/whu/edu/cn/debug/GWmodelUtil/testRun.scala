@@ -58,8 +58,8 @@ object testRun {
 
 //    testcorr(shpfile)
 
-//    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
-//    val csvdata=readcsv(sc,csvpath)
+    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
+    val csvdata=readcsv(sc,csvpath)
 //    printArrArr(csvdata.collect())
 
 //    //test date calculator
@@ -76,8 +76,8 @@ object testRun {
 ////    tem.foreach(println)
 //    val db_tem=tem.map(t=>t.toDouble)
 ////    println(db_tem.sum)
-////    val tem_acf = timeSeries_acf(db_tem,10)
-////    tem_acf.foreach(println)
+//    val tem_acf = timeSeries_acf(db_tem,10)
+//    tem_acf.foreach(println)
 //
 //    val aqi = attributeSelectNum(csvdata, 2).map(t=>t.toDouble)
 ////    aqi.foreach(println)
@@ -100,11 +100,15 @@ object testRun {
     mdl.setX(x)
     mdl.setY(y)
     mdl.setweight()
-    val a=mdl.func4optimize(-1.742396)
-    println(a)
-    val inte=mdl.getinterval()
-    println(inte)
-    val rho=mdl.goldenSelection(inte._1,inte._2)
+//    val a=mdl.rho4optimize(-1.742396)
+//    println(a)
+//    val inte=mdl.getinterval()
+//    println(inte)
+//    val rho=mdl.goldenSelection(inte._1,inte._2)
+    mdl.fit()
+    val betas=DenseVector(0.001,0.05)
+    val rho=0.5
+    mdl.nelderMead(rho, betas)
   }
 
   def readtimeExample(sc: SparkContext): Unit = {

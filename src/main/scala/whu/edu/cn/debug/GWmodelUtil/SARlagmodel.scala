@@ -15,11 +15,11 @@ class SARlagmodel extends SARmodels {
   var _betas: DenseVector[Double]= _
 
   var _xlength=0
-  var _dX:DenseMatrix[Double] = null
+  var _dX:DenseMatrix[Double] = _
 
   var lm_null: DenseVector[Double]=_
   var lm_w: DenseVector[Double]=_
-  var _wy:DenseVector[Double] = null
+  var _wy:DenseVector[Double] = _
   var _eigen: eig.DenseEig=_
 
 //  override def init(inputRDD: RDD[(String, (Geometry, Map[String, Any]))]): Unit = {
@@ -37,26 +37,34 @@ class SARlagmodel extends SARmodels {
   }
 
   override def fit(): Unit = {
-    println("created and override")
+
+    val inte = getinterval()
+    val rho = goldenSelection(inte._1, inte._2)
+    val yy = _Y - rho * _wy
+    val betas=get_betas(Y = yy).toArray
+    val res=specify_res(Y = yy)
+    val fit=_Y - res
+    val SSE=sum(res.toArray.map(t=>t*t))
+    val s2 = SSE / _xlength
+    println(fit)
   }
 
-//  def get_res(W:DenseMatrix[Double] = DenseMatrix.eye(xlength)): DenseVector[Double] ={
-//    val xtw = _dX.t * W
-//    val xtwx = xtw * _dX
-//    val xtwy = xtw * _Y
-//    val xtwx_inv = inv(xtwx)
-//    val betas0 = xtwx_inv * xtwy
-//    val y_hat = _dX * betas0
-//    _Y - y_hat
-//  }
+  def get_betas(X: DenseMatrix[Double]= _dX , Y: DenseVector[Double]= _Y , W: DenseMatrix[Double] = DenseMatrix.eye(_xlength)): DenseVector[Double] = {
+    val xtw = X.t * W
+    val xtwx = xtw * X
+    val xtwy = xtw * Y
+    val xtwx_inv = inv(xtwx)
+    val betas = xtwx_inv * xtwy
+    betas
+  }
 
   def specify_res(X: DenseMatrix[Double]= _dX , Y: DenseVector[Double]= _Y , W: DenseMatrix[Double] = DenseMatrix.eye(_xlength)): DenseVector[Double] = {
     val xtw = X.t * W
     val xtwx = xtw * X
     val xtwy = xtw * Y
     val xtwx_inv = inv(xtwx)
-    val betas0 = xtwx_inv * xtwy
-    val y_hat = X * betas0
+    val betas = xtwx_inv * xtwy
+    val y_hat = X * betas
     Y - y_hat
   }
 
@@ -72,7 +80,7 @@ class SARlagmodel extends SARmodels {
     }
   }
 
-  def func4optimize(rho: Double): Double = {
+  def rho4optimize(rho: Double): Double = {
     get_env()
     val e_a = lm_null.t * lm_null
     val e_b = lm_w.t * lm_null
@@ -90,6 +98,7 @@ class SARlagmodel extends SARmodels {
   }
 
   def getinterval():(Double,Double)={
+    get_env()
     val eigvalue = _eigen.eigenvalues.copy
     val min= eigvalue.toArray.min
     val max= eigvalue.toArray.max
@@ -106,10 +115,10 @@ class SARlagmodel extends SARmodels {
     var step = b - a
     var p = a + (1 - ratio) * step
     var q = a + ratio * step
-    var f_a = func4optimize(a)
-    var f_b = func4optimize(b)
-    var f_p = func4optimize(p)
-    var f_q = func4optimize(q)
+    var f_a = rho4optimize(a)
+    var f_b = rho4optimize(b)
+    var f_p = rho4optimize(p)
+    var f_q = rho4optimize(q)
     //    println(f_a,f_b,f_p,f_q)
     while (abs(f_a - f_b) >= eps && iter < max_iter) {
       if (f_p > f_q) {
@@ -119,7 +128,7 @@ class SARlagmodel extends SARmodels {
         f_q = f_p
         step = b - a
         p = a + (1 - ratio) * step
-        f_p = func4optimize(p)
+        f_p = rho4optimize(p)
       } else {
         a = p
         f_a = f_p
@@ -127,12 +136,115 @@ class SARlagmodel extends SARmodels {
         f_p = f_q
         step = b - a
         q = a + ratio * step
-        f_q = func4optimize(q)
+        f_q = rho4optimize(q)
       }
       iter += 1
     }
     println((b + a)/2.0)
     (b + a) / 2.0
+  }
+
+  def lagsse4optimize(rho:Double, betas:DenseVector[Double]): Double={
+    val res = _Y- rho* _wy - _dX * betas
+    val SSE = sum(res.toArray.map(t=>t*t))
+    val n = _xlength
+    val s2 = SSE / n
+    val eigvalue = _eigen.eigenvalues.copy
+    val eig_rho = eigvalue :*= rho
+    val eig_rho_cp = eig_rho.copy
+    val det = sum(breeze.numerics.log(-eig_rho_cp :+= 1.0))
+    val ret = (det - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * s2)) * SSE)
+    ret
+  }
+
+//  def get_ret(rho:Double, SSE: Double): Double = {
+//    val n = _xlength
+//    val s2 = SSE / n
+//    val eigvalue = _eigen.eigenvalues.copy
+//    val eig_rho = eigvalue :*= rho
+//    val eig_rho_cp = eig_rho.copy
+//    val det = sum(breeze.numerics.log(-eig_rho_cp :+= 1.0))
+//    val ret = (det - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * s2)) * SSE)
+//    ret
+//  }
+
+  def nelderMead(rho:Double, betas:DenseVector[Double])= {
+    var iter=0
+    val max_iter=2
+    val th_eps=1e-10
+    val optdata: Array[Array[Double]] = Array(Array(rho), betas.toArray)
+    val optParameter = optdata.flatten
+
+    //如果是3维，算上初始点一共3+1个点，m=3。但是，又因为点数从0开始算，m作为下标，实际应该是3-1=2
+    val m=optParameter.length-1
+
+    var optArr=new ArrayBuffer[Array[Double]]
+    optArr += optParameter
+    for (i<-0 until optParameter.length){
+      val tmp=optParameter.clone()
+      tmp(i) = tmp(i) * 1.05
+      optArr += tmp
+    }
+//    optArr.map(t=>t.foreach(println))
+
+    val re_lagsse0 = optArr.toArray.map(t=>lagsse4optimize(t(0), DenseVector(t.drop(1))))
+    var arr_lagsse=re_lagsse0.clone()
+    var eps=1.0
+
+    //这个是所有的arr
+    var ord_Arr=optArr.clone()
+    
+    while(eps>=th_eps && iter < max_iter) {
+
+      val re_lagsse_idx = arr_lagsse.zipWithIndex.sorted
+//      re_lagsse_idx.foreach(println)
+
+      val ord_0 = ord_Arr(re_lagsse_idx(0)._2)
+      val ord_m = ord_Arr(re_lagsse_idx(m)._2)
+      val ord_m1 = ord_Arr(re_lagsse_idx(m + 1)._2)
+      //      ord_m1.foreach(println)
+      val dif = DenseVector(ord_m1) - DenseVector(ord_0)
+      eps = sqrt(dif.toArray.map(t => t * t).sum)
+      println(s"the iter is $iter, the difference is $dif, the eps is $eps")
+
+      //这个是前m个的arr
+      var ord_mArr = new ArrayBuffer[Array[Double]]
+      for (i <- 0 until optParameter.length) {
+        val tmp = ord_Arr(re_lagsse_idx(i)._2)
+        ord_mArr += tmp
+      }
+      val c = nm_gravityCenter(ord_mArr.toArray)
+      //      c.foreach(println)
+      val r = (DenseVector(c) * 2.0 - DenseVector(ord_m1)).toArray
+      val lagsse_r = lagsse4optimize(r(0), DenseVector(r.drop(1)))
+      println(s"r lagsse is $lagsse_r")
+      ord_Arr.clear()
+      ord_Arr = ord_mArr.clone()//前m个点已经放进来了
+
+
+
+
+
+
+      ord_Arr += r
+      ord_Arr.map(t => t.foreach(println))
+      arr_lagsse = ord_Arr.toArray.map(t => lagsse4optimize(t(0), DenseVector(t.drop(1))))
+      arr_lagsse.foreach(println)
+
+      iter += 1
+    }
+  }
+
+  def nm_gravityCenter(calArr: Array[Array[Double]]): Array[Double] = {
+    val flat = calArr.flatMap(t => t.zipWithIndex)
+    //    flat.foreach(println)
+    val re = new Array[Double](calArr(0).length)
+    for (i <- 0 until re.length) {
+      val tmp = flat.filter(t => t._2 == i).map(t => t._1)
+      re(i) = tmp.sum / tmp.length
+    }
+    //    re.foreach(println)
+    re
   }
 
 }
