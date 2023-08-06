@@ -106,9 +106,6 @@ object testRun {
 //    println(inte)
 //    val rho=mdl.goldenSelection(inte._1,inte._2)
     mdl.fit()
-    val betas=DenseVector(0.001,0.05)
-    val rho=0.5
-    mdl.nelderMead(rho, betas)
   }
 
   def readtimeExample(sc: SparkContext): Unit = {
