@@ -23,18 +23,14 @@ import whu.edu.cn.oge.Feature._
 
 object AveNearestNeighbor {
 
-  def main(args: Array[String]): Unit = {
+    /**
+    * 输入RDD，计算要素最小外接矩形面积
+    *
+    * @param testshp RDD
+    * @return Double 返回要素最小外接矩形面积
+    */
 
-    val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-    val sc = new SparkContext(conf) //创建RDD
-    val shpPath: String = "testdata\\LNHP100.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
-    val testshp = ShapeFileUtil.readShp(sc, shpPath, ShapeFileUtil.DEF_ENCODE) //或者直接utf-8
-
-    AveNearestNeighbor(sc,testshp)
-
-  }
-
-  //要素的最小外接矩阵面积
+  //要素的最小外接矩形面积
   def ExRectangularArea(testshp: RDD[(String, (Geometry, Map[String, Any]))]) : Double = {
     val coorxy : Array[(Double, Double)] = getCoorXY(testshp: RDD[(String, (Geometry, Map[String, Any]))])
     val coorx_min : Double = coorxy.map{case t => t._1}.min
@@ -45,12 +41,18 @@ object AveNearestNeighbor {
     Area
   }
 
+  /**
+    * 输入RDD计算平均最近邻指数（ANN），返回相关计算结果
+    *
+    * @param testshp   RDD
+    * @return Array[Double] 以Array形式存储计算结果
+    */
   //平均最近邻指数算子
-  def AveNearestNeighbor(sc: SparkContext,testshp: RDD[(String, (Geometry, Map[String, Any]))]): Unit={
-    val DisArray = getRDDDistRDD(sc,testshp)  //getRDDDistRDD函数构造RDD的距离矩阵
-    //DisArray.collect().map(t => println(t.filter(_>0).min))
-    val DisSum = DisArray.collect().map(t => t.sorted.apply(1)).sum  //t指每一行，取出RDD矩阵每行最小距离，求和 欧式距离矩阵
-    val RDDsize =  DisArray.collect().size  //RDD要素个数，同length
+  def AveNearestNeighbor(testshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Double]={
+    val RDDcoor = testshp.map(t => t._2._1.getCentroid.getCoordinate)
+    val DisArray = getCoorDistArrbuf(RDDcoor, RDDcoor)
+    val DisSum = DisArray.map(t => t.sorted.apply(1)).sum //t指每一行，取出RDD矩阵每行最小距离，求和 欧式距离矩阵
+    val RDDsize =  DisArray.size //RDD要素个数，同length
     val A  = ExRectangularArea(testshp)
     val Do = DisSum/RDDsize  //平均观测距离（Observed Mean Distance）
     val De = 0.5/(sqrt(RDDsize/A))  //预期平均距离 A为研究区域面积，要素的外接矩形
@@ -58,6 +60,13 @@ object AveNearestNeighbor {
     val SE = 0.26136/(sqrt(pow(RDDsize, 2)/ A))
     val z = (Do - De)/SE
     println("平均最近邻汇总")
-    println("最近邻比率:"+ANN,"平均观测距离:"+Do,"预期平均距离:"+De,"z得分:"+z,"要素最小外接矩阵面积:"+A)
+    println("最近邻比率:"+ANN,"平均观测距离:"+Do,"预期平均距离:"+De,"Z-Score:"+z,"要素最小外接矩阵面积:"+A)
+    var result : Array[Double] = new Array[Double](5)
+    result(0) = ANN
+    result(1) = Do
+    result(2) = De
+    result(3) = z
+    result(4) = A
+    result
   }
 }
