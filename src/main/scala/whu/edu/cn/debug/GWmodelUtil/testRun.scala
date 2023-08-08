@@ -28,7 +28,6 @@ import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 import whu.edu.cn.debug.GWmodelUtil.sp_autocorrelation._
 import whu.edu.cn.debug.GWmodelUtil.other_util._
-
 import whu.edu.cn.debug.GWmodelUtil.SARmodels
 
 object testRun {
@@ -40,11 +39,11 @@ object testRun {
     val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
 //    val shpPath: String = "testdata\\LNHP100.shp"
     val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
-    println(getGeometryType(shpfile))
+//    println(getGeometryType(shpfile))
 
 //    val globali = globalMoranI(shpfile, "HR60",plot=true,test=true)
+
 //    println(s"global Moran's I is: ${globali._1}")
-//
 //    val locali=localMoranI(shpfile,"HR60")
 //    println("-----------local moran's I--------------")
 //    locali._1.foreach(println)
@@ -58,8 +57,8 @@ object testRun {
 
 //    testcorr(shpfile)
 
-    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
-    val csvdata=readcsv(sc,csvpath)
+//    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
+//    val csvdata=readcsv(sc,csvpath)
 //    printArrArr(csvdata.collect())
 
 //    //test date calculator
@@ -89,23 +88,23 @@ object testRun {
 //    println(re._2)
 //    println(re._3)
 
-//    test class of sarmodels
-    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
-    val x=Array(DenseVector(x1),DenseVector(x2))
-//    x.foreach(println)
-    var mdl=new SARlagmodel
-    mdl.init(shpfile)
-    mdl.setX(x)
-    mdl.setY(y)
-    mdl.setweight()
-//    val a=mdl.rho4optimize(-1.742396)
-//    println(a)
-//    val inte=mdl.getinterval()
-//    println(inte)
-//    val rho=mdl.goldenSelection(inte._1,inte._2)
-    mdl.fit()
+////    test class of sarmodels
+//    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+//    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+//    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+//    val x=Array(DenseVector(x1),DenseVector(x2))
+////    x.foreach(println)
+//    var mdl=new SARlagmodel
+//    mdl.init(shpfile)
+//    mdl.setX(x)
+//    mdl.setY(y)
+//    mdl.setweight()
+////    val a=mdl.rho4optimize(-1.742396)
+////    println(a)
+////    val inte=mdl.getinterval()
+////    println(inte)
+////    val rho=mdl.goldenSelection(inte._1,inte._2)
+//    mdl.fit()
   }
 
   def readtimeExample(sc: SparkContext): Unit = {

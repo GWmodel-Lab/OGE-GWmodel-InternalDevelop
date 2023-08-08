@@ -171,7 +171,7 @@ class SARlagmodel extends SARmodels {
 
   def nelderMead(rho: Double, betas: DenseVector[Double])= {
     var iter = 0
-    val max_iter = 100
+    val max_iter = 1000
     val th_eps = 1e-10
     val optdata: Array[Array[Double]] = Array(Array(rho), betas.toArray)
     val optParameter = optdata.flatten
@@ -180,13 +180,14 @@ class SARlagmodel extends SARmodels {
     val m = optParameter.length - 1
 
     var optArr = new ArrayBuffer[Array[Double]]
-    optArr += optParameter
+    optArr += optParameter  //先放入没有变化的，第0个
     for (i <- 0 until optParameter.length) {
       val tmp = optParameter.clone()
       tmp(i) = tmp(i) * 1.05
       optArr += tmp
     }
     //    optArr.map(t=>t.foreach(println))
+    //存储四个点的优化目标函数值，0代表第一次，只用一次。
     val re_lagsse0 = optArr.toArray.map(t => -lagsse4optimize(t(0), DenseVector(t.drop(1))))
     var arr_lagsse = re_lagsse0.clone()
     var eps = 1.0
@@ -195,17 +196,19 @@ class SARlagmodel extends SARmodels {
 
     while (eps >= th_eps && iter < max_iter) {
 
+      //排序，从小到大
       val re_lagsse_idx = arr_lagsse.zipWithIndex.sorted
       //      re_lagsse_idx.foreach(println)
       val ord_0 = ord_Arr(re_lagsse_idx(0)._2)
       val ord_m = ord_Arr(re_lagsse_idx(m)._2)
       val ord_m1 = ord_Arr(re_lagsse_idx(m + 1)._2)
+      //如果第m+1的点需要改变，这个是为了放进数组里
       var ord_m1_change = ord_m1.clone()
       //      ord_m1.foreach(println)
       val lagsse_0 = -lagsse4optimize(ord_0(0), DenseVector(ord_0.drop(1)))
       val lagsse_m = -lagsse4optimize(ord_m(0), DenseVector(ord_m.drop(1)))
       val lagsse_m1 = -lagsse4optimize(ord_m1(0), DenseVector(ord_m1.drop(1)))
-
+      //求点0和m+1的差
       val dif = DenseVector(ord_m1) - DenseVector(ord_0)
       eps = sqrt(dif.toArray.map(t => t * t).sum)
       println(s"the iter is $iter, the difference is $dif, the eps is $eps")
@@ -216,24 +219,24 @@ class SARlagmodel extends SARmodels {
         val tmp = ord_Arr(re_lagsse_idx(i)._2)
         ord_0mArr += tmp
       }
-      //这个是1到m+1个的arr,不包括m0
+      //这个是1到m+1个的arr,不包括第0
       var ord_1m1Arr = new ArrayBuffer[Array[Double]]
       for (i <- 1 until m + 1 + 1) {
         val tmp = ord_Arr(re_lagsse_idx(i)._2)
         ord_1m1Arr += tmp
       }
       var flag_A10: Boolean = false
-
+      //质心c
       val c = nm_gravityCenter(ord_0mArr.toArray)
-      //      c.foreach(println)
-      val r = (DenseVector(c) * 2.0 - DenseVector(ord_m1)).toArray
-      val lagsse_r = -lagsse4optimize(r(0), DenseVector(r.drop(1)))
-      //      println(s"r lagsse is $lagsse_r")
+      //反射点r
+      val r = (DenseVector(c) + 0.99999*(DenseVector(c) - DenseVector(ord_m1))).toArray
+      val lagsse_r = -lagsse4optimize(r(0), DenseVector(r.drop(1))) //计算r点的sse
 
       ord_Arr.clear()
       ord_Arr = ord_0mArr.clone() //前m个点已经放进来了
 
       if (lagsse_r <= lagsse_0) {
+        //拓展点s
         val s = (DenseVector(c) + 2.0 * (DenseVector(c) - DenseVector(ord_m1))).toArray
         val lagsse_s = -lagsse4optimize(s(0), DenseVector(s.drop(1)))
         if (lagsse_s <= lagsse_r) {
@@ -242,6 +245,9 @@ class SARlagmodel extends SARmodels {
           ord_m1_change = r
         }
       } else if (lagsse_r > lagsse_0 && lagsse_r <= lagsse_m) {
+//        println(c.toVector)
+//        println(r.toVector)
+//        println(ord_m1.toVector)
         ord_m1_change = r
       } else if (lagsse_r > lagsse_m && lagsse_r <= lagsse_m1) {
         val e1 = (DenseVector(c) + (DenseVector(r) - DenseVector(c)) * 0.5).toArray
@@ -253,7 +259,10 @@ class SARlagmodel extends SARmodels {
           val v = ord_1m1vec.map(t => t + (t - DenseVector(ord_0)) * 0.5)
           ord_Arr.clear()
           ord_Arr += ord_0
-          ord_Arr += ord_0mArr.toArray.flatten
+          val v_arr = v.map(t => t.toArray).toArray
+          for (i <- 0 until v_arr.length) {
+            ord_Arr += v_arr(i)
+          }
           flag_A10 = true
         }
       } else if (lagsse_r > lagsse_m1) {
@@ -266,7 +275,10 @@ class SARlagmodel extends SARmodels {
           val v = ord_1m1vec.map(t => t + (t - DenseVector(ord_0)) * 0.5)
           ord_Arr.clear()
           ord_Arr += ord_0
-          ord_Arr += ord_0mArr.toArray.flatten
+          val v_arr=v.map(t=>t.toArray).toArray
+          for (i <- 0 until v_arr.length) {
+            ord_Arr += v_arr(i)
+          }
           flag_A10 = true
         }
       } else {
@@ -274,20 +286,28 @@ class SARlagmodel extends SARmodels {
         val v = ord_1m1vec.map(t => t + (t - DenseVector(ord_0)) * 0.5)
         ord_Arr.clear()
         ord_Arr += ord_0
-        ord_Arr += ord_0mArr.toArray.flatten
+        val v_arr = v.map(t => t.toArray).toArray
+        for (i <- 0 until v_arr.length) {
+          ord_Arr += v_arr(i)
+        }
         flag_A10 = true
       }
+      // 一般情况下需要更新m+1，把m+1放入arr种
       if (!flag_A10) {
         ord_Arr += ord_m1_change
       }
       //      ord_Arr.map(t => t.foreach(println))
+//      println(flag_A10)
+      //更新sse的值
       arr_lagsse = ord_Arr.toArray.map(t => -lagsse4optimize(t(0), DenseVector(t.drop(1))))
       //      arr_lagsse.foreach(println)
-
+//      println(lagsse_r <= lagsse_0 ,lagsse_r > lagsse_0 && lagsse_r <= lagsse_m, lagsse_r > lagsse_m && lagsse_r <= lagsse_m1, lagsse_r > lagsse_m1)
       iter += 1
     }
     println("-------result--------")
     ord_Arr.map(t => t.foreach(println))
+    println("---input---")
+    optParameter.foreach(println)
   }
 
   def nm_gravityCenter(calArr: Array[Array[Double]]): Array[Double] = {
