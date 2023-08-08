@@ -21,6 +21,7 @@ import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 import whu.edu.cn.oge.Feature._
 
+//whm
 object AveNearestNeighbor {
 
     /**
