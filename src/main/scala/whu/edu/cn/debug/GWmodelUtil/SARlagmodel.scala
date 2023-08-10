@@ -16,6 +16,8 @@ class SARlagmodel extends SARmodels {
 
   var _xlength = 0
   var _dX: DenseMatrix[Double] = _
+  private var _1X: DenseMatrix[Double] = _
+  private var _0X: DenseMatrix[Double] = _
 
   var lm_null: DenseVector[Double] = _
   var lm_w: DenseVector[Double] = _
@@ -30,6 +32,11 @@ class SARlagmodel extends SARmodels {
     _X = x
     _xlength = _X(0).length
     _dX = DenseMatrix.create(rows = _xlength, cols = _X.length, data = _X.flatMap(t => t.toArray))
+    val ones_x = Array(DenseVector.ones[Double](_xlength).toArray, x.flatMap(t => t.toArray))
+    _1X = DenseMatrix.create(rows = _xlength, cols = x.length + 1, data = ones_x.flatten)
+    _0X = _1X.copy
+    _0X :+= -1.000
+    _0X = _0X :+= 1e-12
   }
 
   override def setY(y: Array[Double]) = {
@@ -41,13 +48,16 @@ class SARlagmodel extends SARmodels {
     val inte = getinterval()
     val rho = goldenSelection(inte._1, inte._2)
     val yy = _Y - rho * _wy
-    val betas = get_betas(Y = yy)
-    val res = specify_res(Y = yy)
+//    println(yy)
+    val betas = get_betas(X=_dX,Y = yy)
+    val res = specify_res(X=_dX,Y = yy)
     val fit = _Y - res
     val SSE = sum(res.toArray.map(t => t * t))
     val s2 = SSE / _xlength
+    println(betas)
+    println(res)
     //    println(fit)
-    nelderMead(rho, betas)
+//    nelderMead(rho, betas)
   }
 
   def get_betas(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xlength)): DenseVector[Double] = {
@@ -73,8 +83,9 @@ class SARlagmodel extends SARmodels {
     if (lm_null == null || lm_w == null || _wy == null) {
       _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
       //      wy.foreach(println)
-      lm_null = specify_res()
-      lm_w = specify_res(Y = _wy)
+      lm_null = specify_res(X=_0X)
+      lm_w = specify_res(X=_1X , Y = _wy)
+//      lm_w = specify_res(Y = _wy)
     }
     if (_eigen == null) {
       _eigen = breeze.linalg.eig(spweight_dmat.t)
@@ -83,6 +94,7 @@ class SARlagmodel extends SARmodels {
 
   def rho4optimize(rho: Double): Double = {
     get_env()
+    println(lm_null)
     val e_a = lm_null.t * lm_null
     val e_b = lm_w.t * lm_null
     val e_c = lm_w.t * lm_w
@@ -94,7 +106,7 @@ class SARlagmodel extends SARmodels {
     val eig_rho_cp = eig_rho.copy
     val ldet = sum(breeze.numerics.log(-eig_rho_cp :+= 1.0))
     val ret = (ldet - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * s2)) * SSE)
-    //    println(ret)
+//        println(ret)
     ret
   }
 
@@ -106,7 +118,7 @@ class SARlagmodel extends SARmodels {
     (1.0 / min, 1.0 / max)
   }
 
-  def goldenSelection(lower: Double, upper: Double, eps: Double = 1e-10): Double = {
+  def goldenSelection(lower: Double, upper: Double, eps: Double = 1e-12): Double = {
     var iter: Int = 0
     val max_iter = 1000
 
@@ -229,7 +241,7 @@ class SARlagmodel extends SARmodels {
       //质心c
       val c = nm_gravityCenter(ord_0mArr.toArray)
       //反射点r
-      val r = (DenseVector(c) + 0.99999*(DenseVector(c) - DenseVector(ord_m1))).toArray
+      val r = (DenseVector(c) + 1.0*(DenseVector(c) - DenseVector(ord_m1))).toArray
       val lagsse_r = -lagsse4optimize(r(0), DenseVector(r.drop(1))) //计算r点的sse
 
       ord_Arr.clear()

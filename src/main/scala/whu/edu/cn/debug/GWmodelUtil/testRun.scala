@@ -89,22 +89,22 @@ object testRun {
 //    println(re._3)
 
 ////    test class of sarmodels
-//    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-//    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-//    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
-//    val x=Array(DenseVector(x1),DenseVector(x2))
-////    x.foreach(println)
-//    var mdl=new SARlagmodel
-//    mdl.init(shpfile)
-//    mdl.setX(x)
-//    mdl.setY(y)
-//    mdl.setweight()
-////    val a=mdl.rho4optimize(-1.742396)
-////    println(a)
-////    val inte=mdl.getinterval()
-////    println(inte)
-////    val rho=mdl.goldenSelection(inte._1,inte._2)
-//    mdl.fit()
+    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+    val x=Array(DenseVector(x1),DenseVector(x2))
+//    x.foreach(println)
+    var mdl=new SARlagmodel
+    mdl.init(shpfile)
+    mdl.setX(x)
+    mdl.setY(y)
+    mdl.setweight()
+//    val a=mdl.rho4optimize(-1.742396)
+//    println(a)
+//    val inte=mdl.getinterval()
+//    println(inte)
+//    val rho=mdl.goldenSelection(inte._1,inte._2)
+    mdl.fit()
   }
 
   def readtimeExample(sc: SparkContext): Unit = {
