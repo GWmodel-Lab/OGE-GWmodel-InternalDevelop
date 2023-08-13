@@ -26,22 +26,21 @@ class SARmodels {
 
   }
 
-  def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], betas: DenseVector[Double], res: DenseVector[Double], shat: Array[Double]) {
+  def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], betas: DenseVector[Double], res: DenseVector[Double],ll:Double) {
     val rss = sum(res.toArray.map(t => t * t))
     val n = X.rows.toDouble
     val mean_y = Y.toArray.sum / Y.toArray.length
-    val AIC = n * log(rss / n) + n * log(2 * math.Pi) + n + shat(0)
+    val AIC = - 2 * ll + 2 * 4
 //    AIC:-2*ll+2*p
 //    -2*(-239.8491)+2*4
-//    -2*LL+ 2*K*(n/(n-K-1))//这里的k=df
-    val AICc = AIC + n * ((n + shat(0)) / (n - 2 - shat(0)))
-    val edf = n - 2 * shat(0) + shat(1)
-    val enp = 2 * shat(0) - shat(1)
+//    -2*LL+ 2*K*(n/(n-K-1))//这里的k=df=4
+    val AICc = AIC + 2*4*(n/(n-4-1))-2*4
+    println(AIC,AICc)
     val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
     println(mean_y)
     println(rss)
     val r2 = 1 - rss / yss
-    val r2_adj = 1 - (1 - r2) * (n - 1) / (edf - 1)
+    val r2_adj = 1 - (1 - r2) * (n - 1) / (n-4-1)
     println(r2,r2_adj)
   }
 

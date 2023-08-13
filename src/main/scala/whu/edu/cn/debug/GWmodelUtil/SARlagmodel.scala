@@ -52,6 +52,8 @@ class SARlagmodel extends SARmodels {
     val rho = goldenSelection(inte._1, inte._2,function = rho4optimize)
     val yy = _Y - rho * _wy
     val betas = get_betas(X=_0X,Y = yy)
+    val testbetas=get_betas(X=_0X)//lm.null
+    val testres=get_res(X=_0X)//lm.null
     val res = get_res(X=_0X,Y = yy)
     val lly=get_logLik(get_res(X=_0X))
     println(lly)
@@ -64,9 +66,8 @@ class SARlagmodel extends SARmodels {
     val s2 = SSE / _xlength
     println(betas)
     println(res)
-    val a=get_shat(X=_0X,Y = yy)
-    a.foreach(println)
-    calDiagnostic(X=_dX,Y = _Y,betas=betas,res=res,shat=a)
+    calDiagnostic(X=_dX,Y = _Y,betas=betas,res=res,llrho)
+//    calDiagnostic(X=_dX,Y = _Y,betas=testbetas,res=testres,lly)
     //    println(fit)
 //    nelderMead(rho, betas)
   }
@@ -88,19 +89,6 @@ class SARlagmodel extends SARmodels {
     val betas = xtwx_inv * xtwy
     val y_hat = X * betas
     Y - y_hat
-  }
-
-  def get_shat(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xlength)): Array[Double] = {
-    val shat=new Array[Double](2)
-    val xtw = X.t * W
-    val xtwx = xtw * X
-    val xtwy = xtw * Y
-    val xtwx_inv = inv(xtwx)
-    val ci = xtwx_inv * xtw
-    val si = X * ci
-    shat(0) = diag(si).toArray.sum
-    shat(1) = det(si * si.t)
-    shat
   }
 
   def get_env(): Unit = {
@@ -178,6 +166,5 @@ class SARlagmodel extends SARmodels {
 //    println((b + a) / 2.0)
 //    (b + a) / 2.0
 //  }
-
 
 }
