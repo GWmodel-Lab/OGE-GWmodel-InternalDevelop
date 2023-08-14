@@ -59,15 +59,18 @@ object AveNearestNeighbor {
     val De = 0.5/(sqrt(RDDsize/A))  //预期平均距离 A为研究区域面积，要素的外接矩形
     val ANN = Do/De  //平均最近邻指数  ANN>1离散  ANN<1聚集
     val SE = 0.26136/(sqrt(pow(RDDsize, 2)/ A))
-    val z = (Do - De)/SE
+    val Z = (Do - De)/SE
+    val gaussian = breeze.stats.distributions.Gaussian(0, 1)
+    val Pvalue = 2 * (1.0 - gaussian.cdf(Z))
     println("平均最近邻汇总")
-    println("最近邻比率:"+ANN,"平均观测距离:"+Do,"预期平均距离:"+De,"Z-Score:"+z,"要素最小外接矩阵面积:"+A)
-    var result : Array[Double] = new Array[Double](5)
+    println("最近邻比率:"+ANN,"平均观测距离:"+Do,"预期平均距离:"+De,"Z-Score:"+Z,"P值："+Pvalue,"要素最小外接矩阵面积:"+A)
+    var result : Array[Double] = new Array[Double](6)
     result(0) = ANN
     result(1) = Do
     result(2) = De
-    result(3) = z
-    result(4) = A
+    result(3) = Z
+    result(4) = Pvalue
+    result(5) = A
     result
   }
 }
