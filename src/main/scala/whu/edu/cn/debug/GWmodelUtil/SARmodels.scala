@@ -4,56 +4,53 @@ import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
+
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
-
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
-//后续改写成抽象类
-class SARmodels {
+import scala.collection.mutable
+
+//改写成抽象类，不可以被初始化
+abstract class SARmodels {
 
   protected var _X: Array[DenseVector[Double]] = _
   protected var _Y: DenseVector[Double] = _
-  protected var _betas: DenseVector[Double] = _
 
   protected var geom: RDD[Geometry] = _
-  var spweight_dvec: Array[DenseVector[Double]] = _
-  var spweight_dmat: DenseMatrix[Double] = _
+  protected var spweight_dvec: Array[DenseVector[Double]] = _
+  protected var spweight_dmat: DenseMatrix[Double] = _
 
+  var fitvalue: Array[Double] = _
 
   def SARmodels() {
 
   }
 
-  def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], betas: DenseVector[Double], res: DenseVector[Double],ll:Double) {
-    val rss = sum(res.toArray.map(t => t * t))
+  protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], loglikelihood: Double, df: Double) {
     val n = X.rows.toDouble
+    val rss = sum(residuals.toArray.map(t => t * t))
     val mean_y = Y.toArray.sum / Y.toArray.length
-    val AIC = - 2 * ll + 2 * 4
-//    AIC:-2*ll+2*p
-//    -2*(-239.8491)+2*4
-//    -2*LL+ 2*K*(n/(n-K-1))//这里的k=df=4
-    val AICc = AIC + 2*4*(n/(n-4-1))-2*4
-    println(AIC,AICc)
+    val AIC = -2 * loglikelihood + 2 * df
+    val AICc = -2 * loglikelihood + 2 * df * (n / (n - df - 1))
     val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
-    println(mean_y)
-    println(rss)
     val r2 = 1 - rss / yss
-    val r2_adj = 1 - (1 - r2) * (n - 1) / (n-4-1)
-    println(r2,r2_adj)
+    val r2_adj = 1 - (1 - r2) * (n - 1) / (n - df - 1)
+    println(s"diagnostics:\nSSE is $rss\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
   }
 
 
-  def init(inputRDD: RDD[(String, (Geometry, Map[String, Any]))]): Unit = {
+  def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {
     geom = getGeometry(inputRDD)
+    setweight()
   }
 
-  protected def setX(x: Array[DenseVector[Double]]) = {
+  protected def setX(x: Array[DenseVector[Double]]): Unit = {
     _X = x
   }
 
-  protected def setY(y: Array[Double]) = {
+  protected def setY(y: Array[Double]): Unit = {
     _Y = DenseVector(y)
   }
 
@@ -62,13 +59,7 @@ class SARmodels {
     getCoorDistArrbuf(coords, coords).toArray
   }
 
-  def fit() = {
-    //    _x.foreach(println)
-    //    _y.foreach(println)
-    println("created")
-  }
-
-  def setcoords(lat: Array[Double], lon: Array[Double]) = {
+  def setcoords(lat: Array[Double], lon: Array[Double]): Unit = {
     val geomcopy = geom.zipWithIndex()
     geomcopy.map(t => {
       t._1.getCoordinate.x = lat(t._2.toInt)
@@ -77,7 +68,7 @@ class SARmodels {
     geom = geomcopy.map(t => t._1)
   }
 
-  def setweight(neighbor: Boolean = true, k: Double = 0) = {
+  def setweight(neighbor: Boolean = true, k: Double = 0): Unit = {
     if (neighbor && !geom.isEmpty()) {
       val nb_bool = getNeighborBool(geom)
       spweight_dvec = boolNeighborWeight(nb_bool).map(t => t * (t / t.sum)).collect()
@@ -88,17 +79,38 @@ class SARmodels {
     spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
   }
 
-  def get_logLik(res: DenseVector[Double]): Double = {
+  def printweight(): Unit = {
+    spweight_dvec.foreach(println)
+  }
+
+  protected def get_logLik(res: DenseVector[Double]): Double = {
     val n = res.length
     val w = DenseVector.ones[Double](n)
     0.5 * (w.toArray.map(t => log(t)).sum - n * (log(2 * math.Pi) + 1.0 - log(n) + log((w * res * res).toArray.sum)))
   }
 
-  def try_LRtest(LLx: Double, LLy: Double, chi_pama: Double = 1): Unit = {
+  protected def try_LRtest(LLx: Double, LLy: Double, chi_pama: Double = 1): Unit = {
     val score = 2.0 * (LLx - LLy)
     val pchi = breeze.stats.distributions.ChiSquared
     val pvalue = 1 - pchi.distribution(chi_pama).cdf(abs(score))
-    println("ChiSquared", score, pvalue)
+    println(s"ChiSquared test, score is $score, p value is $pvalue")
+  }
+
+  protected def betasMap(coef: DenseVector[Double]): mutable.Map[String, Double] = {
+    val arrbuf = new ArrayBuffer[String]()
+    arrbuf += "Intercept"
+    for (i <- 1 until coef.length) {
+      val tmp = "X" + i.toString
+      arrbuf += tmp
+    }
+    val coefname = arrbuf.toArray
+    val coefvalue = coef.toArray
+    val betas_map: mutable.Map[String, Double] = mutable.Map()
+    for (i <- 0 until coef.length) {
+      betas_map += (coefname(i) -> coefvalue(i))
+    }
+    //    println(betas_map)
+    betas_map
   }
 
 }

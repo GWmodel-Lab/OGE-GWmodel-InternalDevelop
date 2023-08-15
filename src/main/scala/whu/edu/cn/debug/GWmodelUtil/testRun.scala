@@ -60,7 +60,7 @@ object testRun {
 //    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
 //    val csvdata=readcsv(sc,csvpath)
 //    printArrArr(csvdata.collect())
-
+//
 //    //test date calculator
 //    val timep=attributeSelectHead(csvdata,"time_point")
 //    val timepattern = "yyyy/MM/dd"
@@ -70,14 +70,14 @@ object testRun {
 //    })
 //    date.foreach(println)
 //    println((date(300).getTime - date(0).getTime)/1000/60/60/24)
-
+//
 //    val tem=attributeSelectHead(csvdata,"temperature")
 ////    tem.foreach(println)
 //    val db_tem=tem.map(t=>t.toDouble)
 ////    println(db_tem.sum)
-//    val tem_acf = timeSeries_acf(db_tem,10)
+//    val tem_acf = timeSeries_acf(db_tem,30)
 //    tem_acf.foreach(println)
-//
+
 //    val aqi = attributeSelectNum(csvdata, 2).map(t=>t.toDouble)
 ////    aqi.foreach(println)
 //    val per=attributeSelectHead(csvdata, "precipitation").map(t=>t.toDouble)
@@ -88,7 +88,7 @@ object testRun {
 //    println(re._2)
 //    println(re._3)
 
-////    test class of sarmodels
+//    test class of sarmodels
     val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
     val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
     val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
@@ -98,13 +98,8 @@ object testRun {
     mdl.init(shpfile)
     mdl.setX(x)
     mdl.setY(y)
-    mdl.setweight()
-//    val a=mdl.rho4optimize(-1.742396)
-//    println(a)
-//    val inte=mdl.getinterval()
-//    println(inte)
-//    val rho=mdl.goldenSelection(inte._1,inte._2)
     mdl.fit()
+
   }
 
   def readtimeExample(sc: SparkContext): Unit = {
