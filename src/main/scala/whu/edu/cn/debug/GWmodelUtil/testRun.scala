@@ -94,7 +94,7 @@ object testRun {
     val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
     val x=Array(DenseVector(x1),DenseVector(x2))
 //    x.foreach(println)
-    var mdl=new SARlagmodel
+    val mdl=new SARerrormodel
     mdl.init(shpfile)
     mdl.setX(x)
     mdl.setY(y)

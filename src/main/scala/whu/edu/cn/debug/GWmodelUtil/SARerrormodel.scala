@@ -1,9 +1,11 @@
 package whu.edu.cn.debug.GWmodelUtil
 
-import breeze.linalg.{DenseMatrix, DenseVector, eig, qr}
+import breeze.linalg.{DenseMatrix, DenseVector,inv, eig, qr, sum}
 import breeze.numerics.sqrt
-import scala.math.log
+import breeze.stats.stddev
+import scala.math._
 import scala.collection.mutable.{ArrayBuffer, Map}
+import whu.edu.cn.debug.GWmodelUtil.optimize._
 
 class SARerrormodel extends SARmodels {
 
@@ -13,9 +15,10 @@ class SARerrormodel extends SARmodels {
 
   private var _dX: DenseMatrix[Double] = _
   private var _1X: DenseMatrix[Double] = _
+  private var _errorX: DenseMatrix[Double] = _
+  private var _errorY: DenseVector[Double] = _
 
-
-  private var sum_lw:Double=_
+  private var sum_lw: Double = _
   private var sw: DenseVector[Double] = _
   private var _wy: DenseVector[Double] = _
   private var _wx: DenseMatrix[Double] = _
@@ -36,39 +39,96 @@ class SARerrormodel extends SARmodels {
     _Y = DenseVector(y)
   }
 
-  def get_env()= {
+  def fit(): Array[Double] = {
+    val interval = get_interval()
+    val lambda = goldenSelection(interval._1, interval._2, function = lambda4optimize)
+    //    println(s"lambda is $lambda")
+    _errorX = _1X - lambda * _wx
+    _errorY = _Y - lambda * _wy
+    val betas = get_betas(X = _errorX, Y = _errorY)
+    val betas_map = betasMap(betas)
+    val res = get_res(X = _errorX, Y = _errorY)
+    //log likelihood
+    val lly = get_logLik(get_res(X = _1X))
+    val llx = get_logLik(get_res(X = _1X, Y = _errorY))
+    val lllambda = lambda4optimize(lambda)
+
+    fitvalue = (_Y - res).toArray
+    println("---------------------------------spatial lag model---------------------------------")
+    println(s"rho is $lambda")
+    try_LRtest(lllambda, lly)
+    println(s"coeffients:\n$betas_map")
+    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
+    println("------------------------------------------------------------------------------------")
+    fitvalue
+  }
+
+  def get_betas(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xrows)): DenseVector[Double] = {
+    val xtw = X.t * W
+    val xtwx = xtw * X
+    val xtwy = xtw * Y
+    val xtwx_inv = inv(xtwx)
+    val betas = xtwx_inv * xtwy
+    betas
+  }
+
+  def get_res(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xrows)): DenseVector[Double] = {
+    val xtw = X.t * W
+    val xtwx = xtw * X
+    val xtwy = xtw * Y
+    val xtwx_inv = inv(xtwx)
+    val betas = xtwx_inv * xtwy
+    val y_hat = X * betas
+    Y - y_hat
+  }
+
+  def get_env(): Unit = {
     if (_wy == null) {
       _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
     }
     if (_eigen == null) {
       _eigen = breeze.linalg.eig(spweight_dmat.t)
     }
-    if(sum_lw==null || sw == null) {
+    if (sum_lw == null || sw == null) {
       val weight1: DenseVector[Double] = DenseVector.ones[Double](_xrows)
       sum_lw = weight1.toArray.map(t => log(t)).sum
       sw = sqrt(weight1)
     }
-    if(_wx==null){
-      val _dvecWx=_X.map(t=>DenseVector(spweight_dvec.map(i => (i dot t))))
-      val _dmatWx=DenseMatrix.create(rows = _xrows, cols = _dvecWx.length, data = _dvecWx.flatMap(t => t.toArray))
+    if (_wx == null) {
+      val _dvecWx = _X.map(t => DenseVector(spweight_dvec.map(i => (i dot t))))
+      val _dmatWx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length, data = _dvecWx.flatMap(t => t.toArray))
       val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, _dvecWx.flatMap(t => t.toArray))
       _wx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length + 1, data = ones_x.flatten)
     }
-//    println(_wy)
-//    println(s"-----------\n$sum_lw\n$sw")
-//    println(_wx)
+    //    println(_wy)
+    //    println(s"-----------\n$sum_lw\n$sw")
+    //    println(_wx)
   }
 
-  def lambda4optimize(lambda:Double)={
+  private def get_interval(): (Double, Double) = {
     get_env()
-    val yl= sw * (_Y - lambda * _wy)
-    val xl= (_1X - lambda * _wx)
+    val eigvalue = _eigen.eigenvalues.copy
+    val min = eigvalue.toArray.min
+    val max = eigvalue.toArray.max
+    (1.0 / min, 1.0 / max)
+  }
+
+  def lambda4optimize(lambda: Double): Double = {
+    get_env()
+    val yl = sw * (_Y - lambda * _wy)
+    val xl = (_1X - lambda * _wx)
     val xl_qr = qr(xl)
-    val xl_qr_q=xl_qr.q(::,0 to _xcols)//列数本来应该+1，由于从0开始计数，反而刚好合适
-//    println(xl_qr_q)
-    val xl_q_yl= xl_qr_q.t * yl
-    val SSE=yl.t*yl-xl_q_yl.t*xl_q_yl
-    println(SSE)
+    val xl_qr_q = xl_qr.q(::, 0 to _xcols) //列数本来应该+1，由于从0开始计数，反而刚好合适
+    //    println(xl_qr_q)
+    val xl_q_yl = xl_qr_q.t * yl
+    val SSE = yl.t * yl - xl_q_yl.t * xl_q_yl
+    val n = _xrows
+    val s2 = SSE / n
+    val eigvalue = _eigen.eigenvalues.copy
+    val ldet = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
+    val ret = (ldet + (1 / 2) * sum_lw - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * (s2))) * SSE)
+    //    println(SSE, ret)
+    ret
   }
 
 
