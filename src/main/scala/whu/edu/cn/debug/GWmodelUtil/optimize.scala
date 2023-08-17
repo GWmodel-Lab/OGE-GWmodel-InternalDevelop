@@ -55,14 +55,14 @@ object optimize {
     (b + a) / 2.0
   }
 
-  def nelderMead(optparams:Array[Double], function: (Double, DenseVector[Double]) => Double) = {
+  def nelderMead(optparams: Array[Double], function: (Array[Double]) => Double): Array[Double] = {
     var iter = 0
     val max_iter = 1000
-    val th_eps = 1e-10
-//如果是double和densevector的输入（rho: Double, betas: DenseVector[Double]，function也是以这两个为输入）
-//    val optdata: Array[Array[Double]] = Array(Array(rho), betas.toArray)
-//    val optParameter = optdata.flatten
-    val optParameter=optparams.clone()
+    val th_eps = 1e-7 //sqrt的结果，不开根号是1e-15的级别
+    // 如果是double和densevector的输入（rho: Double, betas: DenseVector[Double]，function也是以这两个为输入）
+    //    val optdata: Array[Array[Double]] = Array(Array(rho), betas.toArray)
+    //    val optParameter = optdata.flatten
+    val optParameter = optparams.clone()
 
     //如果是3维，算上初始点一共3+1个点，m=3。但是，又因为点数从0开始算，m作为下标，实际应该是3-1=2
     val m = optParameter.length - 1
@@ -76,7 +76,8 @@ object optimize {
     }
     //    optArr.map(t=>t.foreach(println))
     //存储四个点的优化目标函数值，0代表第一次，只用一次。
-    val re_lagsse0 = optArr.toArray.map(t => function(t(0), DenseVector(t.drop(1))))
+    //    val re_lagsse0 = optArr.toArray.map(t => function(t(0), DenseVector(t.drop(1))))//用这种方式来把第一个元素和后面的分开
+    val re_lagsse0 = optArr.toArray.map(t => function(t))
     var arr_lagsse = re_lagsse0.clone()
     var eps = 1.0
     //这个是所有的arr
@@ -92,9 +93,9 @@ object optimize {
       //如果第m+1的点需要改变，这个是为了放进数组里
       var ord_m1_change = ord_m1.clone()
       //      ord_m1.foreach(println)
-      val lagsse_0 = function(ord_0(0), DenseVector(ord_0.drop(1)))
-      val lagsse_m = function(ord_m(0), DenseVector(ord_m.drop(1)))
-      val lagsse_m1 = function(ord_m1(0), DenseVector(ord_m1.drop(1)))
+      val lagsse_0 = function(ord_0)
+      val lagsse_m = function(ord_m)
+      val lagsse_m1 = function(ord_m1)
       //求点0和m+1的差
       val dif = DenseVector(ord_m1) - DenseVector(ord_0)
       eps = sqrt(dif.toArray.map(t => t * t).sum)
@@ -117,7 +118,7 @@ object optimize {
       val c = nm_gravityCenter(ord_0mArr.toArray)
       //反射点r
       val r = (DenseVector(c) + 1.0 * (DenseVector(c) - DenseVector(ord_m1))).toArray
-      val lagsse_r = function(r(0), DenseVector(r.drop(1))) //计算r点的sse
+      val lagsse_r = function(r) //计算r点的sse
 
       ord_Arr.clear()
       ord_Arr = ord_0mArr.clone() //前m个点已经放进来了
@@ -125,7 +126,7 @@ object optimize {
       if (lagsse_r <= lagsse_0) {
         //拓展点s
         val s = (DenseVector(c) + 2.0 * (DenseVector(c) - DenseVector(ord_m1))).toArray
-        val lagsse_s = function(s(0), DenseVector(s.drop(1)))
+        val lagsse_s = function(s)
         if (lagsse_s <= lagsse_r) {
           ord_m1_change = s
         } else {
@@ -137,7 +138,7 @@ object optimize {
       }
       else if (lagsse_r > lagsse_m && lagsse_r <= lagsse_m1) {
         val e1 = (DenseVector(c) + (DenseVector(r) - DenseVector(c)) * 0.5).toArray
-        val lagsse_e1 = function(e1(0), DenseVector(e1.drop(1)))
+        val lagsse_e1 = function(e1)
         if (lagsse_e1 <= lagsse_r) {
           ord_m1_change = e1
         } else {
@@ -154,7 +155,7 @@ object optimize {
       }
       else if (lagsse_r > lagsse_m1) {
         val e2 = (DenseVector(c) + (DenseVector(ord_m1) - DenseVector(c)) * 0.5).toArray
-        val lagsse_e2 = function(e2(0), DenseVector(e2.drop(1)))
+        val lagsse_e2 = function(e2)
         if (lagsse_e2 <= lagsse_m1) {
           ord_m1_change = e2
         } else {
@@ -187,15 +188,16 @@ object optimize {
       //      ord_Arr.map(t => t.foreach(println))
       //      println(flag_A10)
       //更新sse的值
-      arr_lagsse = ord_Arr.toArray.map(t => function(t(0), DenseVector(t.drop(1))))
+      arr_lagsse = ord_Arr.toArray.map(t => function(t))
       //      arr_lagsse.foreach(println)
       //      println(lagsse_r <= lagsse_0 ,lagsse_r > lagsse_0 && lagsse_r <= lagsse_m, lagsse_r > lagsse_m && lagsse_r <= lagsse_m1, lagsse_r > lagsse_m1)
       iter += 1
     }
-    println("-------result--------")
-    ord_Arr.map(t => t.foreach(println))
+//    println("-------result--------")
+//    ord_Arr.map(t => t.foreach(println))
     println("---input---")
     optParameter.foreach(println)
+    ord_Arr(0)
   }
 
   def nm_gravityCenter(calArr: Array[Array[Double]]): Array[Double] = {
