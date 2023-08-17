@@ -13,6 +13,7 @@ import scala.math._
 //改写成抽象类，不可以被初始化
 abstract class SARmodels {
 
+  private var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
   protected var _X: Array[DenseVector[Double]] = _
   protected var _Y: DenseVector[Double] = _
 
@@ -39,9 +40,10 @@ abstract class SARmodels {
   }
 
 
-  def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {
+  def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], style: String = "W"): Unit = {
     geom = getGeometry(inputRDD)
-    setweight()
+    shpRDD = inputRDD
+    setweight(style = style)
   }
 
   protected def setX(x: Array[DenseVector[Double]]): Unit = {
@@ -66,10 +68,11 @@ abstract class SARmodels {
     geom = geomcopy.map(t => t._1)
   }
 
-  def setweight(neighbor: Boolean = true, k: Double = 0): Unit = {
+  def setweight(neighbor: Boolean = true, k: Double = 0, style: String = "W"): Unit = {
     if (neighbor && !geom.isEmpty()) {
-      val nb_bool = getNeighborBool(geom)
-      spweight_dvec = boolNeighborWeight(nb_bool).map(t => t * (t / t.sum)).collect()
+      //      val nb_bool = getNeighborBool(geom)
+      //      spweight_dvec = boolNeighborWeight(nb_bool).map(t => t * (t / t.sum)).collect()
+      spweight_dvec = getNeighborWeight(shpRDD, style = style).collect()
     } else if (!neighbor && !geom.isEmpty() && k >= 0) {
       val dist = getdistance().map(t => Array2DenseVector(t))
       spweight_dvec = dist.map(t => getSpatialweightSingle(t, k, kernel = "boxcar", adaptive = true))

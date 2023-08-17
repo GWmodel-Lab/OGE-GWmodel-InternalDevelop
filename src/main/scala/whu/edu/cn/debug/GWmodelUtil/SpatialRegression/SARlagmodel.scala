@@ -79,18 +79,31 @@ class SARlagmodel extends SARmodels {
 
   //添加一个判断X，Y为空的情况判断，抛出错误
   private def get_env(): Unit = {
-    if (lm_null == null || lm_w == null || _wy == null) {
-      _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
-      lm_null = get_res(X = _1X)
-      lm_w = get_res(X = _1X, Y = _wy)
-    }
-    if (_eigen == null) {
-      _eigen = breeze.linalg.eig(spweight_dmat.t)
+    if (_Y != null && _X != null) {
+      if (lm_null == null || lm_w == null || _wy == null) {
+        _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
+        lm_null = get_res(X = _1X)
+        lm_w = get_res(X = _1X, Y = _wy)
+      }
+      if (spweight_dmat != null) {
+        if (_eigen == null) {
+          _eigen = breeze.linalg.eig(spweight_dmat.t)
+        }
+      } else {
+        throw new NullPointerException("the shpfile is not initialized! please check!")
+      }
+    } else {
+      throw new IllegalArgumentException("the x or y are not initialized! please check!")
     }
   }
 
   private def get_interval(): (Double, Double) = {
-    get_env()
+    if (spweight_dmat == null) {
+      throw new NullPointerException("the shpfile is not initialized! please check!")
+    }
+    if (_eigen == null) {
+      _eigen = breeze.linalg.eig(spweight_dmat.t)
+    }
     val eigvalue = _eigen.eigenvalues.copy
     val min = eigvalue.toArray.min
     val max = eigvalue.toArray.max

@@ -5,6 +5,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, Point}
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARerrormodel
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARlagmodel
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARdurbinmodel
 import whu.edu.cn.oge.Feature
 import whu.edu.cn.util.ShapeFileUtil._
 
@@ -99,8 +101,9 @@ object testRun {
     mdl.init(shpfile)
     mdl.setX(x)
     mdl.setY(y)
+//    val arr=Array(0.1,0.4)
+//    mdl.paras4optimize(arr)
     mdl.fit()
-
   }
 
   def readtimeExample(sc: SparkContext): Unit = {

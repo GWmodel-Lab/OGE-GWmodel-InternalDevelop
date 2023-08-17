@@ -82,22 +82,30 @@ class SARerrormodel extends SARmodels {
   }
 
   private def get_env(): Unit = {
-    if (_wy == null) {
-      _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
-    }
-    if (_eigen == null) {
-      _eigen = breeze.linalg.eig(spweight_dmat.t)
-    }
-    if (sum_lw == null || sw == null) {
-      val weight1: DenseVector[Double] = DenseVector.ones[Double](_xrows)
-      sum_lw = weight1.toArray.map(t => log(t)).sum
-      sw = sqrt(weight1)
-    }
-    if (_wx == null) {
-      val _dvecWx = _X.map(t => DenseVector(spweight_dvec.map(i => (i dot t))))
-      val _dmatWx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length, data = _dvecWx.flatMap(t => t.toArray))
-      val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, _dvecWx.flatMap(t => t.toArray))
-      _wx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length + 1, data = ones_x.flatten)
+    if (_Y != null && _X != null) {
+      if (_wy == null) {
+        _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
+      }
+      if (sum_lw == null || sw == null) {
+        val weight1: DenseVector[Double] = DenseVector.ones[Double](_xrows)
+        sum_lw = weight1.toArray.map(t => log(t)).sum
+        sw = sqrt(weight1)
+      }
+      if (_wx == null) {
+        val _dvecWx = _X.map(t => DenseVector(spweight_dvec.map(i => (i dot t))))
+        //      val _dmatWx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length, data = _dvecWx.flatMap(t => t.toArray))
+        val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, _dvecWx.flatMap(t => t.toArray))
+        _wx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length + 1, data = ones_x.flatten)
+      }
+      if (spweight_dmat != null) {
+        if (_eigen == null) {
+          _eigen = breeze.linalg.eig(spweight_dmat.t)
+        }
+      } else {
+        throw new NullPointerException("the shpfile is not initialized! please check!")
+      }
+    } else {
+      throw new IllegalArgumentException("the x or y are not initialized! please check!")
     }
     //    println(_wy)
     //    println(s"-----------\n$sum_lw\n$sw")
@@ -105,7 +113,12 @@ class SARerrormodel extends SARmodels {
   }
 
   private def get_interval(): (Double, Double) = {
-    get_env()
+    if (spweight_dmat == null) {
+      throw new NullPointerException("the shpfile is not initialized! please check!")
+    }
+    if (_eigen == null) {
+      _eigen = breeze.linalg.eig(spweight_dmat.t)
+    }
     val eigvalue = _eigen.eigenvalues.copy
     val min = eigvalue.toArray.min
     val max = eigvalue.toArray.max
@@ -125,7 +138,7 @@ class SARerrormodel extends SARmodels {
     val s2 = SSE / n
     val eigvalue = _eigen.eigenvalues.copy
     val ldet = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
-    val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * (s2))) * SSE)
+    val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
     //    println(SSE, ret)
     ret
   }
