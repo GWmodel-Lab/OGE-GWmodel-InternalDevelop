@@ -2,7 +2,7 @@ package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, inv}
 
-object global_regression {
+object linear_regression {
 
   private var _X: DenseMatrix[Double] = _
   private var _Y: DenseVector[Double] = _
@@ -40,16 +40,6 @@ object global_regression {
     val y_hat = X * betas
     val res = Y - y_hat
     (betas,y_hat,res)
-  }
-
-  def logisticRegression(x: Array[DenseVector[Double]], y: DenseVector[Double]): Unit = {
-
-
-  }
-
-  def poissonRegression(x: Array[DenseVector[Double]], y: DenseVector[Double]): Unit = {
-
-
   }
 
   def getYhat(x: Array[DenseVector[Double]], betas: DenseVector[Double]): DenseVector[Double] ={
