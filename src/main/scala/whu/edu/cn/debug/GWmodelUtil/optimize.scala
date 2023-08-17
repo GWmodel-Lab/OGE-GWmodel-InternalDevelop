@@ -195,8 +195,10 @@ object optimize {
     }
 //    println("-------result--------")
 //    ord_Arr.map(t => t.foreach(println))
-    println("---input---")
-    optParameter.foreach(println)
+//    println("----------input----------")
+//    optParameter.foreach(println)
+    println("----------Nelder-Mead optimize result----------")
+    ord_Arr(0).foreach(println)
     ord_Arr(0)
   }
 

@@ -36,6 +36,7 @@ import whu.edu.cn.debug.GWmodelUtil.other_util._
 object testRun {
   def main(args: Array[String]): Unit = {
 
+    val t0=System.currentTimeMillis()
     val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
     val sc = new SparkContext(conf)
 
@@ -92,18 +93,23 @@ object testRun {
 //    println(re._3)
 
 //    test class of sarmodels
+    val t1=System.currentTimeMillis()
     val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
     val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
     val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
     val x=Array(DenseVector(x1),DenseVector(x2))
 //    x.foreach(println)
-    val mdl=new SARerrormodel
+    val mdl=new SARdurbinmodel
     mdl.init(shpfile)
     mdl.setX(x)
     mdl.setY(y)
-//    val arr=Array(0.1,0.4)
+//    val arr=Array(0.398,0.027)
 //    mdl.paras4optimize(arr)
+//    optimize.nelderMead(arr,mdl.paras4optimize)
     mdl.fit()
+    val tused1=(System.currentTimeMillis()-t0)/1000.0
+    val tused2=(System.currentTimeMillis()-t1)/1000.0
+    print(s"total time used is $tused1 s\nclass time used is $tused2 s")
   }
 
   def readtimeExample(sc: SparkContext): Unit = {
