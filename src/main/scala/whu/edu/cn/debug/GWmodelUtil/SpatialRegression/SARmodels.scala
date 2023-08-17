@@ -1,16 +1,14 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
 
-import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.math._
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+import scala.math._
 
 //改写成抽象类，不可以被初始化
 abstract class SARmodels {
@@ -37,7 +35,7 @@ abstract class SARmodels {
     val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
     val r2 = 1 - rss / yss
     val r2_adj = 1 - (1 - r2) * (n - 1) / (n - df - 1)
-    println(s"diagnostics:\nSSE is $rss\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
+    println(s"diagnostics:\nSSE is $rss\nLog likelihood is $loglikelihood\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
   }
 
 

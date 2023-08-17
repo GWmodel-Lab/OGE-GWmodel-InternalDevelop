@@ -1,29 +1,25 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
 
 import breeze.linalg._
-import breeze.linalg.{DenseMatrix, DenseVector}
-
 import scala.math._
-import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.Geometry
 
 import whu.edu.cn.debug.GWmodelUtil.optimize._
-
-import scala.collection.mutable
 
 class SARlagmodel extends SARmodels {
 
   var _xrows = 0
   var _xcols = 0
-  var _df = _xcols
+  private var _df = _xcols
 
   private var _dX: DenseMatrix[Double] = _
   private var _1X: DenseMatrix[Double] = _
+  private var _lagY: DenseVector[Double]=_
 
   private var lm_null: DenseVector[Double] = _
   private var lm_w: DenseVector[Double] = _
   private var _wy: DenseVector[Double] = _
   private var _eigen: eig.DenseEig = _
+
 
   override def setX(x: Array[DenseVector[Double]]): Unit = {
     _X = x
@@ -43,13 +39,13 @@ class SARlagmodel extends SARmodels {
 
     val interval = get_interval()
     val rho = goldenSelection(interval._1, interval._2, function = rho4optimize)
-    val yy = _Y - rho * _wy
-    val betas = get_betas(X = _1X, Y = yy)
+    _lagY = _Y - rho * _wy
+    val betas = get_betas(X = _1X, Y = _lagY)
     val betas_map = betasMap(betas)
-    val res = get_res(X = _1X, Y = yy)
+    val res = get_res(X = _1X, Y = _lagY)
     //log likelihood
     val lly = get_logLik(get_res(X = _1X))
-    val llx = get_logLik(get_res(X = _1X, Y = yy))
+    val llx = get_logLik(get_res(X = _1X, Y = _lagY))
     val llrho = rho4optimize(rho)
 
     fitvalue = (_Y - res).toArray
@@ -81,6 +77,7 @@ class SARlagmodel extends SARmodels {
     Y - y_hat
   }
 
+  //添加一个判断X，Y为空的情况判断，抛出错误
   private def get_env(): Unit = {
     if (lm_null == null || lm_w == null || _wy == null) {
       _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
@@ -109,9 +106,9 @@ class SARlagmodel extends SARmodels {
     val n = _xrows
     val s2 = SSE / n
     val eigvalue = _eigen.eigenvalues.copy
-    val eig_rho = eigvalue :*= rho
-    val eig_rho_cp = eig_rho.copy
-    val ldet = sum(breeze.numerics.log(-eig_rho_cp :+= 1.0))
+//    val eig_rho = eigvalue :*= rho
+//    val eig_rho_cp = eig_rho.copy
+    val ldet = sum(breeze.numerics.log(-eigvalue * rho + 1.0))
     val ret = (ldet - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * s2)) * SSE)
     ret
   }

@@ -1,17 +1,16 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
 
-import breeze.linalg.{DenseMatrix, DenseVector,inv, eig, qr, sum}
+import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.sqrt
-import breeze.stats.stddev
 import scala.math._
-import scala.collection.mutable.{ArrayBuffer, Map}
+
 import whu.edu.cn.debug.GWmodelUtil.optimize._
 
 class SARerrormodel extends SARmodels {
 
   var _xrows = 0
   var _xcols = 0
-  var _df = _xcols
+  private var _df = _xcols
 
   private var _dX: DenseMatrix[Double] = _
   private var _1X: DenseMatrix[Double] = _
@@ -82,7 +81,7 @@ class SARerrormodel extends SARmodels {
     Y - y_hat
   }
 
-  def get_env(): Unit = {
+  private def get_env(): Unit = {
     if (_wy == null) {
       _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
     }
@@ -113,7 +112,7 @@ class SARerrormodel extends SARmodels {
     (1.0 / min, 1.0 / max)
   }
 
-  def lambda4optimize(lambda: Double): Double = {
+  private def lambda4optimize(lambda: Double): Double = {
     get_env()
     val yl = sw * (_Y - lambda * _wy)
     val xl = (_1X - lambda * _wx)
@@ -126,7 +125,7 @@ class SARerrormodel extends SARmodels {
     val s2 = SSE / n
     val eigvalue = _eigen.eigenvalues.copy
     val ldet = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
-    val ret = (ldet + (1 / 2) * sum_lw - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * (s2))) * SSE)
+    val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * (s2))) * SSE)
     //    println(SSE, ret)
     ret
   }

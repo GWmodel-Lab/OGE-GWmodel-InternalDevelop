@@ -4,6 +4,7 @@ import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, Point}
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARerrormodel
 import whu.edu.cn.oge.Feature
 import whu.edu.cn.util.ShapeFileUtil._
 
@@ -26,9 +27,9 @@ import breeze.plot._
 
 import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
 import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARmodels
 import whu.edu.cn.debug.GWmodelUtil.sp_autocorrelation._
 import whu.edu.cn.debug.GWmodelUtil.other_util._
-import whu.edu.cn.debug.GWmodelUtil.SARmodels
 
 object testRun {
   def main(args: Array[String]): Unit = {
