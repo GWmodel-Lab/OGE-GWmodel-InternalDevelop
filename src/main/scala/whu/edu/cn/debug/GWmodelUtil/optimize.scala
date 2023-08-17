@@ -51,30 +51,18 @@ object optimize {
       }
       iter += 1
     }
-    println((b + a) / 2.0)
+//    println((b + a) / 2.0)
     (b + a) / 2.0
   }
 
-  //  def lagsse4optimize(rho: Double, betas: DenseVector[Double]): Double = {
-  //    val res = _Y - rho * _wy - _dX * betas
-  //    val SSE = sum(res.toArray.map(t => t * t))
-  //    val n = _xlength
-  //    val s2 = SSE / n
-  //    val eigvalue = _eigen.eigenvalues.copy
-  //    val eig_rho = eigvalue :*= rho
-  //    val eig_rho_cp = eig_rho.copy
-  //    val det = sum(breeze.numerics.log(-eig_rho_cp :+= 1.0))
-  //    val ret = (det - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * s2)) * SSE)
-  //    ret
-  //  }
-
-
-  def nelderMead(rho: Double, betas: DenseVector[Double], function: (Double, DenseVector[Double]) => Double) = {
+  def nelderMead(optparams:Array[Double], function: (Double, DenseVector[Double]) => Double) = {
     var iter = 0
     val max_iter = 1000
     val th_eps = 1e-10
-    val optdata: Array[Array[Double]] = Array(Array(rho), betas.toArray)
-    val optParameter = optdata.flatten
+//如果是double和densevector的输入（rho: Double, betas: DenseVector[Double]，function也是以这两个为输入）
+//    val optdata: Array[Array[Double]] = Array(Array(rho), betas.toArray)
+//    val optParameter = optdata.flatten
+    val optParameter=optparams.clone()
 
     //如果是3维，算上初始点一共3+1个点，m=3。但是，又因为点数从0开始算，m作为下标，实际应该是3-1=2
     val m = optParameter.length - 1
