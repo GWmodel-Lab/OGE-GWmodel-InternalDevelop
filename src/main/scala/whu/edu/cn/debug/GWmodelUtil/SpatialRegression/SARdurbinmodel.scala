@@ -13,8 +13,8 @@ class SARdurbinmodel  extends SARmodels {
 
   private var _dX: DenseMatrix[Double] = _
   private var _1X: DenseMatrix[Double] = _
-  private var _errorX: DenseMatrix[Double] = _
-  private var _errorY: DenseVector[Double] = _
+  private var _durbinX: DenseMatrix[Double] = _
+  private var _durbinY: DenseVector[Double] = _
 
   private var _wy: DenseVector[Double] = _
   private var _wwy: DenseVector[Double] = _
@@ -36,11 +36,31 @@ class SARdurbinmodel  extends SARmodels {
     _Y = DenseVector(y)
   }
 
-  def fit() = {
-    val arr=firstvalue()
-    val optresult=nelderMead(arr,paras4optimize)
+  def fit(): Array[Double] = {
+    val arr = firstvalue()
+    val optresult = nelderMead(arr, paras4optimize)
     println("----------optimize result----------")
     optresult.foreach(println)
+    val rho = optresult(0)
+    val lambda = optresult(1)
+    _durbinX = _1X - lambda * _wx
+    _durbinY = _Y - rho * _wy - lambda * _wy + rho * lambda * _wwy
+    val betas = get_betas(X = _durbinX, Y = _durbinY)
+    println(betas)
+    val betas_map = betasMap(betas)
+    val res = get_res(X = _durbinX, Y = _durbinY)
+    //log likelihood
+    val llopt = paras4optimize(optresult)
+    val lly = get_logLik(get_res(X = _1X))
+
+    fitvalue = (_Y - res).toArray
+    println("---------------------------------spatial durbin model---------------------------------")
+    println(s"rho is $rho\nlambda is $lambda")
+    try_LRtest(-llopt, lly, chi_pama = 2)
+    println(s"coeffients:\n$betas_map")
+    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
+    println("------------------------------------------------------------------------------------")
+    fitvalue
   }
 
   def get_betas(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xrows)): DenseVector[Double] = {
@@ -96,7 +116,7 @@ class SARdurbinmodel  extends SARmodels {
     Array(median, median)
   }
 
-  def paras4optimize(optarr:Array[Double]): Double= {
+  def paras4optimize(optarr: Array[Double]): Double = {
     get_env()
     if (optarr.length == 2) {
       val rho = optarr(0)
@@ -113,7 +133,7 @@ class SARdurbinmodel  extends SARmodels {
       val ldet_rho = sum(breeze.numerics.log(-eigvalue * rho + 1.0))
       val ldet_lambda = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
       val ret = (ldet_rho + ldet_lambda - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
-//      println(-ret)
+      //      println(-ret)
       -ret
     } else {
       throw new IllegalArgumentException("optmize array should have rho and lambda")
