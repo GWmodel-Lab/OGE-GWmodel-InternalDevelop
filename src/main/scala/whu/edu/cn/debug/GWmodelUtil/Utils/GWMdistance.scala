@@ -1,12 +1,12 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.Utils
 
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkContext
+import org.apache.spark.mllib.linalg._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Coordinate, Geometry}
-import scala.math.{abs, max, min, pow, sqrt}
+
 import scala.collection.mutable.{ArrayBuffer, Map}
-import org.apache.spark.mllib.stat._
-import org.apache.spark.mllib.linalg._
+import scala.math.{pow, sqrt}
 
 object GWMdistance {
 

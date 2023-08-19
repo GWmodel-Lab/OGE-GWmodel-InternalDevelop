@@ -17,8 +17,8 @@ import org.apache.spark.mllib.stat.Statistics
 import breeze.numerics._
 import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
 
-import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
-import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
+import whu.edu.cn.debug.GWmodelUtil.Utils.GWMdistance._
+import whu.edu.cn.debug.GWmodelUtil.Utils.GWMspatialweight._
 
 
 object testRun {
