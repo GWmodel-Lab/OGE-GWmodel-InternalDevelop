@@ -1,11 +1,10 @@
-package whu.edu.cn.debug
+package whu.edu.cn.debug.GWmodelUtil.STCorrelations
 
-import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry}
-import whu.edu.cn.oge.Feature
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.math.{abs, max, min, pow, sqrt}
 import org.apache.spark.mllib.stat.Statistics
+import org.apache.spark.rdd.RDD
+import org.locationtech.jts.geom.Geometry
+
+import scala.collection.mutable.Map
 
 object CorrelationAnalysis {
   /**
