@@ -1,17 +1,10 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.BasicStatistics
 
-import geotrellis.raster._
-import geotrellis.raster.io.geotiff.SinglebandGeoTiff
-import geotrellis.spark._
-import geotrellis.vector._
-import scala.util._
-import geotrellis.raster.density.KernelStamper
-import geotrellis.raster.mapalgebra.local.LocalTileBinaryOp
 import geotrellis.raster.mapalgebra.focal.Kernel
-import geotrellis.raster._
-import geotrellis.spark.tiling._
-import geotrellis.spark._
+import geotrellis.raster.{ColorMap, ColorRamps, RasterExtent, Tile}
+import geotrellis.vector.{Extent, Feature, Point, PointFeature}
 
+import scala.util.Random
 
 object KDE {
   //主函数

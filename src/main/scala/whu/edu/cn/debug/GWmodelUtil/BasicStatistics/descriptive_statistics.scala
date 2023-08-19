@@ -1,15 +1,14 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.BasicStatistics
 
-import org.apache.spark.{SparkConf, SparkContext}
+import breeze.plot.{Figure, HistogramBins, hist}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
 import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.oge.Feature
 import whu.edu.cn.util.ShapeFileUtil
 
 import scala.collection.immutable.List
 import scala.collection.mutable.Map
-
-import breeze.plot._
 
 object descriptive_statistics{
 
