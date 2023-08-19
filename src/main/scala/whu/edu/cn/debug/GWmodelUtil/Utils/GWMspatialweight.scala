@@ -1,15 +1,12 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.Utils
 
-import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector}
+import breeze.linalg.DenseVector
 import breeze.numerics._
-import geotrellis.raster.mapalgebra.focal.Kernel
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry}
-import org.sparkproject.dmg.pmml.False
+import org.locationtech.jts.geom.Geometry
 
 import scala.collection.mutable.{ArrayBuffer, Map}
 //import cern.colt.matrix._
-import org.apache.spark.mllib.linalg._
 
 object GWMspatialweight {
 
