@@ -3,7 +3,7 @@ package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
 import breeze.linalg._
 import scala.math._
 
-import whu.edu.cn.debug.GWmodelUtil.optimize._
+import whu.edu.cn.debug.GWmodelUtil.Utils.optimize._
 
 class SARlagmodel extends SARmodels {
 

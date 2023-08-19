@@ -1,16 +1,15 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.Utils
 
+import au.com.bytecode.opencsv._
+import breeze.linalg.{DenseVector, linspace}
+import breeze.plot._
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.oge.Feature
 
-import java.io.{StringReader, StringWriter}
-import au.com.bytecode.opencsv._
-import breeze.linalg.{DenseVector, linspace}
-import breeze.plot._
-
+import java.io.StringReader
 import scala.collection.mutable.Map
 import scala.math.pow
 import scala.reflect.ClassTag

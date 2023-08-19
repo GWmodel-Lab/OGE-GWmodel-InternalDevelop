@@ -27,11 +27,11 @@ import scala.collection.JavaConverters._
 import java.text.SimpleDateFormat
 import breeze.plot._
 
-import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
-import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
+import whu.edu.cn.debug.GWmodelUtil.Utils.GWMdistance._
+import whu.edu.cn.debug.GWmodelUtil.Utils.GWMspatialweight._
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARmodels
-import whu.edu.cn.debug.GWmodelUtil.sp_autocorrelation._
-import whu.edu.cn.debug.GWmodelUtil.other_util._
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.sp_autocorrelation._
+import whu.edu.cn.debug.GWmodelUtil.Utils.other_util._
 
 object testRun {
   def main(args: Array[String]): Unit = {

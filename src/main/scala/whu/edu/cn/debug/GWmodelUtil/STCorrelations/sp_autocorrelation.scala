@@ -1,15 +1,13 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.STCorrelations
 
-import breeze.linalg.{DenseMatrix, DenseVector, inv, linspace}
 import breeze.linalg._
+import breeze.plot._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
+import whu.edu.cn.debug.GWmodelUtil.Utils.GWMspatialweight._
 
-import scala.math.{exp, pow, sqrt}
 import scala.collection.mutable.Map
-import java.text.SimpleDateFormat
-import breeze.plot._
-import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
+import scala.math.{pow, sqrt}
 
 object sp_autocorrelation {
 

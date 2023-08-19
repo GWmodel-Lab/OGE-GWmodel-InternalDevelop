@@ -1,9 +1,9 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.Utils
 
-import breeze.linalg._
-import breeze.linalg.{DenseMatrix, DenseVector}
+import breeze.linalg.{DenseVector, _}
+
+import scala.collection.mutable.ArrayBuffer
 import scala.math._
-import scala.collection.mutable.{ArrayBuffer, Map}
 
 
 object optimize {

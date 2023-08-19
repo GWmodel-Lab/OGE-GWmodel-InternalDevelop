@@ -3,8 +3,8 @@ package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
 import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
-import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
+import whu.edu.cn.debug.GWmodelUtil.Utils.GWMdistance._
+import whu.edu.cn.debug.GWmodelUtil.Utils.GWMspatialweight._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
