@@ -8,7 +8,7 @@ import org.locationtech.jts.geom.{Coordinate, Geometry}
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math.{pow, sqrt}
 
-object GWMdistance {
+object FeatureDistance {
 
   /**
    * 输入RDD，获得Array[(Double, Double)]

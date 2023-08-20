@@ -4,12 +4,12 @@ import breeze.linalg._
 import breeze.plot._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.debug.GWmodelUtil.Utils.GWMspatialweight._
+import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
 
 import scala.collection.mutable.Map
 import scala.math.{pow, sqrt}
 
-object sp_autocorrelation {
+object SpatialAutocorrelation {
 
   /**
    * 输入RDD直接计算全局莫兰指数

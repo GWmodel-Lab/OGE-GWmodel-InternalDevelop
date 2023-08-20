@@ -6,7 +6,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.math._
 
 
-object optimize {
+object Optimize {
 
   /**
    *

@@ -2,7 +2,7 @@ package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, inv}
 
-object linear_regression {
+object LinearRegression {
 
   private var _X: DenseMatrix[Double] = _
   private var _Y: DenseVector[Double] = _

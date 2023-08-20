@@ -4,7 +4,7 @@ import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.sqrt
 import scala.math._
 
-import whu.edu.cn.debug.GWmodelUtil.Utils.optimize._
+import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
 
 class SARerrormodel extends SARmodels {
 

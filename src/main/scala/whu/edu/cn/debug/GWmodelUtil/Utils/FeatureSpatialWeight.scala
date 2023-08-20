@@ -8,7 +8,7 @@ import org.locationtech.jts.geom.Geometry
 import scala.collection.mutable.{ArrayBuffer, Map}
 //import cern.colt.matrix._
 
-object GWMspatialweight {
+object FeatureSpatialWeight {
 
   //  object Kernal extends Enumeration {
   //    val gaussian, exponential, bisquare, tricube, boxcar = Value
