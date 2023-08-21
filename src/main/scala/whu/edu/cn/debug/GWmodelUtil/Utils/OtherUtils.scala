@@ -5,13 +5,14 @@ import au.com.bytecode.opencsv._
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.oge.Feature
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, Point, MultiPolygon}
+import whu.edu.cn.util.ShapeFileUtil._
+import scala.collection.JavaConverters._
+import java.text.SimpleDateFormat
 
 import java.io.StringReader
 import scala.collection.mutable.Map
 import scala.math.pow
-import scala.reflect.ClassTag
 
 object OtherUtils {
 
@@ -24,6 +25,9 @@ object OtherUtils {
     csvdata.map(t => t.zipWithIndex)
   }
 
+  def getGeometryType(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): String = {
+    geomRDD.map(t => t._2._1).first().getGeometryType
+  }
 
   /**
    * 输入要添加的属性数据和RDD，输出RDD
@@ -34,7 +38,7 @@ object OtherUtils {
    * @param propertyName 属性名，String类型，需要少于10个字符
    * @return RDD
    */
-  def writeRDD(sc: SparkContext, shpRDD: RDD[(String, (Geometry, Map[String, Any]))], writeArray: Array[Double], propertyName: String): RDD[(String, (Geometry, Map[String, Any]))] = {
+  def writeRDD(implicit sc: SparkContext, shpRDD: RDD[(String, (Geometry, Map[String, Any]))], writeArray: Array[Double], propertyName: String): RDD[(String, (Geometry, Map[String, Any]))] = {
     if (propertyName.length >= 10) {
       throw new IllegalArgumentException("the length of property name must not longer than 10!!")
     }
@@ -43,6 +47,23 @@ object OtherUtils {
       t._1._2._2 += (propertyName -> writeArray(t._2))
     })
     sc.makeRDD(shpRDDidx.map(t => t._1))
+  }
+
+  def writeshpfile(outputshpRDD: RDD[(String, (Geometry, Map[String, Any]))], outputshpPath: String) = {
+    val geom = getGeometryType(outputshpRDD)
+    geom match {
+      case "MultiPolygon" => createShp(outputshpPath, "utf-8", classOf[MultiPolygon], outputshpRDD.map(t => {
+        t._2._2 + (DEF_GEOM_KEY -> t._2._1)
+      }).collect().map(_.asJava).toList.asJava)
+      case "Point" => createShp(outputshpPath, "utf-8", classOf[Point], outputshpRDD.map(t => {
+        t._2._2 + (DEF_GEOM_KEY -> t._2._1)
+      }).collect().map(_.asJava).toList.asJava)
+      case "LineString" => createShp(outputshpPath, "utf-8", classOf[LineString], outputshpRDD.map(t => {
+        t._2._2 + (DEF_GEOM_KEY -> t._2._1)
+      }).collect().map(_.asJava).toList.asJava)
+      case _ => throw new IllegalArgumentException("can not modified geometry type, please retry")
+    }
+    println(s"shpfile written successfully in $outputshpPath")
   }
 
   def attributeSelectHead(csvRDD: RDD[Array[(String, Int)]], property: String): Array[String] = {
@@ -80,9 +101,15 @@ object OtherUtils {
     resultArr
   }
 
-  def printArrArr[T: ClassTag](arrarr: Array[Array[T]]) = {
-    val arrvec = arrarr.map(t => t.toVector)
-    arrvec.foreach(println)
+  def readtimeExample(implicit sc: SparkContext, csvpath: String, timeproperty: String, timepattern: String = "yyyy/MM/dd"): Unit = {
+    val csvdata = readcsv(sc, csvpath)
+    val timep = attributeSelectHead(csvdata, timeproperty)
+    val date = timep.map(t => {
+      val date = new SimpleDateFormat(timepattern).parse(t)
+      date
+    })
+    date.foreach(println)
+    println((date(300).getTime - date(0).getTime) / 1000 / 60 / 60 / 24)
   }
 
   def corr2list(lst1: List[Double], lst2: List[Double]): Double = {
