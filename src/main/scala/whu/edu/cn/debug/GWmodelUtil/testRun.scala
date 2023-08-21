@@ -3,119 +3,79 @@ package whu.edu.cn.debug.GWmodelUtil
 import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, Point}
+import whu.edu.cn.util.ShapeFileUtil._
+import scala.reflect.ClassTag
+import breeze.numerics._
+
+import java.text.SimpleDateFormat
+import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
+import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
+import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutocorrelation._
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutocorrelation._
+import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.LinearRegression._
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARerrormodel
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARlagmodel
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARdurbinmodel
-import whu.edu.cn.oge.Feature
-import whu.edu.cn.util.ShapeFileUtil._
-
-import java.awt.Polygon
-import scala.collection.immutable.List
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.math.{abs, max, min, pow, sqrt}
-import scala.reflect.ClassTag
-//import org.apache.spark.mllib.linalg._
-import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.stat.Correlation
-import org.apache.spark.sql.{DataFrame, Row, SparkSession, functions}
-import org.apache.spark.mllib.stat.Statistics
-import breeze.numerics._
-import breeze.linalg.{linspace, Vector, DenseVector, Matrix , DenseMatrix}
-import scala.collection.JavaConverters._
-import java.text.SimpleDateFormat
-import breeze.plot._
-
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARmodels
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutocorrelation._
-import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
 
 object testRun {
+
+  //global variables
+  val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
+  val sc = new SparkContext(conf)
+
+  val shpPath: String = "testdata\\MississippiHR.shp"
+  //    val shpPath: String = "testdata\\LNHP100.shp"
+  val shpfile = readShp(sc, shpPath, DEF_ENCODE) //或者直接utf-8
+
+  //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
   def main(args: Array[String]): Unit = {
+    //    val t0 = System.currentTimeMillis()
+//    sarmodel_test()
+//    morani_test()
+//    acf_test()
+//    linear_test()
+  }
 
-    val t0=System.currentTimeMillis()
-    val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-    val sc = new SparkContext(conf)
-
-    val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
-//    val shpPath: String = "testdata\\LNHP100.shp"
-    val shpfile = readShp(sc,shpPath,DEF_ENCODE)//或者直接utf-8
-//    println(getGeometryType(shpfile))
-
-//    val globali = globalMoranI(shpfile, "HR60",plot=true,test=true)
-
-//    println(s"global Moran's I is: ${globali._1}")
-//    val locali=localMoranI(shpfile,"HR60")
-//    println("-----------local moran's I--------------")
-//    locali._1.foreach(println)
-//    println("-----------p-value--------------")
-//    locali._5.foreach(println)
-
-//    val result1=writeRDD(sc,shpfile,locali._1,"moran_i")
-//    val result2=writeRDD(sc,result1,locali._2,"expect")
-//    val outputpath="testdata\\MississippiMoranI.shp"
-//    writeshpfile(result2,outputpath)
-
-//    testcorr(shpfile)
-
-//    val csvpath="D:\\Java\\testdata\\test_aqi.csv"
-//    val csvdata=readcsv(sc,csvpath)
-//    printArrArr(csvdata.collect())
-//
-//    //test date calculator
-//    val timep=attributeSelectHead(csvdata,"time_point")
-//    val timepattern = "yyyy/MM/dd"
-//    val date=timep.map(t=>{
-//      val date = new SimpleDateFormat(timepattern).parse(t)
-//      date
-//    })
-//    date.foreach(println)
-//    println((date(300).getTime - date(0).getTime)/1000/60/60/24)
-//
-//    val tem=attributeSelectHead(csvdata,"temperature")
-////    tem.foreach(println)
-//    val db_tem=tem.map(t=>t.toDouble)
-////    println(db_tem.sum)
-//    val tem_acf = timeSeries_acf(db_tem,30)
-//    tem_acf.foreach(println)
-
-//    val aqi = attributeSelectNum(csvdata, 2).map(t=>t.toDouble)
-////    aqi.foreach(println)
-//    val per=attributeSelectHead(csvdata, "precipitation").map(t=>t.toDouble)
-//
-//    val x=Array(DenseVector(db_tem),DenseVector(per))
-//    val re=global_regression.linearRegression(x,DenseVector(aqi))
-//    println(re._1)
-//    println(re._2)
-//    println(re._3)
-
-//    test class of sarmodels
-    val t1=System.currentTimeMillis()
-    val x1=shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-    val x2=shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-    val y =shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
-    val x=Array(DenseVector(x1),DenseVector(x2))
-//    x.foreach(println)
-    val mdl=new SARdurbinmodel
+  def sarmodel_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val x1 = shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+    val x2 = shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+    val y = shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+    val x = Array(DenseVector(x1), DenseVector(x2))
+    //    x.foreach(println)
+    val mdl = new SARdurbinmodel//error，lag
     mdl.init(shpfile)
     mdl.setX(x)
     mdl.setY(y)
-//    val arr=Array(0.398,0.027)
-//    mdl.paras4optimize(arr)
-//    optimize.nelderMead(arr,mdl.paras4optimize)
     mdl.fit()
-    val tused1=(System.currentTimeMillis()-t0)/1000.0
-    val tused2=(System.currentTimeMillis()-t1)/1000.0
-    print(s"total time used is $tused1 s\nclass time used is $tused2 s")
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
 
-  def readtimeExample(sc: SparkContext): Unit = {
+  def morani_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val globali = globalMoranI(shpfile, "HR60", plot = true, test = true)
+    println(s"global Moran's I is: ${globali._1}")
+    val locali = localMoranI(shpfile, "HR60")
+    println("-----------local moran's I--------------")
+    locali._1.foreach(println)
+    println("-----------p-value--------------")
+    locali._5.foreach(println)
+    //    val result1 = writeRDD(sc, shpfile, locali._1, "moran_i")
+    //    val result2 = writeRDD(sc, result1, locali._2, "expect")
+    //    val outputpath = "testdata\\MississippiMoranI.shp"
+    //    writeshpfile(result2, outputpath)
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
+  }
+
+  def acf_test(): Unit = {
+    val t1 = System.currentTimeMillis()
     val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
     val csvdata = readcsv(sc, csvpath)
-
+    //test date calculator
     val timep = attributeSelectHead(csvdata, "time_point")
     val timepattern = "yyyy/MM/dd"
     val date = timep.map(t => {
@@ -124,6 +84,30 @@ object testRun {
     })
     date.foreach(println)
     println((date(300).getTime - date(0).getTime) / 1000 / 60 / 60 / 24)
+    val tem = attributeSelectHead(csvdata, "temperature")
+    //    tem.foreach(println)
+    val db_tem = tem.map(t => t.toDouble)
+    //    println(db_tem.sum)
+    val tem_acf = timeSeriesACF(db_tem, 30)
+    tem_acf.foreach(println)
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
+  }
+
+  def linear_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
+    val csvdata = readcsv(sc, csvpath)
+    val aqi = attributeSelectNum(csvdata, 2).map(t => t.toDouble)
+    val per = attributeSelectHead(csvdata, "precipitation").map(t => t.toDouble)
+    val tem = attributeSelectHead(csvdata, "temperature").map(t => t.toDouble)
+    val x = Array(DenseVector(tem), DenseVector(per))
+    val re = linearRegression(x, DenseVector(aqi))
+    println(re._1)
+    println(re._2)
+    println(re._3)
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
 
 }
