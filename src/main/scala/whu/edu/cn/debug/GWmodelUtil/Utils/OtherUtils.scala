@@ -7,15 +7,24 @@ import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, Point, MultiPolygon}
 import whu.edu.cn.util.ShapeFileUtil._
+
+import scala.collection.immutable.List
+import scala.collection.mutable.{ArrayBuffer, Map}
+import scala.math.{abs, max, min, pow, sqrt}
 import scala.collection.JavaConverters._
 import java.text.SimpleDateFormat
-
 import java.io.StringReader
-import scala.collection.mutable.Map
-import scala.math.pow
+
 
 object OtherUtils {
 
+  /**
+   * 读入csv
+   *
+   * @param sc      SparkContext
+   * @param csvPath csvPath
+   * @return        RDD[Array[(String, Int)]]
+   */
   def readcsv(implicit sc: SparkContext, csvPath: String): RDD[Array[(String, Int)]] = {
     val data = sc.textFile(csvPath)
     val csvdata = data.map(line => {
@@ -25,6 +34,12 @@ object OtherUtils {
     csvdata.map(t => t.zipWithIndex)
   }
 
+  /**
+   * 获取RDD矢量的数据类型（points，lines，multipolygons etc）
+   *
+   * @param geomRDD Input RDD
+   * @return        type String
+   */
   def getGeometryType(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): String = {
     geomRDD.map(t => t._2._1).first().getGeometryType
   }
@@ -49,6 +64,12 @@ object OtherUtils {
     sc.makeRDD(shpRDDidx.map(t => t._1))
   }
 
+  /**
+   * 输出shp
+   *
+   * @param outputshpRDD  需要输出的RDD
+   * @param outputshpPath 输出路径
+   */
   def writeshpfile(outputshpRDD: RDD[(String, (Geometry, Map[String, Any]))], outputshpPath: String) = {
     val geom = getGeometryType(outputshpRDD)
     geom match {
@@ -66,6 +87,13 @@ object OtherUtils {
     println(s"shpfile written successfully in $outputshpPath")
   }
 
+  /**
+   * 通过列名称header获取属性值
+   *
+   * @param csvRDD    输入RDD
+   * @param property  header名称，String
+   * @return          属性列，Array[String]
+   */
   def attributeSelectHead(csvRDD: RDD[Array[(String, Int)]], property: String): Array[String] = {
     val head = csvRDD.collect()(0)
     val csvArr = csvRDD.collect().drop(1)
@@ -85,6 +113,13 @@ object OtherUtils {
     resultArr
   }
 
+  /**
+   * 通过列数获取属性值
+   *
+   * @param csvRDD  输入RDD
+   * @param number  输入列数
+   * @return        属性列，Array[String]
+   */
   def attributeSelectNum(csvRDD: RDD[Array[(String, Int)]], number: Int): Array[String] = {
     val head = csvRDD.collect()(0)
     val csvArr = csvRDD.collect().drop(1)
@@ -126,6 +161,7 @@ object OtherUtils {
     correlation
   }
 
+  //使用ml库
   def corr2ml(feat: RDD[(String, (Geometry, Map[String, Any]))], property1: String, property2: String): Double = {
     val time0: Long = System.currentTimeMillis()
     val aX: RDD[Double] = feat.map(t => t._2._2(property1).asInstanceOf[String].toDouble)

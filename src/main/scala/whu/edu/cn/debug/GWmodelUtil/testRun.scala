@@ -32,10 +32,10 @@ object testRun {
   //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
   def main(args: Array[String]): Unit = {
     //    val t0 = System.currentTimeMillis()
-//    sarmodel_test()
-//    morani_test()
-//    acf_test()
-//    linear_test()
+    sarmodel_test()
+    morani_test()
+    acf_test()
+    linear_test()
   }
 
   def sarmodel_test(): Unit = {
@@ -97,10 +97,10 @@ object testRun {
   def linear_test(): Unit = {
     val t1 = System.currentTimeMillis()
     val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
-    val csvdata = readcsv(sc, csvpath)
-    val aqi = attributeSelectNum(csvdata, 2).map(t => t.toDouble)
-    val per = attributeSelectHead(csvdata, "precipitation").map(t => t.toDouble)
-    val tem = attributeSelectHead(csvdata, "temperature").map(t => t.toDouble)
+    val csvdata2 = readcsv(sc, csvpath)
+    val aqi = attributeSelectNum(csvdata2, 2).map(t => t.toDouble)
+    val per = attributeSelectHead(csvdata2, "precipitation").map(t => t.toDouble)
+    val tem = attributeSelectHead(csvdata2, "temperature").map(t => t.toDouble)
     val x = Array(DenseVector(tem), DenseVector(per))
     val re = linearRegression(x, DenseVector(aqi))
     println(re._1)

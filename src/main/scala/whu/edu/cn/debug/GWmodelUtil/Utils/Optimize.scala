@@ -5,7 +5,9 @@ import breeze.linalg.{DenseVector, _}
 import scala.collection.mutable.ArrayBuffer
 import scala.math._
 
-
+/**
+ * 提供参数优化的计算方法：黄金分割法和Nelder-Mead算法
+ */
 object Optimize {
 
   /**

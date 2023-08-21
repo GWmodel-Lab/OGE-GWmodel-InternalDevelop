@@ -29,6 +29,32 @@ object FeatureSpatialWeight {
   }
 
   /**
+   * 获取一个面状矢量RDD的邻接权重矩阵，输入如果不是面状数据，输出所有权重将是0
+   *
+   * @param polyRDD 输入的面状数据，项目矢量RDD类型
+   * @param style   邻接矩阵的权重计算类型，计算结果只针对邻接的对象算权重，非邻接的对象权重均为0。默认为W类型。
+   *                W：1/邻居数； B：1； C：1/平均邻居数； U：1/总邻居数；
+   * @return RDD形式的权重向量
+   */
+  def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style: String = "W"): RDD[DenseVector[Double]] = {
+    val geomtype = getGeometryType(polyRDD)
+    if ("Point" == geomtype) {
+      println(s" Remind!!! The geometry type of input RDD is: $geomtype")
+    }
+    val geomRDD = getGeometry(polyRDD)
+    val nb_bool = getNeighborBool(geomRDD)
+    val nb_weight = boolNeighborWeight(nb_bool)
+    val sum_nb: Double = nb_weight.collect().map(t => t.toArray.sum).sum
+    val avg_nb: Double = nb_weight.collect().length.toDouble
+    style match {
+      case "W" => nb_weight.map(t => t * (t / t.sum))
+      case "B" => nb_weight.map(t => t)
+      case "C" => nb_weight.map(t => (t * (1.0 * avg_nb / sum_nb)))
+      case "U" => nb_weight.map(t => (t * (1.0 / sum_nb)))
+    }
+  }
+
+  /**
    * 对单个距离向量进行权重向量求解
    *
    * @param dist     \~english Distance vector \~chinese 距离向量
@@ -129,32 +155,6 @@ object FeatureSpatialWeight {
       println("Error bandwidth, biggest bandwidth has been set")
     }
     fbw
-  }
-
-  /**
-   * 获取一个面状矢量RDD的邻接权重矩阵，输入如果不是面状数据，输出所有权重将是0
-   *
-   * @param polyRDD 输入的面状数据，项目矢量RDD类型
-   * @param style 邻接矩阵的权重计算类型，计算结果只针对邻接的对象算权重，非邻接的对象权重均为0。默认为W类型。
-   *              W：1/邻居数； B：1； C：1/平均邻居数； U：1/总邻居数；
-   * @return RDD形式的权重向量
-   */
-  def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style:String = "W"): RDD[DenseVector[Double]]={
-    val geomtype=getGeometryType(polyRDD)
-    if ("Point"==geomtype) {
-      println(s" Remind!!! The geometry type of input RDD is: $geomtype")
-    }
-    val geomRDD=getGeometry(polyRDD)
-    val nb_bool=getNeighborBool(geomRDD)
-    val nb_weight=boolNeighborWeight(nb_bool)
-    val sum_nb:Double =nb_weight.collect().map(t=>t.toArray.sum).sum
-    val avg_nb:Double =nb_weight.collect().length.toDouble
-    style match {
-      case "W" => nb_weight.map(t=>t*(t/t.sum))
-      case "B" => nb_weight.map(t=>t)
-      case "C" => nb_weight.map(t=>( t* (1.0 * avg_nb / sum_nb)))
-      case "U" => nb_weight.map(t=>( t* (1.0 / sum_nb)))
-    }
   }
 
   def getGeometry(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Geometry]={

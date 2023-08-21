@@ -6,7 +6,14 @@ import scala.math.pow
 
 object TemporalAutocorrelation {
 
-  def timeSeries_acf(timeArr: Array[Double], timelag: Int = 20): Array[Double] = {
+  /**
+   * 输入属性Array计算自相关滞后结果
+   *
+   * @param timeArr 属性Arr
+   * @param timelag 阶数，默认为20
+   * @return
+   */
+  def timeSeriesACF(timeArr: Array[Double], timelag: Int = 20): Array[Double] = {
     val acfarr = DenseVector.zeros[Double](timelag + 1).toArray
     if (timelag > 0) {
       val f = Figure()
