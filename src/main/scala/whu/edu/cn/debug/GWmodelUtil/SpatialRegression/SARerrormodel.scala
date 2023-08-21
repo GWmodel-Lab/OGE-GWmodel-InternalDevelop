@@ -6,6 +6,9 @@ import scala.math._
 
 import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
 
+/**
+ * 空间误差模型，考虑自变量误差项λ。
+ */
 class SARerrormodel extends SARmodels {
 
   var _xrows = 0
@@ -23,7 +26,11 @@ class SARerrormodel extends SARmodels {
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
 
-
+  /**
+   * 设置X
+   *
+   * @param x 自变量
+   */
   override def setX(x: Array[DenseVector[Double]]): Unit = {
     _X = x
     _xcols = x.length
@@ -34,10 +41,20 @@ class SARerrormodel extends SARmodels {
     _df = _xcols + 1 + 1
   }
 
+  /**
+   * 设置Y
+   *
+   * @param y 因变量
+   */
   override def setY(y: Array[Double]): Unit = {
     _Y = DenseVector(y)
   }
 
+  /**
+   * 回归计算
+   *
+   * @return 返回拟合值（Array）形式
+   */
   def fit(): Array[Double] = {
     val interval = get_interval()
     val lambda = goldenSelection(interval._1, interval._2, function = lambda4optimize)
@@ -142,6 +159,5 @@ class SARerrormodel extends SARmodels {
     //    println(SSE, ret)
     ret
   }
-
 
 }

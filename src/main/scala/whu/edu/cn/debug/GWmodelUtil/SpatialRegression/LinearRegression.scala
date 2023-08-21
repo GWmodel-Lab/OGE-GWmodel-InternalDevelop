@@ -22,6 +22,14 @@ object LinearRegression {
     _Y = y
   }
 
+  /**
+   * 线性回归
+   *
+   * @param x         输入X
+   * @param y         输入Y
+   * @param Intercept 是否需要截距项，默认：是（true）
+   * @return          （系数，预测值，残差）各自以Array形式储存
+   */
   def linearRegression(x: Array[DenseVector[Double]], y: DenseVector[Double], Intercept: Boolean =true)
                       : (DenseVector[Double], DenseVector[Double], DenseVector[Double])= {
     setX(x)

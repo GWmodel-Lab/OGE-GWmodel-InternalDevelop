@@ -6,6 +6,9 @@ import scala.math._
 
 import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
 
+/**
+ * 空间杜宾模型，同时考虑自变量误差项λ与因变量滞后项ρ。
+ */
 class SARdurbinmodel  extends SARmodels {
   var _xrows = 0
   var _xcols = 0
@@ -21,7 +24,11 @@ class SARdurbinmodel  extends SARmodels {
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
 
-
+  /**
+   * 设置X
+   *
+   * @param x 自变量
+   */
   override def setX(x: Array[DenseVector[Double]]): Unit = {
     _X = x
     _xcols = x.length
@@ -32,10 +39,20 @@ class SARdurbinmodel  extends SARmodels {
     _df = _xcols + 1 + 1
   }
 
+  /**
+   * 设置Y
+   *
+   * @param y 因变量
+   */
   override def setY(y: Array[Double]): Unit = {
     _Y = DenseVector(y)
   }
 
+  /**
+   * 回归计算
+   *
+   * @return 返回拟合值（Array）形式
+   */
   def fit(): Array[Double] = {
     val arr = firstvalue()
     val optresult = nelderMead(arr, paras4optimize)
@@ -116,7 +133,7 @@ class SARdurbinmodel  extends SARmodels {
     Array(median, median)
   }
 
-  def paras4optimize(optarr: Array[Double]): Double = {
+  private def paras4optimize(optarr: Array[Double]): Double = {
     get_env()
     if (optarr.length == 2) {
       val rho = optarr(0)

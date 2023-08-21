@@ -5,6 +5,9 @@ import scala.math._
 
 import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
 
+/**
+ * 空间滞后模型，考虑因变量滞后项ρ。
+ */
 class SARlagmodel extends SARmodels {
 
   var _xrows = 0
@@ -20,7 +23,11 @@ class SARlagmodel extends SARmodels {
   private var _wy: DenseVector[Double] = _
   private var _eigen: eig.DenseEig = _
 
-
+  /**
+   * 设置X
+   *
+   * @param x 自变量
+   */
   override def setX(x: Array[DenseVector[Double]]): Unit = {
     _X = x
     _xcols = x.length
@@ -31,10 +38,20 @@ class SARlagmodel extends SARmodels {
     _df = _xcols + 1 + 1
   }
 
+  /**
+   * 设置Y
+   *
+   * @param y 因变量
+   */
   override def setY(y: Array[Double]): Unit = {
     _Y = DenseVector(y)
   }
 
+  /**
+   * 回归计算
+   *
+   * @return  返回拟合值（Array）形式
+   */
   def fit(): Array[Double] = {
 
     val interval = get_interval()
@@ -125,44 +142,5 @@ class SARlagmodel extends SARmodels {
     val ret = (ldet - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * s2)) * SSE)
     ret
   }
-
-//  private def goldenSelection(lower: Double, upper: Double, eps: Double = 1e-12): Double = {
-//    var iter: Int = 0
-//    val max_iter = 1000
-//
-//    val ratio: Double = (sqrt(5) - 1) / 2.0
-//    var a = lower + 1e-12
-//    var b = upper - 1e-12
-//    var step = b - a
-//    var p = a + (1 - ratio) * step
-//    var q = a + ratio * step
-//    var f_a = rho4optimize(a)
-//    var f_b = rho4optimize(b)
-//    var f_p = rho4optimize(p)
-//    var f_q = rho4optimize(q)
-//    //    println(f_a,f_b,f_p,f_q)
-//    while (abs(f_a - f_b) >= eps && iter < max_iter) {
-//      if (f_p > f_q) {
-//        b = q
-//        f_b = f_q
-//        q = p
-//        f_q = f_p
-//        step = b - a
-//        p = a + (1 - ratio) * step
-//        f_p = rho4optimize(p)
-//      } else {
-//        a = p
-//        f_a = f_p
-//        p = q
-//        f_p = f_q
-//        step = b - a
-//        q = a + ratio * step
-//        f_q = rho4optimize(q)
-//      }
-//      iter += 1
-//    }
-//    println((b + a) / 2.0)
-//    (b + a) / 2.0
-//  }
 
 }

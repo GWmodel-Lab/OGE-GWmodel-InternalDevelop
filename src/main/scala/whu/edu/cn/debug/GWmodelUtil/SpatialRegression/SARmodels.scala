@@ -10,7 +10,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.math._
 
-//改写成抽象类，不可以被初始化
+//抽象类，不可以被初始化
 abstract class SARmodels {
 
   private var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
@@ -21,6 +21,9 @@ abstract class SARmodels {
   protected var spweight_dvec: Array[DenseVector[Double]] = _
   protected var spweight_dmat: DenseMatrix[Double] = _
 
+  /**
+   * 拟合值
+   */
   var fitvalue: Array[Double] = _
 
   def SARmodels() {
@@ -39,7 +42,12 @@ abstract class SARmodels {
     println(s"diagnostics:\nSSE is $rss\nLog likelihood is $loglikelihood\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
   }
 
-
+  /**
+   * 初始化空间数据，输入RDD形式的shpfile
+   *
+   * @param inputRDD  RDD形式的shpfile
+   * @param style     非必选参数，邻接矩阵的类型，默认为W
+   */
   def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], style: String = "W"): Unit = {
     geom = getGeometry(inputRDD)
     shpRDD = inputRDD
@@ -59,6 +67,12 @@ abstract class SARmodels {
     getCoorDistArrbuf(coords, coords).toArray
   }
 
+  /**
+   * 提供更改、设置经纬度信息的函数
+   *
+   * @param lat latitude
+   * @param lon longitude
+   */
   def setcoords(lat: Array[Double], lon: Array[Double]): Unit = {
     val geomcopy = geom.zipWithIndex()
     geomcopy.map(t => {
@@ -68,6 +82,13 @@ abstract class SARmodels {
     geom = geomcopy.map(t => t._1)
   }
 
+  /**
+   * 提供更改、设置权重计算方式的函数
+   *
+   * @param neighbor  是否使用邻接矩阵方式构建权重，默认：是（true）
+   * @param k         如果不使用邻接矩阵形式，输入最近邻个数，默认为0
+   * @param style     非必选参数，邻接矩阵的类型，默认为W
+   */
   def setweight(neighbor: Boolean = true, k: Double = 0, style: String = "W"): Unit = {
     if (neighbor && !geom.isEmpty()) {
       //      val nb_bool = getNeighborBool(geom)
@@ -80,6 +101,9 @@ abstract class SARmodels {
     spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
   }
 
+  /**
+   * 输出权重矩阵，输出形式为多个向量
+   */
   def printweight(): Unit = {
     spweight_dvec.foreach(println)
   }
