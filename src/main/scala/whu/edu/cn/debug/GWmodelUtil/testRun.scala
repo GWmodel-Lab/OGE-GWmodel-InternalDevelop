@@ -4,11 +4,13 @@ import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import whu.edu.cn.util.ShapeFileUtil._
+
 import scala.reflect.ClassTag
 import breeze.numerics._
 
 import java.text.SimpleDateFormat
 import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
+import whu.edu.cn.debug.GWmodelUtil.GWModels.GWRbasic
 import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
 import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutocorrelation._
@@ -25,17 +27,35 @@ object testRun {
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
   val sc = new SparkContext(conf)
 
-  val shpPath: String = "testdata\\MississippiHR.shp"
-  //    val shpPath: String = "testdata\\LNHP100.shp"
+//  val shpPath: String = "testdata\\MississippiHR.shp"
+  val shpPath: String = "testdata\\LNHP100.shp"
   val shpfile = readShp(sc, shpPath, DEF_ENCODE) //或者直接utf-8
 
   //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
   def main(args: Array[String]): Unit = {
     //    val t0 = System.currentTimeMillis()
-    sarmodel_test()
-    morani_test()
-    acf_test()
-    linear_test()
+//    sarmodel_test()
+//    morani_test()
+//    acf_test()
+//    linear_test()
+    gwrbasic_test()
+  }
+
+  def gwrbasic_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val x1 = shpfile.map(t => t._2._2("FLOORSZ").asInstanceOf[String].toDouble).collect()
+    val x2 = shpfile.map(t => t._2._2("PROF").asInstanceOf[String].toDouble).collect()
+    val y = shpfile.map(t => t._2._2("PURCHASE").asInstanceOf[String].toDouble).collect()
+    val x = Array(DenseVector(x1), DenseVector(x2))
+    //    x.foreach(println)
+    val mdl = new GWRbasic //error，lag
+    mdl.init(shpfile)
+    mdl.setweight(10,"gaussian",true)
+    mdl.setX(x)
+    mdl.setY(y)
+    mdl.fit()
+//    val tused = (System.currentTimeMillis() - t1) / 1000.0
+//    println(s"time used is $tused s")
   }
 
   def sarmodel_test(): Unit = {

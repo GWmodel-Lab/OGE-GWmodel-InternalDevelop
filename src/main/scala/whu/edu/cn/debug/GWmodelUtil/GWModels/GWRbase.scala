@@ -62,9 +62,9 @@ class GWRbase {
     geom = geomcopy.map(t => t._1)
   }
 
-  def setweight(): Unit = {
+  def setweight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
     val dist = getdistance().map(t => Array2DenseVector(t))
-    spweight_dvec = dist.map(t => getSpatialweightSingle(t, 10, kernel = "boxcar", adaptive = true))
+    spweight_dvec = dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
     spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
   }
 
