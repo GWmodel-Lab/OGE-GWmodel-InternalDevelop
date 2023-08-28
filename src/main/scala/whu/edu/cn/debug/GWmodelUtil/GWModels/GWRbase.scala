@@ -22,17 +22,17 @@ class GWRbase {
 
   var fitvalue: Array[Double] = _
 
-  protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], loglikelihood: Double, df: Double) {
-    val n = X.rows.toDouble
-    val rss = sum(residuals.toArray.map(t => t * t))
-    val mean_y = Y.toArray.sum / Y.toArray.length
-    val AIC = -2 * loglikelihood + 2 * df
-    val AICc = -2 * loglikelihood + 2 * df * (n / (n - df - 1))
-    val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
-    val r2 = 1 - rss / yss
-    val r2_adj = 1 - (1 - r2) * (n - 1) / (n - df - 1)
-    println(s"diagnostics:\nSSE is $rss\nLog likelihood is $loglikelihood\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
-  }
+//  protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], loglikelihood: Double, df: Double) {
+//    val n = X.rows.toDouble
+//    val rss = sum(residuals.toArray.map(t => t * t))
+//    val mean_y = Y.toArray.sum / Y.toArray.length
+//    val AIC = -2 * loglikelihood + 2 * df
+//    val AICc = -2 * loglikelihood + 2 * df * (n / (n - df - 1))
+//    val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
+//    val r2 = 1 - rss / yss
+//    val r2_adj = 1 - (1 - r2) * (n - 1) / (n - df - 1)
+//    println(s"diagnostics:\nSSE is $rss\nLog likelihood is $loglikelihood\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
+//  }
 
 
   def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {
