@@ -1,17 +1,14 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.GWmodelUtil.Utils
 
-import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector}
+import breeze.linalg.DenseVector
 import breeze.numerics._
-import geotrellis.raster.mapalgebra.focal.Kernel
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry}
-import org.sparkproject.dmg.pmml.False
+import org.locationtech.jts.geom.Geometry
 
 import scala.collection.mutable.{ArrayBuffer, Map}
 //import cern.colt.matrix._
-import org.apache.spark.mllib.linalg._
 
-object GWMspatialweight {
+object FeatureSpatialWeight {
 
   //  object Kernal extends Enumeration {
   //    val gaussian, exponential, bisquare, tricube, boxcar = Value
@@ -29,6 +26,32 @@ object GWMspatialweight {
   def getSpatialweight(distRDD: RDD[Array[Double]], bw: Double, kernel: String = "gaussian", adaptive: Boolean = false): RDD[DenseVector[Double]] = {
     val RDDdvec = distRDD.map(t => Array2DenseVector(t))
     RDDdvec.map(t => getSpatialweightSingle(t, bw, kernel, adaptive))
+  }
+
+  /**
+   * 获取一个面状矢量RDD的邻接权重矩阵，输入如果不是面状数据，输出所有权重将是0
+   *
+   * @param polyRDD 输入的面状数据，项目矢量RDD类型
+   * @param style   邻接矩阵的权重计算类型，计算结果只针对邻接的对象算权重，非邻接的对象权重均为0。默认为W类型。
+   *                W：1/邻居数； B：1； C：1/平均邻居数； U：1/总邻居数；
+   * @return RDD形式的权重向量
+   */
+  def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style: String = "W"): RDD[DenseVector[Double]] = {
+    val geomtype = getGeometryType(polyRDD)
+    if ("Point" == geomtype) {
+      println(s" Remind!!! The geometry type of input RDD is: $geomtype")
+    }
+    val geomRDD = getGeometry(polyRDD)
+    val nb_bool = getNeighborBool(geomRDD)
+    val nb_weight = boolNeighborWeight(nb_bool)
+    val sum_nb: Double = nb_weight.collect().map(t => t.toArray.sum).sum
+    val avg_nb: Double = nb_weight.collect().length.toDouble
+    style match {
+      case "W" => nb_weight.map(t => t * (t / t.sum))
+      case "B" => nb_weight.map(t => t)
+      case "C" => nb_weight.map(t => (t * (1.0 * avg_nb / sum_nb)))
+      case "U" => nb_weight.map(t => (t * (1.0 / sum_nb)))
+    }
   }
 
   /**
@@ -132,22 +155,6 @@ object GWMspatialweight {
       println("Error bandwidth, biggest bandwidth has been set")
     }
     fbw
-  }
-
-  /**
-   * 获取一个面状矢量RDD的邻接权重矩阵，输入如果不是面状数据，输出所有权重将是0
-   *
-   * @param polyRDD 输入的面状数据，项目矢量RDD类型
-   * @return RDD形式的权重向量
-   */
-  def getNeighborWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[DenseVector[Double]]={
-    val geomtype=getGeometryType(polyRDD)
-    if ("Point"==geomtype) {
-      println(s" Remind!!! The geometry type of input RDD is: $geomtype")
-    }
-    val geomRDD=getGeometry(polyRDD)
-    val nb_bool=getNeighborBool(geomRDD)
-    boolNeighborWeight(nb_bool).map(t=>t*(t/t.sum))
   }
 
   def getGeometry(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[Geometry]={
