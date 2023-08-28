@@ -49,7 +49,7 @@ object AveNearestNeighbor {
     * @return Array[Double] 以Array形式存储计算结果
     */
   //平均最近邻指数算子
-  def AveNearestNeighbor(testshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Double]={
+  def aveNearestNeighbor(testshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Double]={
     val RDDcoor = testshp.map(t => t._2._1.getCentroid.getCoordinate)
     val DisArray = getCoorDistArrbuf(RDDcoor, RDDcoor)
     val DisSum = DisArray.map(t => t.sorted.apply(1)).sum //t指每一行，取出RDD矩阵每行最小距离，求和 欧式距离矩阵
