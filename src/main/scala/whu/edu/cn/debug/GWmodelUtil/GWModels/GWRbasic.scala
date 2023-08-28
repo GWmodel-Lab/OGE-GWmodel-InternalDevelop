@@ -34,7 +34,7 @@ class GWRbasic extends GWRbase {
 //    printweight()
 //    val mat=SchurProduct(_1X,spweight_dvec(0))
 //    println(mat)
-    val xtw=spweight_dvec.map(w=> SchurProduct(_1X, w).t )
+    val xtw=spweight_dvec.map(w=> eachColProduct(_1X, w).t )
     val xtwx=xtw.map(t=>t * _1X)
     val xtwy=xtw.map(t=>t * _Y)
     val xtwx_inv=xtwx.map(t=>inv(t))
@@ -57,18 +57,18 @@ class GWRbasic extends GWRbase {
     println(shat0)
     val shat1=si.map(x=> det(x * x.t)).sum
     println(shat1)
-    val yhat_mat=betas.map(t=>SchurProduct(_1X.t,t))
-//    val yhat=yhat_mat.map(t=>sum(t))
-    yhat_mat.foreach(println)
+    val yhat=getYhat(_1X,betas)
+    println(yhat)
   }
 
-  def get_betas(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xrows)): DenseVector[Double] = {
-    val xtw = X.t * W
-    val xtwx = xtw * X
-    val xtwy = xtw * Y
-    val xtwx_inv = inv(xtwx)
-    val betas = xtwx_inv * xtwy
-    betas
+  def getYhat(X: DenseMatrix[Double], betas: Array[DenseVector[Double]]): DenseVector[Double] = {
+    val arrbuf = new ArrayBuffer[Double]()
+    for (i <- 0 until X.rows) {
+      val rowvec = X(i, ::).inner
+      val yhat = (betas(i) * rowvec).sum
+      arrbuf += yhat
+    }
+    DenseVector(arrbuf.toArray)
   }
 
 //  def calDiagnostic (X: DenseMatrix[Double], Y: DenseVector[Double] )= {
@@ -85,7 +85,7 @@ class GWRbasic extends GWRbase {
 //    double r2_adj = 1 - (1 - r2) * (n - 1) / (edf - 1)
 //  }
 
-  def SchurProduct(Mat:DenseMatrix[Double],Vec:DenseVector[Double]): DenseMatrix[Double]={
+  def eachColProduct(Mat:DenseMatrix[Double],Vec:DenseVector[Double]): DenseMatrix[Double]={
     val arrbuf=new ArrayBuffer[DenseVector[Double]]()
     for(i<-0 until Mat.cols){
       arrbuf += Mat(::,i) * Vec
