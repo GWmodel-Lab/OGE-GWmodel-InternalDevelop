@@ -7,8 +7,10 @@ import scala.collection.immutable.List
 
 
 object descriptive_statistics{
-  //描述性统计
-  /**
+
+  /**descriptive_statistics:for the given list,get the result,containing:
+    * 1)the count,mean,standard deviation,maximum,minimum,sum,and variance
+    * 2)the histogram with the number of bins given
     *
     * @param listrdd:RDD[Double],created by list[Double]
     * @param list:List[Double]
