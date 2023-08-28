@@ -1,4 +1,5 @@
-//run describe
+package whu.edu.cn.debug.GWmodelUtil
+
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
