@@ -1,7 +1,9 @@
 package whu.edu.cn.debug.GWmodelUtil.BasicStatistics
+import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
 
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
+
 
 import scala.collection.mutable.Map
 import scala.math.{pow, sqrt}
