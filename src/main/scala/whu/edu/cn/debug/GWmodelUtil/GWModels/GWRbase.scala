@@ -24,6 +24,7 @@ class GWRbase {
   protected var max_dist: Double = _
   var _kernel:String=_
   var _adaptive:Boolean=_
+  var _dist: Array[DenseVector[Double]]=_
   var fitvalue: Array[Double] = _
 
   protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): Unit = {
@@ -70,13 +71,15 @@ class GWRbase {
   }
 
   def setweight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
-    val dist = getdistance().map(t => Array2DenseVector(t))
-    if(_kernel==null || _adaptive==null) {
+    if(_dist==null){
+      _dist = getdistance().map(t => Array2DenseVector(t))
+    }
+    if(_kernel==null) {
       _kernel=kernel
       _adaptive=adaptive
     }
     //find max_dist
-    spweight_dvec = dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
+    spweight_dvec = _dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
 //    spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
   }
 
