@@ -13,8 +13,8 @@ import java.text.SimpleDateFormat
 import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.DescriptiveStatistics.describe
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutocorrelation._
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutocorrelation._
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutoCorrelation._
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.LinearRegression.linearRegression
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialErrorModel

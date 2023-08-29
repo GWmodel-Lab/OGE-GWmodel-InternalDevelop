@@ -9,7 +9,7 @@ import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
 import scala.collection.mutable.Map
 import scala.math.{pow, sqrt}
 
-object SpatialAutocorrelation {
+object SpatialAutoCorrelation {
 
   /**
    * 输入RDD直接计算全局莫兰指数
