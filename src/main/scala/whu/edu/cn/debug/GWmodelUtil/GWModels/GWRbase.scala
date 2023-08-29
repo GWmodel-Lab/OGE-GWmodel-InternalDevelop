@@ -19,8 +19,11 @@ class GWRbase {
 
   protected var geom: RDD[Geometry] = _
   protected var spweight_dvec: Array[DenseVector[Double]] = _
-  protected var spweight_dmat: DenseMatrix[Double] = _
+//  protected var spweight_dmat: DenseMatrix[Double] = _
 
+  protected var max_dist: Double = _
+  var _kernel:String=_
+  var _adaptive:Boolean=_
   var fitvalue: Array[Double] = _
 
   protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): Unit = {
@@ -68,18 +71,24 @@ class GWRbase {
 
   def setweight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
     val dist = getdistance().map(t => Array2DenseVector(t))
+    if(_kernel==null || _adaptive==null) {
+      _kernel=kernel
+      _adaptive=adaptive
+    }
+    //find max_dist
     spweight_dvec = dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
-    spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
+//    spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
   }
 
   def printweight(): Unit = {
     spweight_dvec.foreach(println)
   }
 
-  protected def get_logLik(res: DenseVector[Double]): Double = {
-    val n = res.length
-    val w = DenseVector.ones[Double](n)
-    0.5 * (w.toArray.map(t => log(t)).sum - n * (log(2 * math.Pi) + 1.0 - log(n) + log((w * res * res).toArray.sum)))
+  def getAICc(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]):Double= {
+    val shat0 = trace(shat)
+    val rss = residual.toArray.map(t => t * t).sum
+    val n = X.rows
+    n * log(rss / n) + n * log(2 * math.Pi) + n * ((n + shat0) / (n - 2 - shat0))
   }
 
   protected def betasMap(coef: DenseVector[Double]): mutable.Map[String, Double] = {

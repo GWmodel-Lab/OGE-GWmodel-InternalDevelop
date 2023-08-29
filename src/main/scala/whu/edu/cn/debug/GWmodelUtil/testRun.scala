@@ -54,8 +54,8 @@ object testRun {
     mdl.setX(x)
     mdl.setY(y)
     mdl.fit()
-//    val tused = (System.currentTimeMillis() - t1) / 1000.0
-//    println(s"time used is $tused s")
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
 
   def sarmodel_test(): Unit = {
