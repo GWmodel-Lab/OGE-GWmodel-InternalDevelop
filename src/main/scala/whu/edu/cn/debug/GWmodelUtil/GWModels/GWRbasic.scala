@@ -47,50 +47,36 @@ class GWRbasic extends GWRbase {
     val ci_idx=ci.zipWithIndex
     val sum_ci=ci.map(t=>t.map(t=>t*t)).map(t=>sum(t(*,::)))
 //    sum_ci.foreach(println)
-//    val t=_1X(0,::).inner
-//    print(t)
-//    val t2=ci_idx(0)._1
-//    println(t2)
     val si=ci_idx.map(t=> (_1X(t._2,::).inner.t * t._1).inner)
 //    si.foreach(println)
-    val shat0=trace(DenseMatrix.create(rows = si.length, cols = si(0).length, data = si.flatMap(t=>t.toArray)))
+    val shat=DenseMatrix.create(rows = si.length, cols = si(0).length, data = si.flatMap(t=>t.toArray))
+    val shat0=trace(shat)
     println(shat0)
-    val shat1=si.map(x=> det(x * x.t)).sum
+    val shat1=trace(shat * shat.t)
     println(shat1)
     val yhat=getYhat(_1X,betas)
+    val residual = _Y - getYhat(_1X, betas)
     println(yhat)
+    println(residual)
+    calDiagnostic(_1X,_Y,residual, shat)
   }
 
   def getYhat(X: DenseMatrix[Double], betas: Array[DenseVector[Double]]): DenseVector[Double] = {
     val arrbuf = new ArrayBuffer[Double]()
     for (i <- 0 until X.rows) {
       val rowvec = X(i, ::).inner
-      val yhat = (betas(i) * rowvec).sum
+      val yhat = sum(betas(i) * rowvec)
       arrbuf += yhat
     }
     DenseVector(arrbuf.toArray)
   }
-
-//  def calDiagnostic (X: DenseMatrix[Double], Y: DenseVector[Double] )= {
-//    vec r = y - sum(betas % x, 1)
-//    double rss = sum(r % r);
-//    double n = (double) x
-//    .n_rows;
-//    double AIC = n * log(rss / n) + n * log(2 * datum :: pi) + n + shat(0);
-//    double AICc = n * log(rss / n) + n * log(2 * datum :: pi) + n * ((n + shat(0)) / (n - 2 - shat(0)));
-//    double edf = n - 2 * shat(0) + shat(1);
-//    double enp = 2 * shat(0) - shat(1);
-//    double yss = sum((y - mean(y)) % (y - mean(y)));
-//    double r2 = 1 - rss / yss;
-//    double r2_adj = 1 - (1 - r2) * (n - 1) / (edf - 1)
-//  }
 
   def eachColProduct(Mat:DenseMatrix[Double],Vec:DenseVector[Double]): DenseMatrix[Double]={
     val arrbuf=new ArrayBuffer[DenseVector[Double]]()
     for(i<-0 until Mat.cols){
       arrbuf += Mat(::,i) * Vec
     }
-    val data=arrbuf.toArray.map(t=>t.toArray).flatten
+    val data=arrbuf.toArray.flatMap(t=>t.toArray)
     DenseMatrix.create(rows = Mat.rows, cols = Mat.cols, data = data)
   }
 
