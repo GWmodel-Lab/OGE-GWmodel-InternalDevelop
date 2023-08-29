@@ -4,11 +4,15 @@ import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import whu.edu.cn.util.ShapeFileUtil._
+import whu.edu.cn.oge.Feature._
+
 import scala.reflect.ClassTag
 import breeze.numerics._
 
 import java.text.SimpleDateFormat
 import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
+import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AveNearestNeighbor.aveNearestNeighbor
+import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.descriptive_statistics.describe
 import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
 import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutocorrelation._
@@ -19,23 +23,34 @@ import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARerrormodel
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARlagmodel
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARdurbinmodel
 
-object testRun {
+object test {
 
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
   val sc = new SparkContext(conf)
 
-  val shpPath: String = "testdata\\MississippiHR.shp"
-  //    val shpPath: String = "testdata\\LNHP100.shp"
-  val shpfile = readShp(sc, shpPath, DEF_ENCODE) //或者直接utf-8
+  val shpPath: String = "testdata\\LNHP100.shp"
+  val shpfile = readShp(sc, shpPath, DEF_ENCODE)
 
+  val shpPath2: String = "testdata\\MississippiHR.shp"
+  val shpfile2 = readShp(sc, shpPath2, DEF_ENCODE)
   //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
+
   def main(args: Array[String]): Unit = {
     //    val t0 = System.currentTimeMillis()
-    sarmodel_test()
-    morani_test()
-    acf_test()
-    linear_test()
+    descriptive_test()
+//    sarmodel_test()
+//    morani_test()
+//    acf_test()
+//    linear_test()
+  }
+
+  def descriptive_test(): Unit = {
+    aveNearestNeighbor(shpfile)
+    val list: List[Any] = get(shpfile, "PURCHASE")
+    val list_double: List[Double] = list.collect({ case (i: String) => (i.toDouble) })
+    val list_rdd: RDD[Double] = sc.makeRDD(list_double)
+    describe(list_rdd, list_double, 10)
   }
 
   def sarmodel_test(): Unit = {
