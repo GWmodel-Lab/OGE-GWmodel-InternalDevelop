@@ -9,7 +9,7 @@ import scala.collection.mutable.Map
 import scala.math.{pow, sqrt}
 
 //whm
-object AveNearestNeighbor {
+object AverageNearestNeighbor {
 
     /**
     * 输入RDD，计算要素最小外接矩形面积

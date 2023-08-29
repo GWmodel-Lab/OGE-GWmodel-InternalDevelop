@@ -6,7 +6,7 @@ import org.apache.spark.rdd.RDD
 import scala.collection.immutable.List
 
 
-object descriptive_statistics{
+object DescriptiveStatistics{
 
   /**descriptive_statistics:for the given list,get the result,containing:
     * 1)the count,mean,standard deviation,maximum,minimum,sum,and variance

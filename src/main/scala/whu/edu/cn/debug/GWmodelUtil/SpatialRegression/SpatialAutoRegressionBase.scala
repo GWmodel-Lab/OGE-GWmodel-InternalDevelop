@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.math._
 
 //抽象类，不可以被初始化
-abstract class SARmodels {
+abstract class SpatialAutoRegressionBase {
 
   private var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
   protected var _X: Array[DenseVector[Double]] = _

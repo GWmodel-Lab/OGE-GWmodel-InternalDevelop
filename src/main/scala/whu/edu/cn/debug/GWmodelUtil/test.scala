@@ -11,17 +11,15 @@ import breeze.numerics._
 
 import java.text.SimpleDateFormat
 import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
-import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AveNearestNeighbor.aveNearestNeighbor
-import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.descriptive_statistics.describe
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
+import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
+import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.DescriptiveStatistics.describe
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutocorrelation._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutocorrelation._
 import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.LinearRegression._
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARerrormodel
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARlagmodel
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARdurbinmodel
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.LinearRegression.linearRegression
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialErrorModel
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialLagModel
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialDurbinModel
 
 object test {
 
@@ -39,10 +37,10 @@ object test {
   def main(args: Array[String]): Unit = {
     //    val t0 = System.currentTimeMillis()
     descriptive_test()
-//    sarmodel_test()
-//    morani_test()
-//    acf_test()
-//    linear_test()
+    sarmodel_test()
+    morani_test()
+    acf_test()
+    linear_test()
   }
 
   def descriptive_test(): Unit = {
@@ -55,13 +53,13 @@ object test {
 
   def sarmodel_test(): Unit = {
     val t1 = System.currentTimeMillis()
-    val x1 = shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-    val x2 = shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-    val y = shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+    val x1 = shpfile2.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+    val x2 = shpfile2.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+    val y = shpfile2.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
     val x = Array(DenseVector(x1), DenseVector(x2))
     //    x.foreach(println)
-    val mdl = new SARdurbinmodel//error，lag
-    mdl.init(shpfile)
+    val mdl = new SpatialDurbinModel//error，lag
+    mdl.init(shpfile2)
     mdl.setX(x)
     mdl.setY(y)
     mdl.fit()
@@ -71,9 +69,9 @@ object test {
 
   def morani_test(): Unit = {
     val t1 = System.currentTimeMillis()
-    val globali = globalMoranI(shpfile, "HR60", plot = true, test = true)
+    val globali = globalMoranI(shpfile2, "HR60", plot = true, test = true)
     println(s"global Moran's I is: ${globali._1}")
-    val locali = localMoranI(shpfile, "HR60")
+    val locali = localMoranI(shpfile2, "HR60")
     println("-----------local moran's I--------------")
     locali._1.foreach(println)
     println("-----------p-value--------------")
@@ -91,6 +89,7 @@ object test {
     val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
     val csvdata = readcsv(sc, csvpath)
     //test date calculator
+    /*
     val timep = attributeSelectHead(csvdata, "time_point")
     val timepattern = "yyyy/MM/dd"
     val date = timep.map(t => {
@@ -99,8 +98,8 @@ object test {
     })
     date.foreach(println)
     println((date(300).getTime - date(0).getTime) / 1000 / 60 / 60 / 24)
+     */
     val tem = attributeSelectHead(csvdata, "temperature")
-    //    tem.foreach(println)
     val db_tem = tem.map(t => t.toDouble)
     //    println(db_tem.sum)
     val tem_acf = timeSeriesACF(db_tem, 30)
