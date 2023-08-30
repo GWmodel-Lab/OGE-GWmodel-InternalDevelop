@@ -1,26 +1,23 @@
-package whu.edu.cn.debug.GWmodelUtil
-
-import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry}
-import whu.edu.cn.oge.Feature
-import scala.collection.mutable.{ArrayBuffer, Map}
-import org.apache.spark.{SparkConf, SparkContext}
-import whu.edu.cn.util.ShapeFileUtil
-import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
-
+package whu.edu.cn.debug.GWmodelUtil.BasicStatistics
 
 import breeze.linalg.{DenseMatrix, _}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+import org.locationtech.jts.geom.Geometry
+import whu.edu.cn.oge.Feature
+import whu.edu.cn.util.ShapeFileUtil
+
 import scala.collection.immutable
+import scala.collection.mutable.{ArrayBuffer, Map}
 
 object PrincipalComponentAnalysis {
-  def main(args: Array[String]): Unit = {
-    val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-    val sc = new SparkContext(conf)
-    val shpPath: String = "testdata\\LNHP.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
-    val shpfile = ShapeFileUtil.readShp(sc, shpPath, ShapeFileUtil.DEF_ENCODE) //或者直接utf-8
-    println(getGeometryType(shpfile))
-    PCA(shpfile)
-  }
+//  def main(args: Array[String]): Unit = {
+//    val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
+//    val sc = new SparkContext(conf)
+//    val shpPath: String = "testdata\\LNHP100.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
+//    val shpfile = ShapeFileUtil.readShp(sc, shpPath, ShapeFileUtil.DEF_ENCODE) //或者直接utf-8
+//    PCA(shpfile)
+//  }
 
   /**
    * 输入RDD，对数据进行主成分分析

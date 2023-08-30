@@ -9,7 +9,7 @@ import scala.collection.mutable.Map
 import scala.math.{pow, sqrt}
 
 //whm
-object AveNearestNeighbor {
+object AverageNearestNeighbor {
 
     /**
     * 输入RDD，计算要素最小外接矩形面积
@@ -50,7 +50,7 @@ object AveNearestNeighbor {
     val gaussian = breeze.stats.distributions.Gaussian(0, 1)
     val Pvalue = 2 * (1.0 - gaussian.cdf(Z))
     println("平均最近邻汇总")
-    println("最近邻比率:"+ANN,"平均观测距离:"+Do,"预期平均距离:"+De,"Z-Score:"+Z,"P值："+Pvalue,"要素最小外接矩阵面积:"+A)
+    println(s"最近邻比率:$ANN\n平均观测距离:$Do\n预期平均距离:$De\nZ-Score:$Z\nP值：$Pvalue\n要素最小外接矩阵面积:$A")
     var result : Array[Double] = new Array[Double](6)
     result(0) = ANN
     result(1) = Do

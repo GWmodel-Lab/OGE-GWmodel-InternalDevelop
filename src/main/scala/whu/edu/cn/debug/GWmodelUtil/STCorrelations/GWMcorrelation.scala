@@ -1,29 +1,11 @@
-package whu.edu.cn.debug
+package whu.edu.cn.debug.GWmodelUtil.STCorrelations
 
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry}
+import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.oge.Feature
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.math.{abs, max, min, pow, sqrt}
-import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry}
-import whu.edu.cn.oge.Feature
-import whu.edu.cn.util.ShapeFileUtil
-import scala.collection.immutable.List
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.math.{abs, max, min, pow, sqrt}
-import scala.reflect.ClassTag
-//import org.apache.spark.mllib.linalg._
-import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.stat.Correlation
-import org.apache.spark.sql.{DataFrame, Row}
-import org.apache.spark.mllib.stat.Statistics
-import breeze.numerics._
-import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
 
-import whu.edu.cn.debug.GWmodelUtil.GWMdistance._
-import whu.edu.cn.debug.GWmodelUtil.GWMspatialweight._
+import scala.collection.mutable.Map
+import scala.math.pow
 object GWMcorrelation {
   /**
    * 输入RDD，进行相关性分析，输出相关性矩阵Array[Array[Double]]
