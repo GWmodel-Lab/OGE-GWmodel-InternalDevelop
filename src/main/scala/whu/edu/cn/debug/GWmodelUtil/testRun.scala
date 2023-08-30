@@ -1,146 +1,113 @@
 package whu.edu.cn.debug.GWmodelUtil
 
+import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry}
-import whu.edu.cn.oge.Feature
-import whu.edu.cn.util.ShapeFileUtil
-import scala.collection.immutable.List
-import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.math.{abs, max, min, pow, sqrt}
+import whu.edu.cn.util.ShapeFileUtil._
 import scala.reflect.ClassTag
-//import org.apache.spark.mllib.linalg._
-import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.stat.Correlation
-import org.apache.spark.sql.{DataFrame, Row}
-import org.apache.spark.mllib.stat.Statistics
 import breeze.numerics._
-import breeze.linalg.{Vector, DenseVector, Matrix , DenseMatrix}
 
-import whu.edu.cn.debug.GWmodelUtil.Utils.GWMdistance._
-import whu.edu.cn.debug.GWmodelUtil.Utils.GWMspatialweight._
-
+import java.text.SimpleDateFormat
+import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
+import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
+import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutocorrelation._
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutocorrelation._
+import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.LinearRegression._
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARerrormodel
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARlagmodel
+import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SARdurbinmodel
 
 object testRun {
+
+  //global variables
+  val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
+  val sc = new SparkContext(conf)
+
+  val shpPath: String = "testdata\\MississippiHR.shp"
+  //    val shpPath: String = "testdata\\LNHP100.shp"
+  val shpfile = readShp(sc, shpPath, DEF_ENCODE) //或者直接utf-8
+
+  //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
   def main(args: Array[String]): Unit = {
-    //    val time1: Long = System.currentTimeMillis()
-    //    println(time1)]
-    val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-    val sc = new SparkContext(conf)
-
-    val shpPath: String = "testdata\\MississippiHR.shp" //我直接把testdata放到了工程目录下面，需要测试的时候直接使用即可
-    val shpfile = ShapeFileUtil.readShp(sc,shpPath,ShapeFileUtil.DEF_ENCODE)//或者直接utf-8
-    println(getGeometryType(shpfile))
-
-
-//    val geom=getGeometry(shpfile)
-//    val nb=getNeighborBool(geom)
-//    val idx=boolNeighborIndex(nb).collect()
-//    printArrArr(idx)
-    val nb_weight=getNeighborWeight(shpfile)
-    nb_weight.collect().foreach(println)
-
-
-//    val time1: Long = System.currentTimeMillis()
-//    val rdddist=getRDDDistRDD(sc,shpfile)
-////    printArrArr(rdddist.collect())
-//    val time2: Long = System.currentTimeMillis()
-//    val rddweight=getSpatialweight(rdddist,50,"gaussian",true)
-//    rddweight.collect().foreach(println)
-//    val time3: Long = System.currentTimeMillis()
-//    println(time3-time2,time2-time1)
-
-//    val apoint=getCoorXY(shpfile)
-//    val aX=apoint.take(1)
-//    val arr0=arrayDist(aX,apoint)
-//    //    arr0.foreach(println)
-//    val dv: DenseVector[Double] = new DenseVector(arr0)
-////    arr0.sorted.take(20).foreach(println)
-//    val weight = getSpatialweightSingle(dv,10,"bisquare",true)
-//    weight.foreach(println)
-
-//    println("gaussianKernelFunction")
-//    val weight1 = GaussianKernelFunction(dv,bw)
-//    weight1.foreach(println)
-//    println("exponentialKernelFunction")
-//    val weight2 = ExponentialKernelFunction(dv, bw)
-//    weight2.foreach(println)
-//    println("BisquareKernelFunction")
-//    val weight3 = bisquareKernelFunction(dv, bw)
-//    weight3.foreach(println)
-//    println("TricubeKernelFunction")
-//    val weight4 = tricubeKernelFunction(dv, bw)
-//    weight4.foreach(println)
-//    println("BoxcarKernelFunction")
-//    val weight5 = boxcarKernelFunction(dv, bw)
-//    weight5.foreach(println)
-
-//    val arr4=apoint.take(4)
-//    val arr3=apoint.take(3)
-//    println("arr4")
-//    arr4.foreach(println)
-//    println("arr3")
-//    arr3.foreach(println)
-//    val arrd=arrayDist(arr4,arr3)
-//    println("dis")
-//    arrd.foreach(println)
-//    val dmat1= new DenseMatrix(arr3.length, arr4.length, arrd)
-//    println(dmat1.transpose)
-//    val dmat2 = getArrDistDmat(arr4,arr3)
-//    println(dmat2)
-
-    //    val testshp=shpfile.map(t=>{
-    //      val geom=t._2._1
-    //      val prop=t._2._2("Avg_AQI")
-    //      (geom,prop)
-    //    })
-
+    //    val t0 = System.currentTimeMillis()
+    sarmodel_test()
+    morani_test()
+    acf_test()
+    linear_test()
   }
 
-  def printArrArr[T: ClassTag](arrarr: Array[Array[T]]) = {
-    val arrvec=arrarr.map(t=>t.toVector)
-    arrvec.foreach(println)
+  def sarmodel_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val x1 = shpfile.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
+    val x2 = shpfile.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
+    val y = shpfile.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
+    val x = Array(DenseVector(x1), DenseVector(x2))
+    //    x.foreach(println)
+    val mdl = new SARdurbinmodel//error，lag
+    mdl.init(shpfile)
+    mdl.setX(x)
+    mdl.setY(y)
+    mdl.fit()
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
 
-  def testcorr(testshp: RDD[(String, (Geometry, Map[String, Any]))]) : Unit={
-    val time0: Long = System.currentTimeMillis()
-    val list1:List[Any] = Feature.get(testshp,"PURCHASE")//FLOORSZ,PROF
-    val list2:List[Any] = Feature.getNumber(testshp,"FLOORSZ")
-//    println(list1)
-//    println(list2)
-    val lst1:List[Double] = list1.collect({ case (i: String) => (i.toDouble) })
-//    //val lst2:List[Double]=list2.collect({ case (i: String) => (i.toDouble) })
-    val lst2:List[Double] = list2.asInstanceOf[List[Double]]
-    val corr1 = corr2list(lst1,lst2)
-    val listtimeused= System.currentTimeMillis()-time0
-    println(s"time used is: $listtimeused")
-
-    val coor2 = corr2ml(testshp,"PURCHASE","FLOORSZ")
-
+  def morani_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val globali = globalMoranI(shpfile, "HR60", plot = true, test = true)
+    println(s"global Moran's I is: ${globali._1}")
+    val locali = localMoranI(shpfile, "HR60")
+    println("-----------local moran's I--------------")
+    locali._1.foreach(println)
+    println("-----------p-value--------------")
+    locali._5.foreach(println)
+    //    val result1 = writeRDD(sc, shpfile, locali._1, "moran_i")
+    //    val result2 = writeRDD(sc, result1, locali._2, "expect")
+    //    val outputpath = "testdata\\MississippiMoranI.shp"
+    //    writeshpfile(result2, outputpath)
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
 
-  def corr2list(lst1: List[Double], lst2: List[Double]): Double = {
-    val sum1 = lst1.sum
-    val sum2 = lst2.sum
-    val square_sum1 = lst1.map(x => x * x).sum
-    val square_sum2 = lst2.map(x => x * x).sum
-    val zlst = lst1.zip(lst2)
-    val product = zlst.map(x => x._1 * x._2).sum
-    val numerator = product - (sum1 * sum2 / lst1.length)
-    val dominator = pow((square_sum1 - pow(sum1, 2) / lst1.length) * (square_sum2 - pow(sum2, 2) / lst2.length), 0.5)
-    val correlation = numerator / (dominator * 1.0)
-    println(s"Correlation is: $correlation")
-    correlation
+  def acf_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
+    val csvdata = readcsv(sc, csvpath)
+    //test date calculator
+    val timep = attributeSelectHead(csvdata, "time_point")
+    val timepattern = "yyyy/MM/dd"
+    val date = timep.map(t => {
+      val date = new SimpleDateFormat(timepattern).parse(t)
+      date
+    })
+    date.foreach(println)
+    println((date(300).getTime - date(0).getTime) / 1000 / 60 / 60 / 24)
+    val tem = attributeSelectHead(csvdata, "temperature")
+    //    tem.foreach(println)
+    val db_tem = tem.map(t => t.toDouble)
+    //    println(db_tem.sum)
+    val tem_acf = timeSeriesACF(db_tem, 30)
+    tem_acf.foreach(println)
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
 
-  def corr2ml(feat: RDD[(String, (Geometry, Map[String, Any]))], property1: String, property2: String): Double = {
-    val time0: Long = System.currentTimeMillis()
-    val aX: RDD[Double] = feat.map(t => t._2._2(property1).asInstanceOf[String].toDouble)
-    val aY: RDD[Double] = feat.map(t => t._2._2(property2).asInstanceOf[String].toDouble)
-    val correlation: Double = Statistics.corr(aX, aY, "pearson") //"spearman"
-    val timeused: Long = System.currentTimeMillis() - time0
-    println(s"Correlation is: $correlation")
-    println(s"time used is: $timeused")
-    correlation
+  def linear_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val csvpath = "D:\\Java\\testdata\\test_aqi.csv"
+    val csvdata2 = readcsv(sc, csvpath)
+    val aqi = attributeSelectNum(csvdata2, 2).map(t => t.toDouble)
+    val per = attributeSelectHead(csvdata2, "precipitation").map(t => t.toDouble)
+    val tem = attributeSelectHead(csvdata2, "temperature").map(t => t.toDouble)
+    val x = Array(DenseVector(tem), DenseVector(per))
+    val re = linearRegression(x, DenseVector(aqi))
+    println(re._1)
+    println(re._2)
+    println(re._3)
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
+
 }
