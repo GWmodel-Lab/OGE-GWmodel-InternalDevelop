@@ -14,7 +14,7 @@ import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.DescriptiveStatistics.describe
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.PrincipalComponentAnalysis.PCA
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.GWMcorrelation
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.CorrelationAnalysis._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
@@ -37,18 +37,26 @@ object test {
   //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
 
   def main(args: Array[String]): Unit = {
-    //    val t0 = System.currentTimeMillis()
+
 //    descriptive_test()
 //    sarmodel_test()
 //    morani_test()
 //    acf_test()
 //    linear_test()
     correlation_test()
-    pca_test()
+//    pca_test()
   }
 
   def correlation_test(): Unit = {
-    GWMcorrelation.corr(shpfile)
+//    val t1 = System.currentTimeMillis()
+//    corr(shpfile)
+//    val tused2 = (System.currentTimeMillis() - t1) / 1000.0
+//    println(s"time used is $tused2 s")
+    val t0 = System.currentTimeMillis()
+    val s = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE")
+    val mat = corrMat(shpfile, s)
+    val tused = (System.currentTimeMillis() - t0) / 1000.0
+    println(s"time used is $tused s")
   }
 
   def pca_test():Unit= {
