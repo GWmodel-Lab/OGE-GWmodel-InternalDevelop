@@ -8,7 +8,7 @@ import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
 /**
  * 空间滞后模型，考虑因变量滞后项ρ。
  */
-class SARlagmodel extends SARmodels {
+class SpatialLagModel extends SpatialAutoRegressionBase {
 
   var _xrows = 0
   var _xcols = 0

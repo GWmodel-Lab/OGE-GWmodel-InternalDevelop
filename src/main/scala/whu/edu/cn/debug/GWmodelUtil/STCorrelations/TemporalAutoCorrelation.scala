@@ -4,7 +4,7 @@ import breeze.linalg.{DenseVector, linspace}
 import breeze.plot._
 import scala.math.pow
 
-object TemporalAutocorrelation {
+object TemporalAutoCorrelation {
 
   /**
    * 输入属性Array计算自相关滞后结果
