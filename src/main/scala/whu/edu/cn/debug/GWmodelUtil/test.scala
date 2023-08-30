@@ -14,7 +14,7 @@ import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.DescriptiveStatistics.describe
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.PrincipalComponentAnalysis.PCA
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.GWMcorrelation
+import whu.edu.cn.debug.GWmodelUtil.STCorrelations.CorrelationAnalysis
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
@@ -48,7 +48,7 @@ object test {
   }
 
   def correlation_test(): Unit = {
-    GWMcorrelation.corr(shpfile)
+    CorrelationAnalysis.corr(shpfile)
   }
 
   def pca_test():Unit= {

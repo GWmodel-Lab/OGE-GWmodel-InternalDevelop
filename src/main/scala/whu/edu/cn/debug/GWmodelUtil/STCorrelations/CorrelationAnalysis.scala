@@ -17,7 +17,7 @@ object CorrelationAnalysis {
    * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
    * @return Array[Array[Double]] 结果cArr[i][j]保存了第i个属性和第j个属性之间的相关性数值
    */
-  def corr(testshp: RDD[(String, (Geometry, Map[String, Any]))] , pArr: Array[String]): Unit = {
+  def corrMat(testshp: RDD[(String, (Geometry, Map[String, Any]))] , pArr: Array[String]): Unit = {
     var num = pArr.length
     var cArrSpearman = Array.ofDim[Double](num,num) //correlation
     var cArrPearson = Array.ofDim[Double](num,num) //correlation
@@ -49,6 +49,39 @@ object CorrelationAnalysis {
       }
       println
     }
+  }
+
+  /**
+   * 输入RDD，进行相关性分析，输出相关性矩阵Array[Array[Double]]
+   *
+   * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
+   * @return Array[Array[Double]] 结果cArr[i][j]保存了第i个属性和第j个属性之间的相关性数值
+   */
+  def corr(testshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Array[Double]] = {
+    var pArr: Array[String] = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE") //属性字符串数组
+    var num = pArr.length
+    var cArr = Array.ofDim[Double](num, num) //correlation
+    var i = 0;
+    var j = 0;
+    println("The correlation matrix:")
+    for (i <- 0 to (num - 1)) {
+      print(pArr(i) + " ")
+    }
+    println
+    //循环输出相关性矩阵
+    for (i <- 0 to (num - 1)) {
+      for (j <- 0 to (num - 1)) {
+        cArr(i)(j) = testcorr(testshp, pArr(i), pArr(j))
+      }
+    }
+
+    for (i <- 0 to (num - 1)) {
+      for (j <- 0 to (num - 1)) {
+        print(cArr(i)(j).formatted("%.4f") + " ") //保留四位小数输出
+      }
+      println
+    }
+    cArr
   }
 
   /**
