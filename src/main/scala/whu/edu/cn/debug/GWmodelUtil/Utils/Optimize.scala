@@ -52,8 +52,9 @@ object Optimize {
         f_q = function(q)
       }
       iter += 1
+      println(iter,(b + a) / 2.0,function((b + a) / 2.0))
     }
-//    println((b + a) / 2.0)
+    println((b + a) / 2.0,function((b + a) / 2.0))
     (b + a) / 2.0
   }
 

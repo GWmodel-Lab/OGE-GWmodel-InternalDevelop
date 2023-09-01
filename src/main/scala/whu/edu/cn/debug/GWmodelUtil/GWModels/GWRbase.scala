@@ -1,6 +1,6 @@
 package whu.edu.cn.debug.GWmodelUtil.GWModels
 
-import breeze.linalg.{*, DenseMatrix, DenseVector, det, eig, inv, qr, sum, trace}
+import breeze.linalg.{*, DenseMatrix, DenseVector, det, eig, inv, qr, sum, trace, max}
 import breeze.stats.mean
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
@@ -73,12 +73,12 @@ class GWRbase {
   def setweight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
     if(_dist==null){
       _dist = getdistance().map(t => Array2DenseVector(t))
+      max_dist=_dist.map(t=>max(t)).max
     }
     if(_kernel==null) {
       _kernel=kernel
       _adaptive=adaptive
     }
-    //find max_dist
     spweight_dvec = _dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
 //    spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
   }

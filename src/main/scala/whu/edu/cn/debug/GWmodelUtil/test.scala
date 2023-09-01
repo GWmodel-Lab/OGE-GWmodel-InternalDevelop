@@ -14,6 +14,7 @@ import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.DescriptiveStatistics.describe
 import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.PrincipalComponentAnalysis.PCA
+import whu.edu.cn.debug.GWmodelUtil.GWModels.GWRbasic
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.CorrelationAnalysis._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutoCorrelation._
@@ -43,18 +44,36 @@ object test {
 //    morani_test()
 //    acf_test()
 //    linear_test()
-    correlation_test()
+//    correlation_test()
 //    pca_test()
+    gwrbasic_test()
+  }
+
+  def gwrbasic_test(): Unit = {
+    val t1 = System.currentTimeMillis()
+    val x1 = shpfile.map(t => t._2._2("FLOORSZ").asInstanceOf[String].toDouble).collect()
+    val x2 = shpfile.map(t => t._2._2("PROF").asInstanceOf[String].toDouble).collect()
+    val y = shpfile.map(t => t._2._2("PURCHASE").asInstanceOf[String].toDouble).collect()
+    val x = Array(DenseVector(x1), DenseVector(x2))
+    //    x.foreach(println)
+    val mdl = new GWRbasic //error，lag
+    mdl.init(shpfile)
+    mdl.setweight(10, "gaussian", true)
+    mdl.setX(x)
+    mdl.setY(y)
+    mdl.fit()
+    //    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    //    println(s"time used is $tused s")
   }
 
   def correlation_test(): Unit = {
-//    val t1 = System.currentTimeMillis()
-//    corr(shpfile)
-//    val tused2 = (System.currentTimeMillis() - t1) / 1000.0
-//    println(s"time used is $tused2 s")
+    val t1 = System.currentTimeMillis()
+    corr(shpfile)
+    val tused2 = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused2 s")
     val t0 = System.currentTimeMillis()
     val s = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE")
-    val mat = corrMat(shpfile, s)
+    val mat = corrMat(shpfile, s, "pearson")
     val tused = (System.currentTimeMillis() - t0) / 1000.0
     println(s"time used is $tused s")
   }

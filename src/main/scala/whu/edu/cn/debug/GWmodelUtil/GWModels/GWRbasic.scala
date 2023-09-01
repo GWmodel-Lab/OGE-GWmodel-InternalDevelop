@@ -1,6 +1,6 @@
 package whu.edu.cn.debug.GWmodelUtil.GWModels
 
-import breeze.linalg.{*, DenseMatrix, DenseVector, det, eig, inv, qr, sum, trace}
+import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, qr, sum, trace}
 
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
@@ -39,14 +39,25 @@ class GWRbasic extends GWRbase {
     println(yhat)
     println(residual)
     calDiagnostic(_1X,_Y,residual, shat)
-//    bandwidthSelection(adaptive = false)
+    bandwidthSelection(adaptive = false,upper = max_dist)
   }
 
-  def bandwidthSelection( kernel: String = "gaussian", adaptive:Boolean=true)={
+  def bandwidthSelection(kernel: String = "gaussian", adaptive: Boolean = true, upper:Double =max_dist ,lower:Double= max_dist/5000.0): Double = {
     _kernel = kernel
     _adaptive = adaptive
-    val bw=goldenSelection(2000,27608,eps= 1e-6,function = bandwidthAICc)
-    println(s"bw is $bw")
+    var bw: Double = 0
+    val d = 2.0
+    try {
+      bw = goldenSelection(lower, upper, eps = 1e-6, function = bandwidthAICc)
+    } catch {
+      case e: MatrixSingularException => {
+        println("error")
+        val low = lower * d
+        bw = bandwidthSelection(_kernel, _adaptive,upper,low)
+      }
+    }
+//    println(s"bw is $bw")
+    bw
   }
 
   def bandwidthAICc(bw:Double):Double={
