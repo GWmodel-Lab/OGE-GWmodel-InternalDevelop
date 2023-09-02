@@ -58,7 +58,7 @@ object test {
     //    x.foreach(println)
     val mdl = new GWRbasic //error，lag
     mdl.init(shpfile)
-    mdl.setweight(10, "gaussian", true)
+    mdl.setweight(30, "gaussian", true)
     mdl.setX(x)
     mdl.setY(y)
     mdl.fit()
