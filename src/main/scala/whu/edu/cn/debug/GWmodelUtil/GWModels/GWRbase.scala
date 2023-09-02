@@ -18,14 +18,12 @@ class GWRbase {
   protected var _Y: DenseVector[Double] = _
 
   protected var geom: RDD[Geometry] = _
+  var _dist: Array[DenseVector[Double]]=_
   protected var spweight_dvec: Array[DenseVector[Double]] = _
-//  protected var spweight_dmat: DenseMatrix[Double] = _
 
   protected var max_dist: Double = _
   var _kernel:String=_
   var _adaptive:Boolean=_
-  var _dist: Array[DenseVector[Double]]=_
-  var fitvalue: Array[Double] = _
 
   protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): Unit = {
     val shat0 = trace(shat)
@@ -80,7 +78,6 @@ class GWRbase {
       _adaptive=adaptive
     }
     spweight_dvec = _dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
-//    spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))
   }
 
   def printweight(): Unit = {
@@ -92,23 +89,6 @@ class GWRbase {
     val rss = residual.toArray.map(t => t * t).sum
     val n = X.rows
     n * log(rss / n) + n * log(2 * math.Pi) + n * ((n + shat0) / (n - 2 - shat0))
-  }
-
-  protected def betasMap(coef: DenseVector[Double]): mutable.Map[String, Double] = {
-    val arrbuf = new ArrayBuffer[String]()
-    arrbuf += "Intercept"
-    for (i <- 1 until coef.length) {
-      val tmp = "X" + i.toString
-      arrbuf += tmp
-    }
-    val coefname = arrbuf.toArray
-    val coefvalue = coef.toArray
-    val betas_map: mutable.Map[String, Double] = mutable.Map()
-    for (i <- 0 until coef.length) {
-      betas_map += (coefname(i) -> coefvalue(i))
-    }
-    //    println(betas_map)
-    betas_map
   }
 
 }

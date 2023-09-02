@@ -10,19 +10,15 @@ class GWRbasic extends GWRbase {
 
   var _xrows = 0
   var _xcols = 0
-  private var _df = _xcols
 
   private var _dX: DenseMatrix[Double] = _
-  private var _1X: DenseMatrix[Double] = _
 
   override def setX(x: Array[DenseVector[Double]]): Unit = {
     _X = x
     _xcols = x.length
     _xrows = _X(0).length
-    _dX = DenseMatrix.create(rows = _xrows, cols = _X.length, data = _X.flatMap(t => t.toArray))
     val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, x.flatMap(t => t.toArray))
-    _1X = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
-    _df = _xcols + 1 + 1
+    _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
   }
 
   override def setY(y: Array[Double]): Unit = {
@@ -31,14 +27,14 @@ class GWRbasic extends GWRbase {
 
   def fit(): Unit = {
 //    printweight()
-    val results=fitFunction(_1X,_Y,spweight_dvec)
+    val results=fitFunction(_dX,_Y,spweight_dvec)
     val betas=results._1
     val yhat=results._2
     val residual = results._3
     val shat=results._4
     println(yhat)
     println(residual)
-    calDiagnostic(_1X,_Y,residual, shat)
+    calDiagnostic(_dX,_Y,residual, shat)
     bandwidthSelection(adaptive = false,upper = max_dist)
   }
 
@@ -62,13 +58,13 @@ class GWRbasic extends GWRbase {
 
   def bandwidthAICc(bw:Double):Double={
     setweight(bw,_kernel,_adaptive)
-    val results = fitFunction(_1X, _Y, spweight_dvec)
+    val results = fitFunction(_dX, _Y, spweight_dvec)
     val residual = results._3
     val shat = results._4
-    -getAICc(_1X, _Y, residual, shat)
+    -getAICc(_dX, _Y, residual, shat)
   }
 
-  private def fitFunction(X: DenseMatrix[Double]=_1X, Y: DenseVector[Double]=_Y, weight: Array[DenseVector[Double]] = spweight_dvec):
+  private def fitFunction(X: DenseMatrix[Double]=_dX, Y: DenseVector[Double]=_Y, weight: Array[DenseVector[Double]] = spweight_dvec):
                  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]])= {
     val xtw = weight.map(w => eachColProduct(X, w).t)
     val xtwx = xtw.map(t => t * X)
