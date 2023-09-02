@@ -26,67 +26,75 @@ class GWRbasic extends GWRbase {
   }
 
   def fit(): Unit = {
-//    printweight()
-    val results=fitFunction(_dX,_Y,spweight_dvec)
-    val betas=results._1
-    val yhat=results._2
+    //    printweight()
+    val results = fitFunction(_dX, _Y, spweight_dvec)
+    val betas = results._1
+    val yhat = results._2
     val residual = results._3
-    val shat=results._4
+    val shat = results._4
     println(yhat)
     println(residual)
-    calDiagnostic(_dX,_Y,residual, shat)
-    val bw=bandwidthSelection(kernel = "bisquare", adaptive = false)
+    calDiagnostic(_dX, _Y, residual, shat)
+    val bw = bandwidthSelection(kernel = "bisquare",approach = "CV", adaptive = false)
     println(bw)
-//    setweight(bw= bw,kernel = _kernel, adaptive = false)
-//    val results2=fitFunction(_dX,_Y,spweight_dvec)
-//    calDiagnostic(_dX,_Y,results2._3, results2._4)
+
+    //    setweight(bw= bw,kernel = _kernel, adaptive = false)
+    //    val results2=fitFunction(_dX,_Y,spweight_dvec)
+    //    calDiagnostic(_dX,_Y,results2._3, results2._4)
   }
 
-  def bandwidthSelection(kernel: String = "gaussian", adaptive: Boolean = true): Double = {
+  def bandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
     if (adaptive) {
-      adaptiveBandwidthSelection(kernel = kernel)
+      adaptiveBandwidthSelection(kernel = kernel, approach = approach)
     } else {
-      fixedBandwidthSelection(kernel = kernel)
+      fixedBandwidthSelection(kernel = kernel, approach = approach)
     }
   }
 
-  def fixedBandwidthSelection(kernel: String = "gaussian", upper:Double =max_dist, lower:Double= max_dist/5000.0): Double = {
+  def fixedBandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", upper: Double = max_dist, lower: Double = max_dist / 5000.0): Double = {
     _kernel = kernel
     _adaptive = false
     var bw: Double = lower
+    var approachfunc: Double => Double = bandwidthAICc
+    if (approach == "CV") {
+      approachfunc = bandwidthCV
+    }
     try {
-      bw = goldenSelection(lower, upper, eps = 1e-4, findMax = false, function = bandwidthAICc)
+      bw = goldenSelection(lower, upper, eps = 1e-4, findMax = false, function = approachfunc)
     } catch {
       case e: MatrixSingularException => {
-        //        println("error")
         val low = lower * 1.618
-        bw = fixedBandwidthSelection(_kernel, upper, low)
+        bw = fixedBandwidthSelection(kernel, approach, upper, low)
       }
     }
     bw
   }
 
-  def adaptiveBandwidthSelection(kernel: String = "gaussian", upper: Int = _xrows - 1, lower: Int = 20): Int = {
+  def adaptiveBandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", upper: Int = _xrows - 1, lower: Int = 20): Int = {
     _kernel = kernel
     _adaptive = true
     var bw: Int = lower
+    var approachfunc: Double => Double = bandwidthAICc
+    if (approach == "CV") {
+      approachfunc = bandwidthCV
+    }
     try {
-      bw = round(goldenSelection(lower, upper, eps = 1e-4, findMax = false, function = bandwidthAICc)).toInt
+      bw = round(goldenSelection(lower, upper, eps = 1e-4, findMax = false, function = approachfunc)).toInt
     } catch {
       case e: MatrixSingularException => {
         //        println("error")
-        val low = round(lower * 1.618).toInt
-        bw = adaptiveBandwidthSelection(_kernel, upper, low)
+        val low = lower + 1
+        bw = adaptiveBandwidthSelection(kernel, approach, upper, low)
       }
     }
     bw
   }
 
-  def bandwidthAICc(bw:Double):Double={
-    if(_adaptive){
-      setweight(round(bw),_kernel,_adaptive)
-    }else{
-      setweight(bw,_kernel,_adaptive)
+  def bandwidthAICc(bw: Double): Double = {
+    if (_adaptive) {
+      setweight(round(bw), _kernel, _adaptive)
+    } else {
+      setweight(bw, _kernel, _adaptive)
     }
     val results = fitFunction(_dX, _Y, spweight_dvec)
     val residual = results._3
@@ -94,8 +102,21 @@ class GWRbasic extends GWRbase {
     getAICc(residual, shat)
   }
 
-  private def fitFunction(X: DenseMatrix[Double]=_dX, Y: DenseVector[Double]=_Y, weight: Array[DenseVector[Double]] = spweight_dvec):
-                 (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]])= {
+  def bandwidthCV(bw: Double): Double = {
+    if (_adaptive) {
+      setweight(round(bw), _kernel, _adaptive)
+    } else {
+      setweight(bw, _kernel, _adaptive)
+    }
+    val spweight_idx = spweight_dvec.zipWithIndex
+    spweight_idx.map(t => t._1(t._2) = 0)
+    val results = fitFunction(_dX, _Y, spweight_dvec)
+    val residual = results._3
+    residual.toArray.map(t => t * t).sum
+  }
+
+  private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
+  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     val xtw = weight.map(w => eachColProduct(X, w).t)
     val xtwx = xtw.map(t => t * X)
     val xtwy = xtw.map(t => t * Y)
@@ -130,12 +151,12 @@ class GWRbasic extends GWRbase {
     n * log(rss / n) + n * log(2 * math.Pi) + n * ((n + shat0) / (n - 2 - shat0))
   }
 
-  def eachColProduct(Mat:DenseMatrix[Double],Vec:DenseVector[Double]): DenseMatrix[Double]={
-    val arrbuf=new ArrayBuffer[DenseVector[Double]]()
-    for(i<-0 until Mat.cols){
-      arrbuf += Mat(::,i) * Vec
+  def eachColProduct(Mat: DenseMatrix[Double], Vec: DenseVector[Double]): DenseMatrix[Double] = {
+    val arrbuf = new ArrayBuffer[DenseVector[Double]]()
+    for (i <- 0 until Mat.cols) {
+      arrbuf += Mat(::, i) * Vec
     }
-    val data=arrbuf.toArray.flatMap(t=>t.toArray)
+    val data = arrbuf.toArray.flatMap(t => t.toArray)
     DenseMatrix.create(rows = Mat.rows, cols = Mat.cols, data = data)
   }
 
