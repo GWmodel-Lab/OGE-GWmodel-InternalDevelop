@@ -58,12 +58,12 @@ object test {
     //    x.foreach(println)
     val mdl = new GWRbasic //error，lag
     mdl.init(shpfile)
-    mdl.setweight(30, "gaussian", true)
+//    mdl.setweight(100, "gaussian", true)
     mdl.setX(x)
     mdl.setY(y)
-    mdl.fit()
-    //    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    //    println(s"time used is $tused s")
+    mdl.fit(bw=100)
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
   }
 
   def correlation_test(): Unit = {
