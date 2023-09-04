@@ -18,6 +18,7 @@ import whu.edu.cn.debug.GWmodelUtil.STCorrelations.CorrelationAnalysis._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
+import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.LinearRegression.linearRegression
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialErrorModel
 import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialLagModel
@@ -39,12 +40,18 @@ object test {
   def main(args: Array[String]): Unit = {
 
 //    descriptive_test()
-//    sarmodel_test()
+    sarmodel_test()
 //    morani_test()
 //    acf_test()
 //    linear_test()
-    correlation_test()
+//    correlation_test()
 //    pca_test()
+//    val t0 = System.currentTimeMillis()
+//    val d=getDist(shpfile)
+//    val m=getDistMat(shpfile)
+//    println(m)
+//    val tused = (System.currentTimeMillis() - t0) / 1000.0
+//    println(s"time used is $tused s")
   }
 
   def correlation_test(): Unit = {
