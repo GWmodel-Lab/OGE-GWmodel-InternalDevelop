@@ -56,8 +56,8 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
   def fit(): Array[Double] = {
     val arr = firstvalue()
     val optresult = nelderMead(arr, paras4optimize)
-    println("----------optimize result----------")
-    optresult.foreach(println)
+//    println("----------optimize result----------")
+//    optresult.foreach(println)
     val rho = optresult(0)
     val lambda = optresult(1)
     _durbinX = _1X - lambda * _wx
