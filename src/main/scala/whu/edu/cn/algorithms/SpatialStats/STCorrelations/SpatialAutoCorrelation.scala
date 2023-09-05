@@ -35,7 +35,7 @@ object SpatialAutoCorrelation {
       DenseVector(re)
     })
     val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
-    val rightup = weight_m_arr.map(t => t.sum).sum
+    val rightup = weight_m_arr.map(t => sum(t)).sum
     val rightdn = arr_mean.map(t => t * t).sum
     val n = arr.length
     val moran_i = n / sum_weight * rightup / rightdn
@@ -45,13 +45,13 @@ object SpatialAutoCorrelation {
     }
     if (test) {
       val E_I = -1.0 / (n - 1)
-      val S_1 = 0.5 * nb_weight.map(t => (t * 2.0 * t * 2.0).sum).sum()
-      val S_2 = nb_weight.map(t => t.sum * 2).sum()
+      val S_1 = 0.5 * nb_weight.map(t => sum(t * 2.0 * t * 2.0)).sum()
+      val S_2 = nb_weight.map(t => sum(t) * 2).sum()
       val E_A = n * ((n * n - 3 * n + 3) * S_1) - n * S_2 + 3 * sum_weight * sum_weight
       val E_B = (arr_mean.map(t => t * t * t * t).sum / (rightdn * rightdn)) * ((n * n - n) * S_1 - 2 * n * S_2 + 6 * sum_weight * sum_weight)
       val E_C = (n - 1) * (n - 2) * (n - 3) * sum_weight * sum_weight
       val V_I = (E_A - E_B) / E_C - pow(E_I, 2)
-      val Z_I = (moran_i - E_I) / (sqrt(V_I))
+      val Z_I = (moran_i - E_I) / sqrt(V_I)
       val gaussian = breeze.stats.distributions.Gaussian(0, 1)
       val Pvalue = 2 * (1.0 - gaussian.cdf(Z_I))
       println(s"global Moran's I is: $moran_i")
@@ -78,7 +78,7 @@ object SpatialAutoCorrelation {
       DenseVector(re)
     })
     val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
-    val rightup = weight_m_arr.map(t => t.sum)
+    val rightup = weight_m_arr.map(t => sum(t))
     val dvec_mean = DenseVector(arr_mean)
     var n = arr.length
     if (adjust) {
@@ -87,13 +87,13 @@ object SpatialAutoCorrelation {
     val s2 = arr_mean.map(t => t * t).sum / n
     val lz = DenseVector(rightup)
     val z = dvec_mean
-    val m2 = ((dvec_mean * dvec_mean).sum / n)
+    val m2 = sum(dvec_mean * dvec_mean) / n
 
     val expectation = -z * z / ((n - 1) * m2)
-    val local_moranI = (z / s2 * lz)
+    val local_moranI = z / s2 * lz
 
-    val wi = DenseVector(nb_weight.map(t => t.sum).collect())
-    val wi2 = DenseVector(nb_weight.map(t => (t * t).sum).collect())
+    val wi = DenseVector(nb_weight.map(t => sum(t)).collect())
+    val wi2 = DenseVector(nb_weight.map(t => sum(t * t)).collect())
     //    val b2=((z*z*z*z).sum/ n)/ (s2*s2)
     //    val A= (n - b2) / (n - 1)
     //    val B= (2 * b2 - n) / ((n - 1) * (n - 2))
@@ -147,7 +147,7 @@ object SpatialAutoCorrelation {
   }
 
   def sumWeight(weightRDD: RDD[DenseVector[Double]]): Double = {
-    weightRDD.map(t => t.sum).sum()
+    weightRDD.map(t => sum(t)).sum()
   }
 
 }
