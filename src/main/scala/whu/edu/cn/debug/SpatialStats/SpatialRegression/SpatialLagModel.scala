@@ -1,9 +1,9 @@
-package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
+package whu.edu.cn.debug.SpatialStats.SpatialRegression
 
 import breeze.linalg._
 import scala.math._
 
-import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
+import whu.edu.cn.debug.SpatialStats.Utils.Optimize._
 
 /**
  * 空间滞后模型，考虑因变量滞后项ρ。

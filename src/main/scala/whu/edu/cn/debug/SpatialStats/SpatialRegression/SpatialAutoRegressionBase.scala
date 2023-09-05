@@ -1,10 +1,10 @@
-package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
+package whu.edu.cn.debug.SpatialStats.SpatialRegression
 
 import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
+import whu.edu.cn.debug.SpatialStats.Utils.FeatureDistance._
+import whu.edu.cn.debug.SpatialStats.Utils.FeatureSpatialWeight._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

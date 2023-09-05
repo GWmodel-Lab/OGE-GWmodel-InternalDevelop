@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
+package whu.edu.cn.debug.SpatialStats.SpatialRegression
 
 import breeze.linalg.DenseVector
 

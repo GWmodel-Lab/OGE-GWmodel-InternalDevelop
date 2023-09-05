@@ -1,26 +1,28 @@
-package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
+package whu.edu.cn.debug.SpatialStats.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.sqrt
 import scala.math._
 
-import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
+import whu.edu.cn.debug.SpatialStats.Utils.Optimize._
 
 /**
- * 空间杜宾模型，同时考虑自变量误差项λ与因变量滞后项ρ。
+ * 空间误差模型，考虑自变量误差项λ。
  */
-class SpatialDurbinModel  extends SpatialAutoRegressionBase {
+class SpatialErrorModel extends SpatialAutoRegressionBase {
+
   var _xrows = 0
   var _xcols = 0
   private var _df = _xcols
 
   private var _dX: DenseMatrix[Double] = _
   private var _1X: DenseMatrix[Double] = _
-  private var _durbinX: DenseMatrix[Double] = _
-  private var _durbinY: DenseVector[Double] = _
+  private var _errorX: DenseMatrix[Double] = _
+  private var _errorY: DenseVector[Double] = _
 
+  private var sum_lw: Double = _
+  private var sw: DenseVector[Double] = _
   private var _wy: DenseVector[Double] = _
-  private var _wwy: DenseVector[Double] = _
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
 
@@ -54,28 +56,25 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
    * @return 返回拟合值（Array）形式
    */
   def fit(): Array[Double] = {
-    val arr = firstvalue()
-    val optresult = nelderMead(arr, paras4optimize)
-//    println("----------optimize result----------")
-//    optresult.foreach(println)
-    val rho = optresult(0)
-    val lambda = optresult(1)
-    _durbinX = _1X - lambda * _wx
-    _durbinY = _Y - rho * _wy - lambda * _wy + rho * lambda * _wwy
-    val betas = get_betas(X = _durbinX, Y = _durbinY)
-    println(betas)
+    val interval = get_interval()
+    val lambda = goldenSelection(interval._1, interval._2, function = lambda4optimize)
+    //    println(s"lambda is $lambda")
+    _errorX = _1X - lambda * _wx
+    _errorY = _Y - lambda * _wy
+    val betas = get_betas(X = _errorX, Y = _errorY)
     val betas_map = betasMap(betas)
-    val res = get_res(X = _durbinX, Y = _durbinY)
+    val res = get_res(X = _errorX, Y = _errorY)
     //log likelihood
-    val llopt = paras4optimize(optresult)
     val lly = get_logLik(get_res(X = _1X))
+    val llx = get_logLik(get_res(X = _1X, Y = _errorY))
+    val lllambda = lambda4optimize(lambda)
 
     fitvalue = (_Y - res).toArray
-    println("---------------------------------spatial durbin model---------------------------------")
-    println(s"rho is $rho\nlambda is $lambda")
-    try_LRtest(-llopt, lly, chi_pama = 2)
+    println("---------------------------------spatial lag model---------------------------------")
+    println(s"rho is $lambda")
+    try_LRtest(lllambda, lly)
     println(s"coeffients:\n$betas_map")
-    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
+    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
     println("------------------------------------------------------------------------------------")
     fitvalue
   }
@@ -101,12 +100,17 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
 
   private def get_env(): Unit = {
     if (_Y != null && _X != null) {
-      if (_wy == null || _wwy == null) {
+      if (_wy == null) {
         _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
-        _wwy = DenseVector(spweight_dvec.map(t => (t dot _wy)))
+      }
+      if (sum_lw == null || sw == null) {
+        val weight1: DenseVector[Double] = DenseVector.ones[Double](_xrows)
+        sum_lw = weight1.toArray.map(t => log(t)).sum
+        sw = sqrt(weight1)
       }
       if (_wx == null) {
         val _dvecWx = _X.map(t => DenseVector(spweight_dvec.map(i => (i dot t))))
+        //      val _dmatWx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length, data = _dvecWx.flatMap(t => t.toArray))
         val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, _dvecWx.flatMap(t => t.toArray))
         _wx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length + 1, data = ones_x.flatten)
       }
@@ -120,40 +124,40 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
     } else {
       throw new IllegalArgumentException("the x or y are not initialized! please check!")
     }
+    //    println(_wy)
+    //    println(s"-----------\n$sum_lw\n$sw")
+    //    println(_wx)
   }
 
-  private def firstvalue(): Array[Double] = {
+  private def get_interval(): (Double, Double) = {
+    if (spweight_dmat == null) {
+      throw new NullPointerException("the shpfile is not initialized! please check!")
+    }
     if (_eigen == null) {
       _eigen = breeze.linalg.eig(spweight_dmat.t)
     }
     val eigvalue = _eigen.eigenvalues.copy
-    //    val min = eigvalue.toArray.min
-    //    val max = eigvalue.toArray.max
-    val median = (eigvalue.toArray.min + eigvalue.toArray.max) / 2.0
-    Array(median, median)
+    val min = eigvalue.toArray.min
+    val max = eigvalue.toArray.max
+    (1.0 / min, 1.0 / max)
   }
 
-  private def paras4optimize(optarr: Array[Double]): Double = {
+  private def lambda4optimize(lambda: Double): Double = {
     get_env()
-    if (optarr.length == 2) {
-      val rho = optarr(0)
-      val lambda = optarr(1)
-      val yl = _Y - rho * _wy - lambda * _wy + rho * lambda * _wwy
-      val xl = (_1X - lambda * _wx)
-      val xl_qr = qr(xl)
-      val xl_qr_q = xl_qr.q(::, 0 to _xcols)
-      val xl_q_yl = xl_qr_q.t * yl
-      val SSE = yl.t * yl - xl_q_yl.t * xl_q_yl
-      val n = _xrows
-      val s2 = SSE / n
-      val eigvalue = _eigen.eigenvalues.copy
-      val ldet_rho = sum(breeze.numerics.log(-eigvalue * rho + 1.0))
-      val ldet_lambda = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
-      val ret = (ldet_rho + ldet_lambda - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
-      //      println(-ret)
-      -ret
-    } else {
-      throw new IllegalArgumentException("optmize array should have rho and lambda")
-    }
+    val yl = sw * (_Y - lambda * _wy)
+    val xl = (_1X - lambda * _wx)
+    val xl_qr = qr(xl)
+    val xl_qr_q = xl_qr.q(::, 0 to _xcols) //列数本来应该+1，由于从0开始计数，反而刚好合适
+    //    println(xl_qr_q)
+    val xl_q_yl = xl_qr_q.t * yl
+    val SSE = yl.t * yl - xl_q_yl.t * xl_q_yl
+    val n = _xrows
+    val s2 = SSE / n
+    val eigvalue = _eigen.eigenvalues.copy
+    val ldet = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
+    val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
+    //    println(SSE, ret)
+    ret
   }
+
 }

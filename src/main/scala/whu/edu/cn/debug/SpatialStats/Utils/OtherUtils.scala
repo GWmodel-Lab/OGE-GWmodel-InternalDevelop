@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.GWmodelUtil.Utils
+package whu.edu.cn.debug.SpatialStats.Utils
 
 import au.com.bytecode.opencsv._
 

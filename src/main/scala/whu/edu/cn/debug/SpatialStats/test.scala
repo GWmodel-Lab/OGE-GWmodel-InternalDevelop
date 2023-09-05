@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.GWmodelUtil
+package whu.edu.cn.debug.SpatialStats
 
 import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
@@ -11,18 +11,18 @@ import breeze.numerics._
 
 import java.text.SimpleDateFormat
 import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
-import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
-import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.DescriptiveStatistics.describe
-import whu.edu.cn.debug.GWmodelUtil.BasicStatistics.PrincipalComponentAnalysis.PCA
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.CorrelationAnalysis._
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.SpatialAutoCorrelation._
-import whu.edu.cn.debug.GWmodelUtil.STCorrelations.TemporalAutoCorrelation._
-import whu.edu.cn.debug.GWmodelUtil.Utils.OtherUtils._
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.LinearRegression.linearRegression
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialErrorModel
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialLagModel
-import whu.edu.cn.debug.GWmodelUtil.SpatialRegression.SpatialDurbinModel
+import whu.edu.cn.debug.SpatialStats.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
+import whu.edu.cn.debug.SpatialStats.BasicStatistics.DescriptiveStatistics.describe
+import whu.edu.cn.debug.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
+import whu.edu.cn.debug.SpatialStats.STCorrelations.CorrelationAnalysis._
+import whu.edu.cn.debug.SpatialStats.STCorrelations.SpatialAutoCorrelation._
+import whu.edu.cn.debug.SpatialStats.STCorrelations.TemporalAutoCorrelation._
+import whu.edu.cn.debug.SpatialStats.Utils.OtherUtils._
+import whu.edu.cn.debug.SpatialStats.Utils.FeatureDistance._
+import whu.edu.cn.debug.SpatialStats.SpatialRegression.LinearRegression.linearRegression
+import whu.edu.cn.debug.SpatialStats.SpatialRegression.SpatialErrorModel
+import whu.edu.cn.debug.SpatialStats.SpatialRegression.SpatialLagModel
+import whu.edu.cn.debug.SpatialStats.SpatialRegression.SpatialDurbinModel
 
 object test {
 
@@ -46,12 +46,12 @@ object test {
 //    linear_test()
 //    correlation_test()
 //    pca_test()
-//    val t0 = System.currentTimeMillis()
-//    val d=getDist(shpfile)
-//    val m=getDistMat(shpfile)
-//    println(m)
-//    val tused = (System.currentTimeMillis() - t0) / 1000.0
-//    println(s"time used is $tused s")
+    val t0 = System.currentTimeMillis()
+    val d=getDist(shpfile)
+    val m=getDistMat(shpfile)
+    println(m)
+    val tused = (System.currentTimeMillis() - t0) / 1000.0
+    println(s"time used is $tused s")
   }
 
   def correlation_test(): Unit = {

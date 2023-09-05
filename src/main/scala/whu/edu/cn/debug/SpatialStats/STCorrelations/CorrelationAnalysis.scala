@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.GWmodelUtil.STCorrelations
+package whu.edu.cn.debug.SpatialStats.STCorrelations
 
 import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD
