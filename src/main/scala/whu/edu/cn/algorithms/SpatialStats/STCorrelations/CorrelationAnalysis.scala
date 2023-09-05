@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.STCorrelations
 
-import org.apache.spark.mllib.stat.Statistics
+
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import breeze.linalg.DenseMatrix

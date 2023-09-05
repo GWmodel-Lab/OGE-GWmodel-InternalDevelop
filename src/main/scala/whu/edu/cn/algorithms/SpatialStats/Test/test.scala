@@ -22,13 +22,13 @@ object test {
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
   val sc = new SparkContext(conf)
 
-  val shpPath: String = "..\\testdata\\LNHP100.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
   val shpfile = readShp(sc, shpPath, DEF_ENCODE)
 
-  val shpPath2: String = "..\\testdata\\MississippiHR.shp"
+  val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
   val shpfile2 = readShp(sc, shpPath2, DEF_ENCODE)
 
-  val csvpath = "..\\testdata\\test_aqi.csv"
+  val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
   //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
 
