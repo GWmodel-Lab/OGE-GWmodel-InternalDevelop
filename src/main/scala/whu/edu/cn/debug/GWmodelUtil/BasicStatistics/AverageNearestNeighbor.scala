@@ -37,8 +37,7 @@ object AverageNearestNeighbor {
     */
   //平均最近邻指数算子
   def aveNearestNeighbor(testshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Double]={
-    val RDDcoor = testshp.map(t => t._2._1.getCentroid.getCoordinate)
-    val DisArray = getCoorDistArrbuf(RDDcoor, RDDcoor)
+    val DisArray = getDist(testshp)
     val DisSum = DisArray.map(t => t.sorted.apply(1)).sum //t指每一行，取出RDD矩阵每行最小距离，求和 欧式距离矩阵
     val RDDsize =  DisArray.size //RDD要素个数，同length
     val A  = ExRectangularArea(testshp)
@@ -48,7 +47,7 @@ object AverageNearestNeighbor {
     val SE = 0.26136/(sqrt(pow(RDDsize, 2)/ A))
     val Z = (Do - De)/SE
     val gaussian = breeze.stats.distributions.Gaussian(0, 1)
-    val Pvalue = 2 * (1.0 - gaussian.cdf(Z))
+    val Pvalue = 2 * (gaussian.cdf(Z))
     println("平均最近邻汇总")
     println(s"最近邻比率:$ANN\n平均观测距离:$Do\n预期平均距离:$De\nZ-Score:$Z\nP值：$Pvalue\n要素最小外接矩阵面积:$A")
     var result : Array[Double] = new Array[Double](6)

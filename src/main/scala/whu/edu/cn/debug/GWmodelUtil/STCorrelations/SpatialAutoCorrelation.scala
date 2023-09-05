@@ -140,6 +140,13 @@ object SpatialAutoCorrelation {
     re.toArray
   }
 
+  def arrvec2multi(arr1: Array[DenseVector[Double]], arr2: Array[DenseVector[Double]]): Array[DenseVector[Double]] = {
+    val arr1idx=arr1.zipWithIndex
+    arr1idx.map(t => {
+      t._1*arr2(t._2)
+    })
+  }
+
   //  def arr2multi(arr1: Array[Double], arr2:Array[Double]): Array[Double]={
   //    val re=new Array[Double](arr1.length)
   //    for (i <- 0 until arr1.length if arr1.length==arr2.length){
