@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.SpatialStats.STCorrelations
+package whu.edu.cn.algorithms.SpatialStats.STCorrelations
 
 import breeze.linalg.{DenseVector, linspace}
 import breeze.plot._

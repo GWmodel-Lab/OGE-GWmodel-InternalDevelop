@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.SpatialStats.Utils
+package whu.edu.cn.algorithms.SpatialStats.Utils
 
 import au.com.bytecode.opencsv._
 

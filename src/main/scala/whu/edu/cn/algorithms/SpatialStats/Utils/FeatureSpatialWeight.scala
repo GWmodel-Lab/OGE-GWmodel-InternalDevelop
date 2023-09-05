@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.SpatialStats.Utils
+package whu.edu.cn.algorithms.SpatialStats.Utils
 
 import breeze.linalg.DenseVector
 import breeze.numerics._

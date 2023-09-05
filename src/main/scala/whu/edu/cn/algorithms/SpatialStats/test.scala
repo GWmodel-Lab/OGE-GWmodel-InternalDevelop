@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.SpatialStats
+package whu.edu.cn.algorithms.SpatialStats
 
 import geotrellis.vector.MultiPolygon
 import org.apache.spark.{SparkConf, SparkContext}
@@ -11,18 +11,18 @@ import breeze.numerics._
 
 import java.text.SimpleDateFormat
 import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
-import whu.edu.cn.debug.SpatialStats.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
-import whu.edu.cn.debug.SpatialStats.BasicStatistics.DescriptiveStatistics.describe
-import whu.edu.cn.debug.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
-import whu.edu.cn.debug.SpatialStats.STCorrelations.CorrelationAnalysis._
-import whu.edu.cn.debug.SpatialStats.STCorrelations.SpatialAutoCorrelation._
-import whu.edu.cn.debug.SpatialStats.STCorrelations.TemporalAutoCorrelation._
-import whu.edu.cn.debug.SpatialStats.Utils.OtherUtils._
-import whu.edu.cn.debug.SpatialStats.Utils.FeatureDistance._
-import whu.edu.cn.debug.SpatialStats.SpatialRegression.LinearRegression.linearRegression
-import whu.edu.cn.debug.SpatialStats.SpatialRegression.SpatialErrorModel
-import whu.edu.cn.debug.SpatialStats.SpatialRegression.SpatialLagModel
-import whu.edu.cn.debug.SpatialStats.SpatialRegression.SpatialDurbinModel
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.DescriptiveStatistics.describe
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
+import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis._
+import whu.edu.cn.algorithms.SpatialStats.STCorrelations.SpatialAutoCorrelation._
+import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
+import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.linearRegression
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialErrorModel
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialLagModel
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
 
 object test {
 

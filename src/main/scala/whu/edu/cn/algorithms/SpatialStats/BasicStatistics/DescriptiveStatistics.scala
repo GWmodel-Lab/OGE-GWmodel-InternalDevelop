@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.SpatialStats.BasicStatistics
+package whu.edu.cn.algorithms.SpatialStats.BasicStatistics
 
 import breeze.plot.{Figure, HistogramBins, hist}
 import org.apache.spark.rdd.RDD

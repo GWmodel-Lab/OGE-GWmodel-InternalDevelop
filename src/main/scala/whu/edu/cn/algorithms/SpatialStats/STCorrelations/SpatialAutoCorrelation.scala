@@ -1,10 +1,10 @@
-package whu.edu.cn.debug.SpatialStats.STCorrelations
+package whu.edu.cn.algorithms.SpatialStats.STCorrelations
 
 import breeze.linalg._
 import breeze.plot._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.debug.SpatialStats.Utils.FeatureSpatialWeight._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight._
 
 import scala.collection.mutable.Map
 import scala.math.{pow, sqrt}

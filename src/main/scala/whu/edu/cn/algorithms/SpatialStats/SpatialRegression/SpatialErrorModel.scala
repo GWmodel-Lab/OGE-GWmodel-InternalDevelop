@@ -1,10 +1,10 @@
-package whu.edu.cn.debug.SpatialStats.SpatialRegression
+package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.sqrt
 import scala.math._
 
-import whu.edu.cn.debug.SpatialStats.Utils.Optimize._
+import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
 
 /**
  * 空间误差模型，考虑自变量误差项λ。

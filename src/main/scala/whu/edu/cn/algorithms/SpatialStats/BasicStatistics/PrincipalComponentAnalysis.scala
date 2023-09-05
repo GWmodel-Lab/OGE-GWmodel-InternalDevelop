@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.SpatialStats.BasicStatistics
+package whu.edu.cn.algorithms.SpatialStats.BasicStatistics
 
 import breeze.linalg.{DenseMatrix, _}
 import org.apache.spark.rdd.RDD

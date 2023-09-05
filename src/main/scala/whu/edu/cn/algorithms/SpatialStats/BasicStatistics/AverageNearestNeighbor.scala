@@ -1,5 +1,5 @@
-package whu.edu.cn.debug.SpatialStats.BasicStatistics
-import whu.edu.cn.debug.SpatialStats.Utils.FeatureDistance._
+package whu.edu.cn.algorithms.SpatialStats.BasicStatistics
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
