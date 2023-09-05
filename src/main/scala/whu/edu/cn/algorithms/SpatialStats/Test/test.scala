@@ -1,28 +1,20 @@
-package whu.edu.cn.algorithms.SpatialStats
+package whu.edu.cn.algorithms.SpatialStats.Test
 
-import geotrellis.vector.MultiPolygon
-import org.apache.spark.{SparkConf, SparkContext}
+import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
-import whu.edu.cn.util.ShapeFileUtil._
-import whu.edu.cn.oge.Feature._
-
-import scala.reflect.ClassTag
-import breeze.numerics._
-
-import java.text.SimpleDateFormat
-import breeze.linalg.{DenseMatrix, DenseVector, Matrix, Vector, linspace}
+import org.apache.spark.{SparkConf, SparkContext}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.DescriptiveStatistics.describe
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis._
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.SpatialAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
-import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
-import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.linearRegression
-import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialErrorModel
-import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialLagModel
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
+import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
+import whu.edu.cn.oge.Feature._
+import whu.edu.cn.util.ShapeFileUtil._
 
 object test {
 
