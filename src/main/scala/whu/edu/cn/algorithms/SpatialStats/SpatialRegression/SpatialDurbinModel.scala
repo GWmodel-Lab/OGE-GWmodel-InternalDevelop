@@ -1,10 +1,10 @@
-package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
+package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.sqrt
 import scala.math._
 
-import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
+import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
 
 /**
  * 空间杜宾模型，同时考虑自变量误差项λ与因变量滞后项ρ。
@@ -56,8 +56,8 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
   def fit(): Array[Double] = {
     val arr = firstvalue()
     val optresult = nelderMead(arr, paras4optimize)
-    println("----------optimize result----------")
-    optresult.foreach(println)
+//    println("----------optimize result----------")
+//    optresult.foreach(println)
     val rho = optresult(0)
     val lambda = optresult(1)
     _durbinX = _1X - lambda * _wx

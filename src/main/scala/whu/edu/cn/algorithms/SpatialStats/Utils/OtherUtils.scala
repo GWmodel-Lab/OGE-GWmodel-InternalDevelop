@@ -1,19 +1,16 @@
-package whu.edu.cn.debug.GWmodelUtil.Utils
+package whu.edu.cn.algorithms.SpatialStats.Utils
 
 import au.com.bytecode.opencsv._
-
 import org.apache.spark.SparkContext
-import org.apache.spark.mllib.stat.Statistics
 import org.apache.spark.rdd.RDD
-import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, Point, MultiPolygon}
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, MultiPolygon, Point}
 import whu.edu.cn.util.ShapeFileUtil._
 
-import scala.collection.immutable.List
 import scala.collection.mutable.{ArrayBuffer, Map}
-import scala.math.{abs, max, min, pow, sqrt}
 import scala.collection.JavaConverters._
 import java.text.SimpleDateFormat
 import java.io.StringReader
+import scala.collection.mutable
 
 
 object OtherUtils {
@@ -23,12 +20,12 @@ object OtherUtils {
    *
    * @param sc      SparkContext
    * @param csvPath csvPath
-   * @return        RDD[Array[(String, Int)]]
+   * @return        RDD
    */
   def readcsv(implicit sc: SparkContext, csvPath: String): RDD[Array[(String, Int)]] = {
     val data = sc.textFile(csvPath)
     val csvdata = data.map(line => {
-      val reader = new CSVReader(new StringReader((line)))
+      val reader = new CSVReader(new StringReader(line))
       reader.readNext()
     })
     csvdata.map(t => t.zipWithIndex)
@@ -40,7 +37,7 @@ object OtherUtils {
    * @param geomRDD Input RDD
    * @return        type String
    */
-  def getGeometryType(geomRDD: RDD[(String, (Geometry, Map[String, Any]))]): String = {
+  def getGeometryType(geomRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): String = {
     geomRDD.map(t => t._2._1).first().getGeometryType
   }
 
@@ -53,7 +50,7 @@ object OtherUtils {
    * @param propertyName 属性名，String类型，需要少于10个字符
    * @return RDD
    */
-  def writeRDD(implicit sc: SparkContext, shpRDD: RDD[(String, (Geometry, Map[String, Any]))], writeArray: Array[Double], propertyName: String): RDD[(String, (Geometry, Map[String, Any]))] = {
+  def writeRDD(implicit sc: SparkContext, shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], writeArray: Array[Double], propertyName: String): RDD[(String, (Geometry, Map[String, Any]))] = {
     if (propertyName.length >= 10) {
       throw new IllegalArgumentException("the length of property name must not longer than 10!!")
     }
@@ -70,7 +67,7 @@ object OtherUtils {
    * @param outputshpRDD  需要输出的RDD
    * @param outputshpPath 输出路径
    */
-  def writeshpfile(outputshpRDD: RDD[(String, (Geometry, Map[String, Any]))], outputshpPath: String) = {
+  def writeshpfile(outputshpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], outputshpPath: String): Unit = {
     val geom = getGeometryType(outputshpRDD)
     geom match {
       case "MultiPolygon" => createShp(outputshpPath, "utf-8", classOf[MultiPolygon], outputshpRDD.map(t => {
@@ -107,7 +104,7 @@ object OtherUtils {
       throw new IllegalArgumentException("property name didn't exist!!")
     } else {
       val df = csvArr.map(t => t.filter(i => i._2 == idx).map(t => t._1))
-      resultArr = df.flatMap(t => t)
+      resultArr = df.flatten
     }
     //    resultArr.foreach(println)
     resultArr
@@ -130,7 +127,7 @@ object OtherUtils {
       throw new IllegalArgumentException("property number didn't exist!!")
     } else {
       val df = csvArr.map(t => t.filter(i => i._2 == idx).map(t => t._1))
-      resultArr = df.flatMap(t => t)
+      resultArr = df.flatten
     }
     //    resultArr.foreach(println)
     resultArr
@@ -145,32 +142,6 @@ object OtherUtils {
     })
     date.foreach(println)
     println((date(300).getTime - date(0).getTime) / 1000 / 60 / 60 / 24)
-  }
-
-  def corr2list(lst1: List[Double], lst2: List[Double]): Double = {
-    val sum1 = lst1.sum
-    val sum2 = lst2.sum
-    val square_sum1 = lst1.map(x => x * x).sum
-    val square_sum2 = lst2.map(x => x * x).sum
-    val zlst = lst1.zip(lst2)
-    val product = zlst.map(x => x._1 * x._2).sum
-    val numerator = product - (sum1 * sum2 / lst1.length)
-    val dominator = pow((square_sum1 - pow(sum1, 2) / lst1.length) * (square_sum2 - pow(sum2, 2) / lst2.length), 0.5)
-    val correlation = numerator / (dominator * 1.0)
-    println(s"Correlation is: $correlation")
-    correlation
-  }
-
-  //使用ml库
-  def corr2ml(feat: RDD[(String, (Geometry, Map[String, Any]))], property1: String, property2: String): Double = {
-    val time0: Long = System.currentTimeMillis()
-    val aX: RDD[Double] = feat.map(t => t._2._2(property1).asInstanceOf[String].toDouble)
-    val aY: RDD[Double] = feat.map(t => t._2._2(property2).asInstanceOf[String].toDouble)
-    val correlation: Double = Statistics.corr(aX, aY, "pearson") //"spearman"
-    val timeused: Long = System.currentTimeMillis() - time0
-    println(s"Correlation is: $correlation")
-    println(s"time used is: $timeused")
-    correlation
   }
 
 }

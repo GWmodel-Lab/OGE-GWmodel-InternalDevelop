@@ -1,11 +1,12 @@
-package whu.edu.cn.debug.GWmodelUtil.STCorrelations
+package whu.edu.cn.algorithms.SpatialStats.STCorrelations
 
 import breeze.linalg._
 import breeze.plot._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight._
 
+import scala.collection.mutable
 import scala.collection.mutable.Map
 import scala.math.{pow, sqrt}
 
@@ -21,7 +22,7 @@ object SpatialAutoCorrelation {
    * @param weightstyle 邻接矩阵的权重类型，参考 getNeighborWeight 函数
    * @return （全局莫兰指数，峰度）(Double,Double)形式
    */
-  def globalMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W"): (Double, Double) = {
+  def globalMoranI(featRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W"): (Double, Double) = {
     val nb_weight = getNeighborWeight(featRDD, weightstyle)
     val sum_weight = sumWeight(nb_weight)
     val arr = featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
@@ -34,27 +35,27 @@ object SpatialAutoCorrelation {
       DenseVector(re)
     })
     val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
-    val rightup = weight_m_arr.map(t => t.sum).sum
+    val rightup = weight_m_arr.map(t => sum(t)).sum
     val rightdn = arr_mean.map(t => t * t).sum
     val n = arr.length
     val moran_i = n / sum_weight * rightup / rightdn
     val kurtosis = (n * arr_mean.map(t => pow(t, 4)).sum) / pow(rightdn, 2)
-    if (plot == true) {
+    if (plot) {
       plotmoran(arr, nb_weight, moran_i)
     }
     if (test) {
       val E_I = -1.0 / (n - 1)
-      val S_1 = 0.5 * nb_weight.map(t => (t * 2.0 * t * 2.0).sum).sum()
-      val S_2 = nb_weight.map(t => t.sum * 2).sum()
+      val S_1 = 0.5 * nb_weight.map(t => sum(t * 2.0 * t * 2.0)).sum()
+      val S_2 = nb_weight.map(t => sum(t) * 2).sum()
       val E_A = n * ((n * n - 3 * n + 3) * S_1) - n * S_2 + 3 * sum_weight * sum_weight
       val E_B = (arr_mean.map(t => t * t * t * t).sum / (rightdn * rightdn)) * ((n * n - n) * S_1 - 2 * n * S_2 + 6 * sum_weight * sum_weight)
       val E_C = (n - 1) * (n - 2) * (n - 3) * sum_weight * sum_weight
       val V_I = (E_A - E_B) / E_C - pow(E_I, 2)
-      val Z_I = (moran_i - E_I) / (sqrt(V_I))
+      val Z_I = (moran_i - E_I) / sqrt(V_I)
       val gaussian = breeze.stats.distributions.Gaussian(0, 1)
       val Pvalue = 2 * (1.0 - gaussian.cdf(Z_I))
       println(s"global Moran's I is: $moran_i")
-      println(s"Z-Score is: ${Z_I} , p-value is: ${Pvalue}")
+      println(s"Z-Score is: $Z_I , p-value is: $Pvalue")
     }
     (moran_i, kurtosis)
   }
@@ -67,7 +68,7 @@ object SpatialAutoCorrelation {
    * @param adjust   是否调整n的取值。false(默认):n；true:n-1
    * @return （局部莫兰指数，均值，方差，Z值，P值）的Tuple形式，每个单独的值为一个Array
    */
-  def localMoranI(featRDD: RDD[(String, (Geometry, Map[String, Any]))], property: String, adjust: Boolean = false):
+  def localMoranI(featRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, adjust: Boolean = false):
   Tuple5[Array[Double], Array[Double], Array[Double], Array[Double], Array[Double]] = {
     val nb_weight = getNeighborWeight(featRDD)
     val arr = featRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
@@ -77,22 +78,22 @@ object SpatialAutoCorrelation {
       DenseVector(re)
     })
     val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
-    val rightup = weight_m_arr.map(t => t.sum)
+    val rightup = weight_m_arr.map(t => sum(t))
     val dvec_mean = DenseVector(arr_mean)
     var n = arr.length
-    if (adjust == true) {
+    if (adjust) {
       n = arr.length - 1
     }
     val s2 = arr_mean.map(t => t * t).sum / n
     val lz = DenseVector(rightup)
     val z = dvec_mean
-    val m2 = ((dvec_mean * dvec_mean).sum / n)
+    val m2 = sum(dvec_mean * dvec_mean) / n
 
     val expectation = -z * z / ((n - 1) * m2)
-    val local_moranI = (z / s2 * lz)
+    val local_moranI = z / s2 * lz
 
-    val wi = DenseVector(nb_weight.map(t => t.sum).collect())
-    val wi2 = DenseVector(nb_weight.map(t => (t * t).sum).collect())
+    val wi = DenseVector(nb_weight.map(t => sum(t)).collect())
+    val wi2 = DenseVector(nb_weight.map(t => sum(t * t)).collect())
     //    val b2=((z*z*z*z).sum/ n)/ (s2*s2)
     //    val A= (n - b2) / (n - 1)
     //    val B= (2 * b2 - n) / ((n - 1) * (n - 2))
@@ -106,7 +107,7 @@ object SpatialAutoCorrelation {
   }
 
 
-  def plotmoran(x: Array[Double], w: RDD[DenseVector[Double]], morani: Double) = {
+  def plotmoran(x: Array[Double], w: RDD[DenseVector[Double]], morani: Double): Unit = {
     val xx = x
     val wx = w.map(t => t dot DenseVector(x)).collect()
     val f = Figure()
@@ -134,19 +135,11 @@ object SpatialAutoCorrelation {
   }
 
   def arrdvec2multi(arr1: Array[DenseVector[Double]], arr2: Array[DenseVector[Double]]): Array[DenseVector[Double]] = {
-    val dmat1 = DenseMatrix(arr1)
-    val dmat2 = DenseMatrix(arr2)
-    val re = dmat1 * dmat2
-    re.toArray
+    val arr1idx = arr1.zipWithIndex
+    arr1idx.map(t => {
+      t._1 * arr2(t._2)
+    })
   }
-
-  //  def arr2multi(arr1: Array[Double], arr2:Array[Double]): Array[Double]={
-  //    val re=new Array[Double](arr1.length)
-  //    for (i <- 0 until arr1.length if arr1.length==arr2.length){
-  //        re(i)=arr1(i)*arr2(i)
-  //      }
-  //    re
-  //  }
 
   def meandiff(arr: Array[Double]): Array[Double] = {
     val ave = arr.sum / arr.length
@@ -154,7 +147,7 @@ object SpatialAutoCorrelation {
   }
 
   def sumWeight(weightRDD: RDD[DenseVector[Double]]): Double = {
-    weightRDD.map(t => t.sum).sum()
+    weightRDD.map(t => sum(t)).sum()
   }
 
 }

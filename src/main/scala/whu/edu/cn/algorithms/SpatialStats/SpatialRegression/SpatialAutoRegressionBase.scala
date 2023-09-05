@@ -1,10 +1,10 @@
-package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
+package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
 import breeze.linalg._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -62,11 +62,6 @@ abstract class SpatialAutoRegressionBase {
     _Y = DenseVector(y)
   }
 
-  protected def getdistance(): Array[Array[Double]] = {
-    val coords = geom.map(t => t.getCoordinate)
-    getCoorDistArrbuf(coords, coords).toArray
-  }
-
   /**
    * 提供更改、设置经纬度信息的函数
    *
@@ -95,7 +90,7 @@ abstract class SpatialAutoRegressionBase {
       //      spweight_dvec = boolNeighborWeight(nb_bool).map(t => t * (t / t.sum)).collect()
       spweight_dvec = getNeighborWeight(shpRDD, style = style).collect()
     } else if (!neighbor && !geom.isEmpty() && k >= 0) {
-      val dist = getdistance().map(t => Array2DenseVector(t))
+      val dist = getDist(shpRDD).map(t => Array2DenseVector(t))
       spweight_dvec = dist.map(t => getSpatialweightSingle(t, k, kernel = "boxcar", adaptive = true))
     }
     spweight_dmat = DenseMatrix.create(rows = spweight_dvec(0).length, cols = spweight_dvec.length, data = spweight_dvec.flatMap(t => t.toArray))

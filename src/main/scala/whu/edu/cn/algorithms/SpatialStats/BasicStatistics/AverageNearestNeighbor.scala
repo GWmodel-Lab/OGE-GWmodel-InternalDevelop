@@ -1,5 +1,5 @@
-package whu.edu.cn.debug.GWmodelUtil.BasicStatistics
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
+package whu.edu.cn.algorithms.SpatialStats.BasicStatistics
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
@@ -37,8 +37,7 @@ object AverageNearestNeighbor {
     */
   //平均最近邻指数算子
   def aveNearestNeighbor(testshp: RDD[(String, (Geometry, Map[String, Any]))]): Array[Double]={
-    val RDDcoor = testshp.map(t => t._2._1.getCentroid.getCoordinate)
-    val DisArray = getCoorDistArrbuf(RDDcoor, RDDcoor)
+    val DisArray = getDist(testshp)
     val DisSum = DisArray.map(t => t.sorted.apply(1)).sum //t指每一行，取出RDD矩阵每行最小距离，求和 欧式距离矩阵
     val RDDsize =  DisArray.size //RDD要素个数，同length
     val A  = ExRectangularArea(testshp)

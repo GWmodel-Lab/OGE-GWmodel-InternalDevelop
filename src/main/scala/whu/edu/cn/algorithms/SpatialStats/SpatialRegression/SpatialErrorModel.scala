@@ -1,14 +1,15 @@
-package whu.edu.cn.debug.GWmodelUtil.SpatialRegression
+package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
-import breeze.linalg._
+import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
+import breeze.numerics.sqrt
 import scala.math._
 
-import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
+import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
 
 /**
- * 空间滞后模型，考虑因变量滞后项ρ。
+ * 空间误差模型，考虑自变量误差项λ。
  */
-class SpatialLagModel extends SpatialAutoRegressionBase {
+class SpatialErrorModel extends SpatialAutoRegressionBase {
 
   var _xrows = 0
   var _xcols = 0
@@ -16,11 +17,13 @@ class SpatialLagModel extends SpatialAutoRegressionBase {
 
   private var _dX: DenseMatrix[Double] = _
   private var _1X: DenseMatrix[Double] = _
-  private var _lagY: DenseVector[Double]=_
+  private var _errorX: DenseMatrix[Double] = _
+  private var _errorY: DenseVector[Double] = _
 
-  private var lm_null: DenseVector[Double] = _
-  private var lm_w: DenseVector[Double] = _
+  private var sum_lw: Double = _
+  private var sw: DenseVector[Double] = _
   private var _wy: DenseVector[Double] = _
+  private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
 
   /**
@@ -50,27 +53,28 @@ class SpatialLagModel extends SpatialAutoRegressionBase {
   /**
    * 回归计算
    *
-   * @return  返回拟合值（Array）形式
+   * @return 返回拟合值（Array）形式
    */
   def fit(): Array[Double] = {
-
     val interval = get_interval()
-    val rho = goldenSelection(interval._1, interval._2, function = rho4optimize)
-    _lagY = _Y - rho * _wy
-    val betas = get_betas(X = _1X, Y = _lagY)
+    val lambda = goldenSelection(interval._1, interval._2, function = lambda4optimize)
+    //    println(s"lambda is $lambda")
+    _errorX = _1X - lambda * _wx
+    _errorY = _Y - lambda * _wy
+    val betas = get_betas(X = _errorX, Y = _errorY)
     val betas_map = betasMap(betas)
-    val res = get_res(X = _1X, Y = _lagY)
+    val res = get_res(X = _errorX, Y = _errorY)
     //log likelihood
     val lly = get_logLik(get_res(X = _1X))
-    val llx = get_logLik(get_res(X = _1X, Y = _lagY))
-    val llrho = rho4optimize(rho)
+    val llx = get_logLik(get_res(X = _1X, Y = _errorY))
+    val lllambda = lambda4optimize(lambda)
 
     fitvalue = (_Y - res).toArray
     println("---------------------------------spatial lag model---------------------------------")
-    println(s"rho is $rho")
-    try_LRtest(llrho, lly)
+    println(s"rho is $lambda")
+    try_LRtest(lllambda, lly)
     println(s"coeffients:\n$betas_map")
-    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = llrho, df = _df)
+    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
     println("------------------------------------------------------------------------------------")
     fitvalue
   }
@@ -94,13 +98,21 @@ class SpatialLagModel extends SpatialAutoRegressionBase {
     Y - y_hat
   }
 
-  //添加一个判断X，Y为空的情况判断，抛出错误
   private def get_env(): Unit = {
     if (_Y != null && _X != null) {
-      if (lm_null == null || lm_w == null || _wy == null) {
+      if (_wy == null) {
         _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
-        lm_null = get_res(X = _1X)
-        lm_w = get_res(X = _1X, Y = _wy)
+      }
+      if (sum_lw == null || sw == null) {
+        val weight1: DenseVector[Double] = DenseVector.ones[Double](_xrows)
+        sum_lw = weight1.toArray.map(t => log(t)).sum
+        sw = sqrt(weight1)
+      }
+      if (_wx == null) {
+        val _dvecWx = _X.map(t => DenseVector(spweight_dvec.map(i => (i dot t))))
+        //      val _dmatWx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length, data = _dvecWx.flatMap(t => t.toArray))
+        val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, _dvecWx.flatMap(t => t.toArray))
+        _wx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length + 1, data = ones_x.flatten)
       }
       if (spweight_dmat != null) {
         if (_eigen == null) {
@@ -112,6 +124,9 @@ class SpatialLagModel extends SpatialAutoRegressionBase {
     } else {
       throw new IllegalArgumentException("the x or y are not initialized! please check!")
     }
+    //    println(_wy)
+    //    println(s"-----------\n$sum_lw\n$sw")
+    //    println(_wx)
   }
 
   private def get_interval(): (Double, Double) = {
@@ -127,19 +142,21 @@ class SpatialLagModel extends SpatialAutoRegressionBase {
     (1.0 / min, 1.0 / max)
   }
 
-  private def rho4optimize(rho: Double): Double = {
+  private def lambda4optimize(lambda: Double): Double = {
     get_env()
-    val e_a = lm_null.t * lm_null
-    val e_b = lm_w.t * lm_null
-    val e_c = lm_w.t * lm_w
-    val SSE = e_a - 2.0 * rho * e_b + rho * rho * e_c
+    val yl = sw * (_Y - lambda * _wy)
+    val xl = (_1X - lambda * _wx)
+    val xl_qr = qr(xl)
+    val xl_qr_q = xl_qr.q(::, 0 to _xcols) //列数本来应该+1，由于从0开始计数，反而刚好合适
+    //    println(xl_qr_q)
+    val xl_q_yl = xl_qr_q.t * yl
+    val SSE = yl.t * yl - xl_q_yl.t * xl_q_yl
     val n = _xrows
     val s2 = SSE / n
     val eigvalue = _eigen.eigenvalues.copy
-//    val eig_rho = eigvalue :*= rho
-//    val eig_rho_cp = eig_rho.copy
-    val ldet = sum(breeze.numerics.log(-eigvalue * rho + 1.0))
-    val ret = (ldet - ((n / 2) * log(2 * math.Pi)) - (n / 2) * log(s2) - (1 / (2 * s2)) * SSE)
+    val ldet = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
+    val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
+    //    println(SSE, ret)
     ret
   }
 
