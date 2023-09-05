@@ -40,7 +40,7 @@ object test {
   def main(args: Array[String]): Unit = {
 
 //    descriptive_test()
-    sarmodel_test()
+//    sarmodel_test()
 //    morani_test()
 //    acf_test()
 //    linear_test()
