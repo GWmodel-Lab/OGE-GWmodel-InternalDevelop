@@ -6,7 +6,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
-import whu.edu.cn.debug.GWmodelUtil.Utils.Optimize._
+import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
 
 class GWRbasic extends GWRbase {
 

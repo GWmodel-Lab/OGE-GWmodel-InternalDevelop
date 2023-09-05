@@ -4,8 +4,8 @@ import breeze.linalg.{*, DenseMatrix, DenseVector, det, eig, inv, qr, sum, trace
 import breeze.stats.mean
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureDistance._
-import whu.edu.cn.debug.GWmodelUtil.Utils.FeatureSpatialWeight._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -53,11 +53,6 @@ class GWRbase {
     _Y = DenseVector(y)
   }
 
-  protected def getdistance(): Array[Array[Double]] = {
-    val coords = _geom.map(t => t.getCoordinate)
-    getCoorDistArrbuf(coords, coords).toArray
-  }
-
   def setcoords(lat: Array[Double], lon: Array[Double]): Unit = {
     val geomcopy = _geom.zipWithIndex()
     geomcopy.map(t => {
@@ -69,7 +64,7 @@ class GWRbase {
 
   def setweight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
     if(_dist==null){
-      _dist = getdistance().map(t => Array2DenseVector(t))
+      _dist = getDist(shpRDD).map(t => Array2DenseVector(t))
       max_dist=_dist.map(t=>max(t)).max
     }
     if(_kernel==null) {
