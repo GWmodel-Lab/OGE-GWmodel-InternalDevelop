@@ -13,21 +13,21 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.lin
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
-import whu.edu.cn.debug.GWmodelUtil.GWModels.GWRbasic
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 
 object test {
-
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
   val sc = new SparkContext(conf)
+  val encode="utf-8"
 
   val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
-  val shpfile = readShp(sc, shpPath, DEF_ENCODE)
+  val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
-  val shpfile2 = readShp(sc, shpPath2, DEF_ENCODE)
+  val shpfile2 = readShp(sc, shpPath2, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
@@ -43,6 +43,7 @@ object test {
     //    correlation_test()
     //    pca_test()
     gwrbasic_test()
+    sc.stop()
   }
 
   def gwrbasic_test(): Unit = {
@@ -57,7 +58,8 @@ object test {
     //    mdl.setweight(100, "gaussian", true)
     mdl.setX(x)
     mdl.setY(y)
-    mdl.fit(bw = 10)
+    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
+    mdl.fit(sc, bw = 10)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }

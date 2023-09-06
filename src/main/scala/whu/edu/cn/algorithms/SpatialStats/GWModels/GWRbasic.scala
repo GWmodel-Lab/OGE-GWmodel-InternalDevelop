@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.GWmodelUtil.GWModels
+package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, qr, sum, trace}
 import org.apache.spark.SparkContext
@@ -27,7 +27,9 @@ class GWRbasic extends GWRbase {
     _Y = DenseVector(y)
   }
 
-  def fit(bw:Double= 0, kernel: String="gaussian", approach: String = "AICc", adaptive: Boolean = true): Unit = {
+  def fit(implicit sc: SparkContext, bw:Double= 0, kernel: String="gaussian", approach: String = "AICc", adaptive: Boolean = true): Unit = {
+    val t1 = System.currentTimeMillis()
+    println(t1)
     if(bw > 0){
       setweight(bw, kernel, adaptive)
     }else if(spweight_dvec!=null){
@@ -37,15 +39,19 @@ class GWRbasic extends GWRbase {
     }
     //    printweight()
     val results = fitFunction(_dX, _Y, spweight_dvec)
+//    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
     val betas = results._1
     val yhat = results._2
     val residual = results._3
     val shat = results._4
     println(yhat)
     println(residual)
+    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
     calDiagnostic(_dX, _Y, residual, shat)
+    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
     val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = false)
     println(bwselect)
+    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
 
     //    setweight(bw= bw,kernel = _kernel, adaptive = false)
     //    val results2=fitFunction(_dX,_Y,spweight_dvec)
@@ -66,8 +72,7 @@ class GWRbasic extends GWRbase {
     val si = ci_idx.map(t => {
       val a=X(t._2, ::).inner.toDenseMatrix
       val b=t._1.toDenseMatrix
-      val tmp=(a * b)
-      tmp
+      a * b
 //      (X(t._2, ::) * t._1).inner
     })
     val shat = DenseMatrix.create(rows = si.length, cols = si.length, data = si.flatMap(t => t.toArray))
@@ -84,12 +89,18 @@ class GWRbasic extends GWRbase {
     val xtwy = xtw.map(t => t * Y)
     val xtwx_inv = xtwx.map(t => inv(t))
     val xtwx_inv_idx = xtwx_inv.zipWithIndex
-    val betas = xtwx_inv_idx.map(t => t._1 * xtwy.collect()(t._2.toInt))
-    val ci = xtwx_inv_idx.map(t => t._1 * xtw.collect()(t._2.toInt))
+    val arr_xtwy=xtwy.collect()
+    val betas = xtwx_inv_idx.map(t => t._1 * arr_xtwy(t._2.toInt))
+    val arr_xtw=xtw.collect()
+    val ci = xtwx_inv_idx.map(t => t._1 * arr_xtw(t._2.toInt))
     val ci_idx = ci.zipWithIndex
     val sum_ci = ci.map(t => t.map(t => t * t)).map(t => sum(t(*, ::)))
-    val si = ci_idx.map(t => (X(t._2.toInt, ::).inner.t * t._1).inner)
-    val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect()(0).length, data = si.collect().flatMap(t => t.toArray))
+    val si = ci_idx.map(t => {
+      val a = X(t._2.toInt, ::).inner.toDenseMatrix
+      val b = t._1.toDenseMatrix
+      a * b
+    })
+    val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(t => t.toArray))
     val yhat = getYhat(X, betas.collect())
     val residual = Y - getYhat(X, betas.collect())
     //是不是可以用一个struct来存

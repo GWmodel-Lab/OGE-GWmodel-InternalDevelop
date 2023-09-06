@@ -1,4 +1,4 @@
-package whu.edu.cn.debug.GWmodelUtil.GWModels
+package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg.{*, DenseMatrix, DenseVector, det, eig, inv, qr, sum, trace, max}
 import breeze.stats.mean
