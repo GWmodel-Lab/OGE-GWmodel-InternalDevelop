@@ -23,7 +23,7 @@ object test {
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
   val sc = new SparkContext(conf)
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
   val shpfile = readShp(sc, shpPath, DEF_ENCODE)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"

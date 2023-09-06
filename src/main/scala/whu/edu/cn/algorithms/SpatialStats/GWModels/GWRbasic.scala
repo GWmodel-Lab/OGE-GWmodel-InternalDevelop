@@ -44,8 +44,8 @@ class GWRbasic extends GWRbase {
     println(yhat)
     println(residual)
     calDiagnostic(_dX, _Y, residual, shat)
-//    val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = false)
-//    println(bwselect)
+    val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = false)
+    println(bwselect)
 
     //    setweight(bw= bw,kernel = _kernel, adaptive = false)
     //    val results2=fitFunction(_dX,_Y,spweight_dvec)
@@ -63,8 +63,14 @@ class GWRbasic extends GWRbase {
     val ci = xtwx_inv_idx.map(t => t._1 * xtw(t._2))
     val ci_idx = ci.zipWithIndex
     val sum_ci = ci.map(t => t.map(t => t * t)).map(t => sum(t(*, ::)))
-    val si = ci_idx.map(t => (X(t._2, ::).inner.t * t._1).inner)
-    val shat = DenseMatrix.create(rows = si.length, cols = si(0).length, data = si.flatMap(t => t.toArray))
+    val si = ci_idx.map(t => {
+      val a=X(t._2, ::).inner.toDenseMatrix
+      val b=t._1.toDenseMatrix
+      val tmp=(a * b)
+      tmp
+//      (X(t._2, ::) * t._1).inner
+    })
+    val shat = DenseMatrix.create(rows = si.length, cols = si.length, data = si.flatMap(t => t.toArray))
     val yhat = getYhat(X, betas)
     val residual = Y - getYhat(X, betas)
     //是不是可以用一个struct来存
