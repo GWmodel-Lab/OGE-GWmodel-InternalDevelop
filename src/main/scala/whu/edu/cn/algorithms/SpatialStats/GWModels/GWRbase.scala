@@ -27,7 +27,8 @@ class GWRbase {
 
   protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): Unit = {
     val shat0 = trace(shat)
-    val shat1 = trace(shat * shat.t)
+//    val shat1 = trace(shat * shat.t)
+    val shat1=sum(shat.map(t=>t*t))
     val rss = residual.toArray.map(t => t * t).sum
     val n = X.rows
     val AIC = n * log(rss / n) + n * log(2 * math.Pi) + n + shat0
@@ -37,7 +38,7 @@ class GWRbase {
     val yss = sum((Y - mean(Y)) * (Y - mean(Y)))
     val r2 = 1 - rss / yss
     val r2_adj = 1 - (1 - r2) * (n - 1) / (edf - 1)
-    println(s"diagnostics:\nSSE is $rss\nAIC is $AIC \nAICc is $AICc\nedf is $edf \nenp is $enp\nR2 is $r2\nadjust R2 is $r2_adj")
+    println(s"\ndiagnostics:\nSSE is $rss\nAIC is $AIC \nAICc is $AICc\nedf is $edf \nenp is $enp\nR2 is $r2\nadjust R2 is $r2_adj")
   }
 
   def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {

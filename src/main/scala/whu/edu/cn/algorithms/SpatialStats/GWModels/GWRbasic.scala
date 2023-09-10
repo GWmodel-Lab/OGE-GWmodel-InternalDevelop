@@ -28,8 +28,6 @@ class GWRbasic extends GWRbase {
   }
 
   def fit(implicit sc: SparkContext, bw:Double= 0, kernel: String="gaussian", approach: String = "AICc", adaptive: Boolean = true): Unit = {
-    val t1 = System.currentTimeMillis()
-    println(t1)
     if(bw > 0){
       setweight(bw, kernel, adaptive)
     }else if(spweight_dvec!=null){
@@ -46,12 +44,10 @@ class GWRbasic extends GWRbase {
     val shat = results._4
     println(yhat)
     println(residual)
-    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
+//    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
     calDiagnostic(_dX, _Y, residual, shat)
-    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
     val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = false)
     println(bwselect)
-    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
 
     //    setweight(bw= bw,kernel = _kernel, adaptive = false)
     //    val results2=fitFunction(_dX,_Y,spweight_dvec)

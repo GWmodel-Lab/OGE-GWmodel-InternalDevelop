@@ -23,7 +23,7 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
@@ -52,14 +52,13 @@ object test {
     val x2 = shpfile.map(t => t._2._2("PROF").asInstanceOf[String].toDouble).collect()
     val y = shpfile.map(t => t._2._2("PURCHASE").asInstanceOf[String].toDouble).collect()
     val x = Array(DenseVector(x1), DenseVector(x2))
-    //    x.foreach(println)
-    val mdl = new GWRbasic //error，lag
+    val mdl = new GWRbasic
     mdl.init(shpfile)
     //    mdl.setweight(100, "gaussian", true)
     mdl.setX(x)
     mdl.setY(y)
-    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
-    mdl.fit(sc, bw = 10)
+//    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
+    mdl.fit(sc, bw = 20)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }
