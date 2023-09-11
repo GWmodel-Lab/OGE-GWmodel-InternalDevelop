@@ -58,7 +58,8 @@ object test {
     mdl.setX(x)
     mdl.setY(y)
 //    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
-    mdl.fit(sc, bw = 20)
+    mdl.fit(bw = 50)
+//    mdl.auto()
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }
