@@ -12,6 +12,7 @@ class GWRbasic extends GWRbase {
 
   var _xrows = 0
   var _xcols = 0
+  val select_eps=1e-2
 
   private var _dX: DenseMatrix[Double] = _
 
@@ -27,21 +28,15 @@ class GWRbasic extends GWRbase {
     _Y = DenseVector(y)
   }
 
-  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Unit = {
+  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true):
+  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
     println(s"best bandwidth is $bwselect")
-    setweight(bwselect, kernel, adaptive)
-    val results = fitFunction(_dX, _Y, spweight_dvec)
-    val betas = results._1
-    val yhat = results._2
-    val residual = results._3
-    val shat = results._4
-    calDiagnostic(_dX, _Y, residual, shat)
-    println(yhat)
-    println(residual)
+    fit(bwselect, kernel = kernel, adaptive = adaptive)
   }
 
-  def fit(bw:Double= 0, kernel: String="gaussian", approach: String = "AICc", adaptive: Boolean = true): Unit = {
+  def fit(bw:Double= 0, kernel: String="gaussian", adaptive: Boolean = true):
+  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     if(bw > 0){
       setweight(bw, kernel, adaptive)
     }else if(spweight_dvec!=null){
@@ -56,16 +51,15 @@ class GWRbasic extends GWRbase {
     val yhat = results._2
     val residual = results._3
     val shat = results._4
+    println("*************************************")
     println(yhat)
     println(residual)
-//    println(s"time used is ${(System.currentTimeMillis() - t1) / 1000.0} s")
+    print(s"bandwidth of GWR is $bw")
     calDiagnostic(_dX, _Y, residual, shat)
-//    val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = false)
+//    val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = true)
 //    println(bwselect)
-
-    //    setweight(bw= bw,kernel = _kernel, adaptive = false)
-    //    val results2=fitFunction(_dX,_Y,spweight_dvec)
-    //    calDiagnostic(_dX,_Y,results2._3, results2._4)
+    println("*************************************")
+    results
   }
 
   private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
@@ -113,7 +107,6 @@ class GWRbasic extends GWRbase {
     val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(t => t.toArray))
     val yhat = getYhat(X, betas.collect())
     val residual = Y - getYhat(X, betas.collect())
-    //是不是可以用一个struct来存
     (betas.collect(), yhat, residual, shat, sum_ci.collect())
   }
 
@@ -134,10 +127,10 @@ class GWRbasic extends GWRbase {
       approachfunc = bandwidthCV
     }
     try {
-      bw = goldenSelection(lower, upper, eps = 1e-4, findMax = false, function = approachfunc)
+      bw = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)
     } catch {
       case e: MatrixSingularException => {
-        val low = lower * 1.618
+        val low = lower * 2
         bw = fixedBandwidthSelection(kernel, approach, upper, low)
       }
     }
@@ -153,7 +146,7 @@ class GWRbasic extends GWRbase {
       approachfunc = bandwidthCV
     }
     try {
-      bw = round(goldenSelection(lower, upper, eps = 1e-4, findMax = false, function = approachfunc)).toInt
+      bw = round(goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)).toInt
     } catch {
       case e: MatrixSingularException => {
                 println("error")

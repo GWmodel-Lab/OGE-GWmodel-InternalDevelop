@@ -44,6 +44,10 @@ class GWRbase {
   def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {
     _geom = getGeometry(inputRDD)
     shpRDD = inputRDD
+    if (_dist == null) {
+      _dist = getDist(shpRDD).map(t => Array2DenseVector(t))
+      max_dist = _dist.map(t => max(t)).max
+    }
   }
 
   protected def setX(x: Array[DenseVector[Double]]): Unit = {
@@ -64,9 +68,9 @@ class GWRbase {
   }
 
   def setweight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
-    if(_dist==null){
+    if (_dist == null) {
       _dist = getDist(shpRDD).map(t => Array2DenseVector(t))
-      max_dist=_dist.map(t=>max(t)).max
+      max_dist = _dist.map(t => max(t)).max
     }
     if(_kernel==null) {
       _kernel=kernel
@@ -76,7 +80,8 @@ class GWRbase {
   }
 
   def printweight(): Unit = {
-    spweight_dvec.foreach(println)
+    if (spweight_dvec != null) {
+      spweight_dvec.foreach(println)
+    }
   }
-
 }
