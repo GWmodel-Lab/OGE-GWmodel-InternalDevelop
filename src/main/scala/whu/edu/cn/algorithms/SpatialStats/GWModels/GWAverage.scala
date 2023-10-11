@@ -28,45 +28,42 @@ class GWAverage extends GWRbase {
   }
 
   def findq(x: Array[Double], w: DenseVector[Double], p: DenseVector[Double] = DenseVector(0.25, 0.50, 0.75)): DenseVector[Double] = {
-    val loop = new Breaks
-    val lw = w.length
     val lp = p.length
     val q = DenseVector(0.0, 0.0, 0.0)
+    val x_ord = x.sorted
+    val w_idx = w.toArray.zipWithIndex
+    val x_w = w_idx.map(t => (x(t._2), t._1))
+    val x_w_sort = x_w.sortBy(t => t._1)
+    val w_ord = x_w_sort.map(t => t._2)
+    println(w_ord.toVector)
+    val w_ord_idx = w_ord.zipWithIndex
+    val cumsum = w_ord_idx.map(t => {
+      w_ord.take(t._2 + 1).sum
+    })
+    println(cumsum.toVector)
 
+    for (j <- 0 until lp) {
+      //找小于等于的，所以找大于的第一个，然后再减1，就是小于等于的最后一个
+      val c_find = cumsum.find(_ > p(j))
+      val c_first = c_find match {
+        case Some(d) => d
+        case None => 0.0
+      }
+      //减1
+      var c_idx = cumsum.indexOf(c_first) - 1
+      if (c_idx < 0) {
+        c_idx = 0
+      }
+      q(j) = x_ord(c_idx)
+      println(s"q $j $q")
+    }
     q
   }
 
   def calAverage(): Unit = {
-    val rankX = _dX
-
-    val nVar = _xcols
-    val nRp = _xrows
 
   }
 
-  def fit(bw:Double= 0, kernel: String="gaussian", adaptive: Boolean = true):
-  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
-    if(bw > 0){
-      setweight(bw, kernel, adaptive)
-    }else if(spweight_dvec!=null){
-
-    }else{
-      throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
-    }
-    //    printweight()
-    val results = fitFunction(_dX, _Y, spweight_dvec)
-    val betas = results._1
-    val yhat = results._2
-    val residual = results._3
-    val shat = results._4
-    println("*************************************")
-    println(yhat)
-    println(residual)
-    print(s"bandwidth of GWR is $bw")
-    calDiagnostic(_dX, _Y, residual, shat)
-    println("*************************************")
-    results
-  }
 
   private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {

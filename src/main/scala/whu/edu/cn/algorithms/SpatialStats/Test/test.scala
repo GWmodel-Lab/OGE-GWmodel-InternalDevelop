@@ -66,6 +66,16 @@ object test {
 //    })
 //    println(cs.toVector)
     println(q)
+
+    val x1 = shpfile.map(t => t._2._2("FLOORSZ").asInstanceOf[String].toDouble).collect()
+    val x2 = shpfile.map(t => t._2._2("PROF").asInstanceOf[String].toDouble).collect()
+    val y = shpfile.map(t => t._2._2("PURCHASE").asInstanceOf[String].toDouble).collect()
+    val x = Array(DenseVector(x1), DenseVector(x2))
+    m.init(shpfile)
+    m.setX(x)
+    m.setY(y)
+    m.calAverage()
+
     sc.stop()
   }
 
