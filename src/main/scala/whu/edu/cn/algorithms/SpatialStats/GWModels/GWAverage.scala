@@ -19,8 +19,7 @@ class GWAverage extends GWRbase {
     _X = x
     _xcols = x.length
     _xrows = _X(0).length
-    val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, x.flatMap(t => t.toArray))
-    _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
+    _dX = DenseMatrix.create(rows = _xrows, cols = _xcols, data = _X.flatMap(t => t.toArray))
   }
 
   override def setY(y: Array[Double]): Unit = {
@@ -61,7 +60,37 @@ class GWAverage extends GWRbase {
   }
 
   def calAverage(): Unit = {
+    setweight(bw = 20,kernel="bisquare",adaptive = true)
+    val w_i = spweight_dvec.map(t=>{
+      val tmp = 1/sum(t)
+      t * tmp
+    })
+    val alocalmean=w_i.map(w=>(w.t * _dX).inner)
+//    alocalmean.foreach(println)
+    val mlocalmean = DenseMatrix.create(rows = alocalmean.length, cols = alocalmean(0).length, data = alocalmean.flatMap(t => t.toArray))
+//    println(mlocalmean)
+    val center=_dX - mlocalmean
+    val center2=center.map(t=>t*t)
 
+    val almidx=alocalmean.zipWithIndex
+    val cent=almidx.map(t=>{
+      _X(0)(t._2)-t._1
+    })
+    cent.foreach(println)
+    val mcent=DenseMatrix.create(rows = cent.length, cols = cent(0).length, data = cent.flatMap(t => t.toArray))
+    val lvar= w_i.map(t => {
+      (t.t * mcent).inner
+    })
+    println("lvar")
+    lvar.foreach(println)
+
+    val mlvar= w_i.map(t => {
+      (t.t * center2).inner
+    })
+    println("mlvar")
+    mlvar.foreach(println)
+    val mstand=mlvar.map(t=>t.map(i=>sqrt(i)))
+    mstand.foreach(println)
   }
 
 
