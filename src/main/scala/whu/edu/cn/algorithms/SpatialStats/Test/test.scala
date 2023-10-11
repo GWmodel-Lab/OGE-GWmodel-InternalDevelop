@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.Test
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseVector, linspace, rand}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
@@ -14,6 +14,7 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 
@@ -23,7 +24,7 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
@@ -42,7 +43,29 @@ object test {
     //    linear_test()
     //    correlation_test()
     //    pca_test()
-    gwrbasic_test()
+//    gwrbasic_test()
+
+    val m=new GWAverage
+    val a=DenseVector(2.0,4,3,1,5,6,7,8,10,9)/2.0
+    val b=DenseVector(0,0.5,0.1,0.5,4,2,1,2,3,2)
+    println(a)
+    println(b)
+    val q=m.findq(a.toArray,b)
+//    val t=a.toArray.find(_>2)
+//    val tt=t match {
+//      case Some(s) => s
+//      case None => 0.0
+//    }
+//    val ttt=a.toArray.indexOf(tt)
+//    println(s"ss  $tt")
+//    println(s"sss $ttt")
+
+//    val tmp=a.toArray.zipWithIndex
+//    val cs=tmp.map(t=>{
+//      a.toArray.take(t._2+1).sum
+//    })
+//    println(cs.toVector)
+    println(q)
     sc.stop()
   }
 
