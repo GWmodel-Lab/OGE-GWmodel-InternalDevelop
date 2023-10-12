@@ -69,28 +69,52 @@ class GWAverage extends GWRbase {
 //    alocalmean.foreach(println)
     val mlocalmean = DenseMatrix.create(rows = alocalmean.length, cols = alocalmean(0).length, data = alocalmean.flatMap(t => t.toArray))
 //    println(mlocalmean)
-    val center=_dX - mlocalmean
-    val center2=center.map(t=>t*t)
 
-    val almidx=alocalmean.zipWithIndex
-    val cent=almidx.map(t=>{
-      _X(0)(t._2)-t._1
-    })
-    cent.foreach(println)
-    val mcent=DenseMatrix.create(rows = cent.length, cols = cent(0).length, data = cent.flatMap(t => t.toArray))
-    val lvar= w_i.map(t => {
-      (t.t * mcent).inner
-    })
-    println("lvar")
-    lvar.foreach(println)
+//    val x_lm = mlocalmean.map(t => {
+//      _X.map(x => {
+//        x - t
+//      })
+//    })
 
-    val mlvar= w_i.map(t => {
-      (t.t * center2).inner
+    val x_lm=mlocalmean.map(t=>{
+      _X.map(x => {
+        x - t
+      })
     })
-    println("mlvar")
-    mlvar.foreach(println)
-    val mstand=mlvar.map(t=>t.map(i=>sqrt(i)))
-    mstand.foreach(println)
+    val tt=x_lm.data
+    x_lm.map(t=>t.foreach(println))
+//    val center2=x_lm.map(t1=>t1.map(t2=>t2*t2))
+
+//    val center=_dX - mlocalmean
+//    val center2=center.map(t=>t*t)
+
+//    val almidx=alocalmean.zipWithIndex
+//    val cent=almidx.map(t=>{
+//      _X(0)(t._2)-t._1
+//    })
+//    cent.foreach(println)
+//    val mcent=DenseMatrix.create(rows = cent.length, cols = cent(0).length, data = cent.flatMap(t => t.toArray))
+//    val lvar= w_i.map(t => {
+//      (t.t * mcent).inner
+//    })
+//    println("lvar")
+//    lvar.foreach(println)
+
+//    val mlvar= w_i.map(t => {
+//      (t.t * center2).inner
+//    })
+//    println("mlvar")
+//    mlvar.foreach(println)
+//    val mstand=mlvar.map(t=>t.map(i=>sqrt(i)))
+//    mstand.foreach(println)
+
+//    val w_i_idx=w_i.zipWithIndex
+//    val mlvar = w_i_idx.map(t => {
+//      (t._1.t * center2(t._2))
+//    })
+//    println("mlvar")
+//    mlvar.foreach(println)
+
   }
 
 
@@ -218,6 +242,22 @@ class GWAverage extends GWRbase {
     }
     val data = arrbuf.toArray.flatMap(t => t.toArray)
     DenseMatrix.create(rows = Mat.rows, cols = Mat.cols, data = data)
+  }
+
+  private def calLocalVar(lm: DenseVector[Double],  x: Array[DenseVector[Double]], wi: Array[DenseVector[Double]]) = {
+    val x_lm = lm.map(t => {
+      x.map(i => {
+        i - t
+      })
+    }).data.flatten
+    val x_lm2 = x_lm.map(t => t.map(x => x * x))
+    x_lm2.map(t => t.foreach(println))
+    val w_ii = wi.zipWithIndex
+    val mlvar = w_ii.map(t => {
+      (t._1.t * x_lm2(t._2))
+    })
+    println("mlvar")
+    mlvar.foreach(println)
   }
 
 }
