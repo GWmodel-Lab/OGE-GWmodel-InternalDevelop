@@ -74,7 +74,7 @@ object test {
     m.init(shpfile)
     m.setX(x)
     m.setY(y)
-    m.calAverage()
+    m.calAverageSerial()
 
     sc.stop()
   }
