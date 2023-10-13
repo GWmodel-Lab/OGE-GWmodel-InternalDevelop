@@ -66,30 +66,36 @@ class GWAverage extends GWRbase {
       t * tmp
     })
     val ix=_X(0)
-    val alocalmean=w_i.map(w=>w.t * ix)
-//    val alocalmean=w_i.map(w=>(w.t * _dX).inner)
-////    alocalmean.foreach(println)
-//    val mlocalmean = DenseMatrix.create(rows = alocalmean.length, cols = alocalmean(0).length, data = alocalmean.flatMap(t => t.toArray))
+    val aLocalMean=w_i.map(w=>w.t * ix)
+//    val aLocalMean=w_i.map(w=>(w.t * _dX).inner)
+////    aLocalMean.foreach(println)
+//    val mlocalmean = DenseMatrix.create(rows = aLocalMean.length, cols = aLocalMean(0).length, data = aLocalMean.flatMap(t => t.toArray))
 //    val tlocalmean=mlocalmean(::,0)
-    println(alocalmean.toVector)
-//    calLocalVar(DenseVector(alocalmean),_X,w_i)
+    println(aLocalMean.toVector)
+//    calLocalVar(DenseVector(aLocalMean),_X,w_i)
 
-    val x_lm = alocalmean.map(t => {
+    val x_lm = aLocalMean.map(t => {
       ix.map(i => {
         i - t
       })
     })
     val x_lm2 = x_lm.map(t => t.map(x => x * x))
-//    x_lm2.map(t => t.foreach(println))
+    val x_lm3 = x_lm.map(t => t.map(x => x * x * x))
+    //    x_lm2.map(t => t.foreach(println))
     val w_ii = w_i.zipWithIndex
-    val mlvar = w_ii.map(t => {
-      (t._1.t * x_lm2(t._2))
+    val aLVar = w_ii.map(t => {
+      t._1.t * x_lm2(t._2)
     })
-    println("mlvar")
-    println(mlvar.toVector)
-    val mstand=mlvar.map(t=>sqrt(t))
-    println(mstand.toVector)
-
+    println("aLVar")
+    println(aLVar.toVector)
+    val aStandardDev=aLVar.map(t=>sqrt(t))
+    println(aStandardDev.toVector)
+    val aLocalSkewness=w_ii.map(t => {
+      (t._1.t * x_lm3(t._2)) / (aLVar(t._2) * aStandardDev(t._2))
+    })
+    println(aLocalSkewness.toVector)
+    val mlcv=DenseVector(aStandardDev) / DenseVector(aLocalMean)
+    println(mlcv)
   }
 
 
