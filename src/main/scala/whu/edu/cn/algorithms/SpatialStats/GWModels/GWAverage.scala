@@ -86,7 +86,32 @@ class GWAverage extends GWRbase {
     val aLVar = w_ii.map(t => {
       t._1.t * x_lm2(t._2)
     })
-
+    val quantile = true
+    if(quantile){
+      val quant=w_i.map(t=>{
+        findq(x,t)
+      })
+      val quant0= quant.map(t => {
+        val tmp = t.toArray
+        tmp(0)
+      })
+      val quant1 = quant.map(t => {
+        val tmp = t.toArray
+        tmp(1)
+      })
+      val quant2 = quant.map(t => {
+        val tmp = t.toArray
+        tmp(2)
+      })
+      println("**************")
+      val mLocalMedian = DenseVector(quant1)
+      val mIQR = DenseVector(quant2) - DenseVector(quant0)
+      val mQI = ((2.0 * DenseVector(quant1)) - DenseVector(quant2) - DenseVector(quant0)) / mIQR
+      println(mLocalMedian)
+      println(mIQR)
+      println(mQI)
+      println("**************")
+    }
 
     println("aLVar")
     println(aLVar.toVector)
