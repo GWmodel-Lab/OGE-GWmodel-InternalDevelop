@@ -50,7 +50,7 @@ object test {
     val b=DenseVector(0,0.5,0.1,0.5,4,2,1,2,3,2)
     println(a)
     println(b)
-    val q=m.findq(a.toArray,b)
+    val q=m.findq(a,b)
 //    val t=a.toArray.find(_>2)
 //    val tt=t match {
 //      case Some(s) => s
@@ -74,7 +74,7 @@ object test {
     m.init(shpfile)
     m.setX(x)
     m.setY(y)
-    m.calAverageSerial()
+    m.calAverage()
 
     sc.stop()
   }

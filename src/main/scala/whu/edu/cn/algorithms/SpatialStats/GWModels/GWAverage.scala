@@ -11,7 +11,7 @@ class GWAverage extends GWRbase {
 
   var _xrows = 0
   var _xcols = 0
-  val select_eps=1e-2
+  val select_eps = 1e-2
 
   private var _dX: DenseMatrix[Double] = _
 
@@ -26,21 +26,20 @@ class GWAverage extends GWRbase {
     _Y = DenseVector(y)
   }
 
-  def findq(x: Array[Double], w: DenseVector[Double], p: DenseVector[Double] = DenseVector(0.25, 0.50, 0.75)): DenseVector[Double] = {
+  def findq(x: DenseVector[Double], w: DenseVector[Double], p: DenseVector[Double] = DenseVector(0.25, 0.50, 0.75)): DenseVector[Double] = {
     val lp = p.length
     val q = DenseVector(0.0, 0.0, 0.0)
-    val x_ord = x.sorted
+    val x_ord = x.toArray.sorted
     val w_idx = w.toArray.zipWithIndex
     val x_w = w_idx.map(t => (x(t._2), t._1))
     val x_w_sort = x_w.sortBy(t => t._1)
     val w_ord = x_w_sort.map(t => t._2)
-    println(w_ord.toVector)
+//    println(w_ord.toVector)
     val w_ord_idx = w_ord.zipWithIndex
     val cumsum = w_ord_idx.map(t => {
       w_ord.take(t._2 + 1).sum
     })
-    println(cumsum.toVector)
-
+//    println(cumsum.toVector)
     for (j <- 0 until lp) {
       //找小于等于的，所以找大于的第一个，然后再减1，就是小于等于的最后一个
       val c_find = cumsum.find(_ > p(j))
@@ -54,28 +53,29 @@ class GWAverage extends GWRbase {
         c_idx = 0
       }
       q(j) = x_ord(c_idx)
-      println(s"q $j $q")
+//      println(s"q $j $q")
     }
     q
   }
 
-  def calAverageSerial(): Unit = {
-    setweight(bw = 20,kernel="bisquare",adaptive = true)
-    val w_i = spweight_dvec.map(t=>{
-      val tmp = 1/sum(t)
+  def calAverage(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true) = {
+    setweight(bw = 20, kernel = kernel, adaptive = adaptive)
+    _X.map(t => {
+      calAverageSerial(t)
+    })
+  }
+
+  def calAverageSerial(x: DenseVector[Double]): Unit = {
+    //    setweight(bw = 20,kernel="bisquare",adaptive = true)
+    val w_i = spweight_dvec.map(t => {
+      val tmp = 1 / sum(t)
       t * tmp
     })
-    val ix=_X(0)
-    val aLocalMean=w_i.map(w=>w.t * ix)
-//    val aLocalMean=w_i.map(w=>(w.t * _dX).inner)
-////    aLocalMean.foreach(println)
-//    val mlocalmean = DenseMatrix.create(rows = aLocalMean.length, cols = aLocalMean(0).length, data = aLocalMean.flatMap(t => t.toArray))
-//    val tlocalmean=mlocalmean(::,0)
+    val aLocalMean = w_i.map(w => w.t * x)
+    println("aLocalMean")
     println(aLocalMean.toVector)
-//    calLocalVar(DenseVector(aLocalMean),_X,w_i)
-
     val x_lm = aLocalMean.map(t => {
-      ix.map(i => {
+      x.map(i => {
         i - t
       })
     })
@@ -86,16 +86,21 @@ class GWAverage extends GWRbase {
     val aLVar = w_ii.map(t => {
       t._1.t * x_lm2(t._2)
     })
+
+
     println("aLVar")
     println(aLVar.toVector)
-    val aStandardDev=aLVar.map(t=>sqrt(t))
+    val aStandardDev = aLVar.map(t => sqrt(t))
+    println("aStandardDev")
     println(aStandardDev.toVector)
-    val aLocalSkewness=w_ii.map(t => {
+    val aLocalSkewness = w_ii.map(t => {
       (t._1.t * x_lm3(t._2)) / (aLVar(t._2) * aStandardDev(t._2))
     })
+    println("aLocalSkewness")
     println(aLocalSkewness.toVector)
-    val mlcv=DenseVector(aStandardDev) / DenseVector(aLocalMean)
-    println(mlcv)
+    val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
+    println("mLcv")
+    println(mLcv)
   }
 
 
