@@ -63,25 +63,25 @@ class GWCorrelation extends GWRbase {
 //    _X.map(t => {
 //      calCorrelationSerial(t, _X)
 //    })
-    calCorrelationSerial(_X(0))
-  }
 
-  def calCorrelationSerial(x: DenseVector[Double]): Unit = {
-    //    setweight(bw = 20,kernel="bisquare",adaptive = true)
+    val x1 = _X(0)
+    val x2 = _X(1)
+
     val w_i = spweight_dvec.map(t => {
       val tmp = 1 / sum(t)
       t * tmp
     })
-    val aLocalMean = w_i.map(w => w.t * x)
+//    val sum_wi2=w_i.map(t1=>sum(t1.map(t2=>t2*t2)))
+    val aLocalMean = w_i.map(w => w.t * x1)
     println("aLocalMean")
     println(aLocalMean.toVector)
     val x_lm = aLocalMean.map(t => {
-      x.map(i => {
+      x1.map(i => {
         i - t
       })
     })
-    val x_lm2 = x_lm.map(t => t.map(x => x * x))
-    val x_lm3 = x_lm.map(t => t.map(x => x * x * x))
+    val x_lm2 = x_lm.map(t => t.map(i => i * i))
+    val x_lm3 = x_lm.map(t => t.map(i => i * i * i))
     val w_ii = w_i.zipWithIndex
     val aLVar = w_ii.map(t => {
       t._1.t * x_lm2(t._2)
@@ -92,23 +92,40 @@ class GWCorrelation extends GWRbase {
     })
     val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
 
+    val aLocalMean2 = w_i.map(w => w.t * x2)
+    val x2_lm = aLocalMean.map(t => {
+      x2.map(i => {
+        i - t
+      })
+    })
+    val x2_lm2 = x_lm.map(t => t.map(i => i * i))
+    val w2_ii = w_i.zipWithIndex
+    val aLVar2 = w_ii.map(t => {
+      t._1.t * x_lm2(t._2)
+    })
+
     val corrSize = _xcols - 1
 
-    val x1=_X(0)
-    val x2=_X(1)
     val covmat=w_i.map(t=>{
       covwt(x1,x2,t)
     })
-    covmat.foreach(println)
+    val corrmat= w_ii.map(t => {
+      val sum_wi2=sum(t._1.map(i=>i*i))
+      val covjj = aLVar(t._2) / (1.0 - sum_wi2)
+      val covkk = aLVar2(t._2) / (1.0 - sum_wi2)
+      covwt(x1, x2, t._1) / sqrt(covjj * covkk)
+    })
 
+    covmat.foreach(println)
+    println(corrmat.toVector)
   }
 
   def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double  = {
     val sqrtw = w.map(t => sqrt(t))
     val re1 = sqrtw * (x1 - sum(x1 * w))
     val re2 = sqrtw * (x2 - sum(x2 * w))
-    val sumww = - w.map(t => t * t) + 1.0
-    sum(re1 * re2 / sumww)
+    val sumww = - sum(w.map(t => t * t)) + 1.0
+    sum(re1 * re2 * (1 / sumww))
   }
 
   def corwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
