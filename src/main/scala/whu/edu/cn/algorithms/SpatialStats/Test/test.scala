@@ -60,7 +60,7 @@ object test {
     //    mdl.fit(bw = 10000,kernel="bisquare",adaptive = false)
     //    val bw=mdl.bandwidthSelection(adaptive = false)
     //    mdl.fit(bw = bw,kernel="gaussian",adaptive = false)
-    mdl.calAverage()
+    mdl.calCorrelation()
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }

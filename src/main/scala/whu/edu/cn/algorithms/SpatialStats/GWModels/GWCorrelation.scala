@@ -58,14 +58,15 @@ class GWCorrelation extends GWRbase {
     q
   }
 
-  def calAverage(bw: Double = 100, kernel: String = "gaussian", adaptive: Boolean = true) = {
-    setweight(bw = 20, kernel = kernel, adaptive = adaptive)
-    _X.map(t => {
-      calCorrelationSerial(t, _X)
-    })
+  def calCorrelation(bw: Double = 100, kernel: String = "gaussian", adaptive: Boolean = true) = {
+    setweight(bw = 20, kernel = "bisquare", adaptive = adaptive)
+//    _X.map(t => {
+//      calCorrelationSerial(t, _X)
+//    })
+    calCorrelationSerial(_X(0))
   }
 
-  def calCorrelationSerial(x: DenseVector[Double], arr: Array[DenseVector[Double]]): Unit = {
+  def calCorrelationSerial(x: DenseVector[Double]): Unit = {
     //    setweight(bw = 20,kernel="bisquare",adaptive = true)
     val w_i = spweight_dvec.map(t => {
       val tmp = 1 / sum(t)
@@ -91,18 +92,27 @@ class GWCorrelation extends GWRbase {
     })
     val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
 
-    val corrSize=_xcols-1
-    
+    val corrSize = _xcols - 1
+
+    val x1=_X(0)
+    val x2=_X(1)
+    val covmat=w_i.map(t=>{
+      covwt(x1,x2,t)
+    })
+    covmat.foreach(println)
 
   }
 
-  def covwt(x1:DenseVector[Double], x2:DenseVector[Double], w:DenseVector[Double])= {
-    val sqrtw=w.map(t=>sqrt(t))
-    val re1= sqrtw * (x1- sum( x1 * w))
-    val re2= sqrtw * (x2- sum( x2 * w))
-    val sumww= - w.map(t=>t*t) + 1.0
-    val re= re1 * re2 / sumww
+  def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double  = {
+    val sqrtw = w.map(t => sqrt(t))
+    val re1 = sqrtw * (x1 - sum(x1 * w))
+    val re2 = sqrtw * (x2 - sum(x2 * w))
+    val sumww = - w.map(t => t * t) + 1.0
+    sum(re1 * re2 / sumww)
   }
 
+  def corwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
+    covwt(x1, x2, w) / covwt(x1, x1, w) * covwt(x2, x2, w)
+  }
 
 }
