@@ -96,5 +96,13 @@ class GWCorrelation extends GWRbase {
 
   }
 
+  def covwt(x1:DenseVector[Double], x2:DenseVector[Double], w:DenseVector[Double])= {
+    val sqrtw=w.map(t=>sqrt(t))
+    val re1= sqrtw * (x1- sum( x1 * w))
+    val re2= sqrtw * (x2- sum( x2 * w))
+    val sumww= - w.map(t=>t*t) + 1.0
+    val re= re1 * re2 / sumww
+  }
+
 
 }
