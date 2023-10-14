@@ -61,11 +61,11 @@ class GWCorrelation extends GWRbase {
   def calAverage(bw: Double = 100, kernel: String = "gaussian", adaptive: Boolean = true) = {
     setweight(bw = 20, kernel = kernel, adaptive = adaptive)
     _X.map(t => {
-      calAverageSerial(t)
+      calCorrelationSerial(t, _X)
     })
   }
 
-  def calAverageSerial(x: DenseVector[Double]): Unit = {
+  def calCorrelationSerial(x: DenseVector[Double], arr: Array[DenseVector[Double]]): Unit = {
     //    setweight(bw = 20,kernel="bisquare",adaptive = true)
     val w_i = spweight_dvec.map(t => {
       val tmp = 1 / sum(t)
@@ -81,51 +81,19 @@ class GWCorrelation extends GWRbase {
     })
     val x_lm2 = x_lm.map(t => t.map(x => x * x))
     val x_lm3 = x_lm.map(t => t.map(x => x * x * x))
-    //    x_lm2.map(t => t.foreach(println))
     val w_ii = w_i.zipWithIndex
     val aLVar = w_ii.map(t => {
       t._1.t * x_lm2(t._2)
     })
-    val quantile = true
-    if(quantile){
-      val quant=w_i.map(t=>{
-        findq(x,t)
-      })
-      val quant0= quant.map(t => {
-        val tmp = t.toArray
-        tmp(0)
-      })
-      val quant1 = quant.map(t => {
-        val tmp = t.toArray
-        tmp(1)
-      })
-      val quant2 = quant.map(t => {
-        val tmp = t.toArray
-        tmp(2)
-      })
-      println("**************")
-      val mLocalMedian = DenseVector(quant1)
-      val mIQR = DenseVector(quant2) - DenseVector(quant0)
-      val mQI = ((2.0 * DenseVector(quant1)) - DenseVector(quant2) - DenseVector(quant0)) / mIQR
-      println(mLocalMedian)
-      println(mIQR)
-      println(mQI)
-      println("**************")
-    }
-
-    println("aLVar")
-    println(aLVar.toVector)
     val aStandardDev = aLVar.map(t => sqrt(t))
-    println("aStandardDev")
-    println(aStandardDev.toVector)
     val aLocalSkewness = w_ii.map(t => {
       (t._1.t * x_lm3(t._2)) / (aLVar(t._2) * aStandardDev(t._2))
     })
-    println("aLocalSkewness")
-    println(aLocalSkewness.toVector)
     val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
-    println("mLcv")
-    println(mLcv)
+
+    val corrSize=_xcols-1
+    
+
   }
 
 
