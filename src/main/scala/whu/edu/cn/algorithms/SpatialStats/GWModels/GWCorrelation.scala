@@ -93,15 +93,14 @@ class GWCorrelation extends GWRbase {
     val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
 
     val aLocalMean2 = w_i.map(w => w.t * x2)
-    val x2_lm = aLocalMean.map(t => {
+    val x2_lm = aLocalMean2.map(t => {
       x2.map(i => {
         i - t
       })
     })
-    val x2_lm2 = x_lm.map(t => t.map(i => i * i))
-    val w2_ii = w_i.zipWithIndex
+    val x2_lm2 = x2_lm.map(t => t.map(i => i * i))
     val aLVar2 = w_ii.map(t => {
-      t._1.t * x_lm2(t._2)
+      t._1.t * x2_lm2(t._2)
     })
 
     val corrSize = _xcols - 1
