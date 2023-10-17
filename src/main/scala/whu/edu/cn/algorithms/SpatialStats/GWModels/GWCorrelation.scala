@@ -1,8 +1,8 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
-import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, linspace, qr, sum, trace}
-import scala.util.control.Breaks
+import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, linspace, qr, ranks, sum, trace}
 
+import scala.util.control.Breaks
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
@@ -64,6 +64,8 @@ class GWCorrelation extends GWRbase {
 //      calCorrelationSerial(t, _X)
 //    })
 
+    //应该只能用for int i j 的方式
+
     val x1 = _X(0)
     val x2 = _X(1)
 
@@ -114,9 +116,12 @@ class GWCorrelation extends GWRbase {
       val covkk = aLVar2(t._2) / (1.0 - sum_wi2)
       covwt(x1, x2, t._1) / sqrt(covjj * covkk)
     })
-
-    covmat.foreach(println)
+    val scorrmat = w_i.map(t => {
+      corwt(DenseVector(ranks(x1)), DenseVector(ranks(x2)), t)
+    })
+    println(covmat.toVector)
     println(corrmat.toVector)
+    println(scorrmat.toVector)
   }
 
   def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double  = {
@@ -128,7 +133,7 @@ class GWCorrelation extends GWRbase {
   }
 
   def corwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
-    covwt(x1, x2, w) / covwt(x1, x1, w) * covwt(x2, x2, w)
+    covwt(x1, x2, w) / sqrt(covwt(x1, x1, w) * covwt(x2, x2, w))
   }
 
 }

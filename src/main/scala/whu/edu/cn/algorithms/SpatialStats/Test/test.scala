@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.Test
 
-import breeze.linalg.{DenseVector, ranks}
+import breeze.linalg.{DenseVector, linspace, ranks}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
@@ -24,7 +24,7 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
@@ -43,23 +43,8 @@ object test {
     //    linear_test()
     //    correlation_test()
     //    pca_test()
-    val a=Array(1,0.2,0.5,0.3,0.8,2,0.6,1.5,0.9,0.4)
-    val b=a.sorted
-    val c=a.zipWithIndex
-    val d=c.sortBy(t=>t._1)
-    val e=d.zipWithIndex
-    val f=e.sortBy(t=>t._1._2)
-    val g=f.map(t=>t._2+1)
-    val h=ranks(DenseVector(a))
-    println(a.toVector)
-    println(b.toVector)
-    println(c.toVector)
-    println(d.toVector)
-    println(e.toVector)
-    println(f.toVector)
-    println(g.toVector)
-    println(h.toVector)
-    //    gwcorrelation_test()
+
+    gwcorrelation_test()
     sc.stop()
   }
 
