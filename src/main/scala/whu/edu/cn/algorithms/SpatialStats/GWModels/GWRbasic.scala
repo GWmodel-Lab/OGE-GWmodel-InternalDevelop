@@ -8,6 +8,8 @@ import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
 
+import scala.util.control.Breaks
+
 class GWRbasic extends GWRbase {
 
   var _xrows = 0
@@ -28,14 +30,14 @@ class GWRbasic extends GWRbase {
     _Y = DenseVector(y)
   }
 
-  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true):
+  def auto(implicit sc: SparkContext,kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true):
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
-    val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
+    val bwselect = bandwidthSelection(sc,kernel = kernel, approach = approach, adaptive = adaptive)
     println(s"best bandwidth is $bwselect")
-    fit(bwselect, kernel = kernel, adaptive = adaptive)
+    fit(sc, bwselect, kernel = kernel, adaptive = adaptive)
   }
 
-  def fit(bw:Double= 0, kernel: String="gaussian", adaptive: Boolean = true):
+  def fit(implicit sc: SparkContext, bw:Double= 0, kernel: String="gaussian", adaptive: Boolean = true):
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     if(bw > 0){
       setweight(bw, kernel, adaptive)
@@ -45,8 +47,8 @@ class GWRbasic extends GWRbase {
       throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
     }
     //    printweight()
-    val results = fitFunction(_dX, _Y, spweight_dvec)
-//    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
+//    val results = fitFunctionFunction(_dX, _Y, spweight_dvec)
+    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
     val betas = results._1
     val yhat = results._2
     val residual = results._3
@@ -62,7 +64,7 @@ class GWRbasic extends GWRbase {
     results
   }
 
-  private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
+  private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]]):
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     val xtw = weight.map(w => eachColProduct(X, w).t)
     val xtwx = xtw.map(t => t * X)
@@ -110,60 +112,60 @@ class GWRbasic extends GWRbase {
     (betas.collect(), yhat, residual, shat, sum_ci.collect())
   }
 
-  def bandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
+  def bandwidthSelection(implicit sc: SparkContext, kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
     if (adaptive) {
-      adaptiveBandwidthSelection(kernel = kernel, approach = approach)
+      adaptiveBandwidthSelection(sc,kernel = kernel, approach = approach)
     } else {
-      fixedBandwidthSelection(kernel = kernel, approach = approach)
+      fixedBandwidthSelection(sc,kernel = kernel, approach = approach)
     }
   }
 
-  private def fixedBandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", upper: Double = max_dist, lower: Double = max_dist / 5000.0): Double = {
+  private def fixedBandwidthSelection(implicit sc: SparkContext,kernel: String = "gaussian", approach: String = "AICc", upper: Double = max_dist, lower: Double = max_dist / 5000.0): Double = {
     _kernel = kernel
     _adaptive = false
     var bw: Double = lower
-    var approachfunc: Double => Double = bandwidthAICc
+    var approachfunc: (SparkContext,Double) => Double = bandwidthAICc
     if (approach == "CV") {
       approachfunc = bandwidthCV
     }
     try {
-      bw = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)
+      bw = goldenSelection(sc,lower, upper, eps = select_eps, findMax = false, function = approachfunc)
     } catch {
       case e: MatrixSingularException => {
         val low = lower * 2
-        bw = fixedBandwidthSelection(kernel, approach, upper, low)
+        bw = fixedBandwidthSelection(sc,kernel, approach, upper, low)
       }
     }
     bw
   }
 
-  private def adaptiveBandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", upper: Int = _xrows - 1, lower: Int = 20): Int = {
+  private def adaptiveBandwidthSelection(implicit sc: SparkContext, kernel: String = "gaussian", approach: String = "AICc", upper: Int = _xrows - 1, lower: Int = 20): Int = {
     _kernel = kernel
     _adaptive = true
     var bw: Int = lower
-    var approachfunc: Double => Double = bandwidthAICc
+    var approachfunc: (SparkContext,Double) => Double = bandwidthAICc
     if (approach == "CV") {
       approachfunc = bandwidthCV
     }
     try {
-      bw = round(goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)).toInt
+      bw = round(goldenSelection(sc,lower, upper, eps = select_eps, findMax = false, function = approachfunc)).toInt
     } catch {
       case e: MatrixSingularException => {
                 println("error")
         val low = lower + 1
-        bw = adaptiveBandwidthSelection(kernel, approach, upper, low)
+        bw = adaptiveBandwidthSelection(sc,kernel, approach, upper, low)
       }
     }
     bw
   }
 
-  private def bandwidthAICc(bw: Double): Double = {
+  private def bandwidthAICc(sc: SparkContext,bw: Double): Double = {
     if (_adaptive) {
       setweight(round(bw), _kernel, _adaptive)
     } else {
       setweight(bw, _kernel, _adaptive)
     }
-    val results = fitFunction(_dX, _Y, spweight_dvec)
+    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
     val residual = results._3
     val shat = results._4
     val shat0 = trace(shat)
@@ -172,15 +174,15 @@ class GWRbasic extends GWRbase {
     n * log(rss / n) + n * log(2 * math.Pi) + n * ((n + shat0) / (n - 2 - shat0))
   }
 
-  private def bandwidthCV(bw: Double): Double = {
+  private def bandwidthCV(sc: SparkContext,bw: Double): Double = {
     if (_adaptive) {
       setweight(round(bw), _kernel, _adaptive)
     } else {
       setweight(bw, _kernel, _adaptive)
     }
     val spweight_idx = spweight_dvec.zipWithIndex
-    spweight_idx.map(t => t._1(t._2) = 0)
-    val results = fitFunction(_dX, _Y, spweight_dvec)
+    spweight_idx.map(t => t._1(t._2.toInt) = 0)
+    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
     val residual = results._3
     residual.toArray.map(t => t * t).sum
   }
@@ -210,6 +212,72 @@ class GWRbasic extends GWRbase {
     }
     val data = arrbuf.toArray.flatMap(t => t.toArray)
     DenseMatrix.create(rows = Mat.rows, cols = Mat.cols, data = data)
+  }
+
+  def goldenSelection(implicit sc: SparkContext, lower: Double, upper: Double, eps: Double = 1e-10, findMax: Boolean = true, function: (SparkContext,Double) => Double): Double = {
+    var iter: Int = 0
+    val max_iter = 1000
+    val loop = new Breaks
+    val ratio: Double = (sqrt(5) - 1) / 2.0
+    var a = lower + 1e-12
+    var b = upper - 1e-12
+    var step = b - a
+    var p = a + (1 - ratio) * step
+    var q = a + ratio * step
+    var f_a = function(sc,a)
+    var f_b = function(sc,b)
+    var f_p = function(sc,p)
+    var f_q = function(sc,q)
+    //    println(f_a,f_b,f_p,f_q)
+    loop.breakable {
+      while (abs(f_a - f_b) >= eps && iter < max_iter) {
+        if (findMax) {
+          if (f_p > f_q) {
+            b = q
+            f_b = f_q
+            q = p
+            f_q = f_p
+            step = b - a
+            p = a + (1 - ratio) * step
+            f_p = function(sc,p)
+          } else {
+            a = p
+            f_a = f_p
+            p = q
+            f_p = f_q
+            step = b - a
+            q = a + ratio * step
+            f_q = function(sc,q)
+          }
+        }
+        else {
+          if (f_p < f_q) {
+            b = q
+            f_b = f_q
+            q = p
+            f_q = f_p
+            step = b - a
+            p = a + (1 - ratio) * step
+            f_p = function(sc,p)
+          } else {
+            a = p
+            f_a = f_p
+            p = q
+            f_p = f_q
+            step = b - a
+            q = a + ratio * step
+            f_q = function(sc,q)
+          }
+        }
+        iter += 1
+        println(s"the iter is $iter, optimize value is ${(b + a) / 2.0}, optimize result is ${function(sc,(b + a) / 2.0)}")
+        if (abs(a - b) < eps / 10) {
+          loop.break()
+        }
+      }
+    }
+    //    println((b + a) / 2.0, function((b + a) / 2.0))
+    (b + a) / 2.0
   }
 
 }

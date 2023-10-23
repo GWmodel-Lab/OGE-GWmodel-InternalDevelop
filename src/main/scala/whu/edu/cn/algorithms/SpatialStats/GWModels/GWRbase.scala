@@ -18,8 +18,10 @@ class GWRbase {
   protected var _Y: DenseVector[Double] = _
 
   protected var _geom: RDD[Geometry] = _
-  protected var _dist: Array[DenseVector[Double]]=_
+  protected var _dist: Array[DenseVector[Double]] = _
   protected var spweight_dvec: Array[DenseVector[Double]] = _
+  protected var _dist2: RDD[DenseVector[Double]]=_
+  protected var spweight_dvec2: RDD[DenseVector[Double]] = _
 
   protected var max_dist: Double = _
   var _kernel:String=_
@@ -46,6 +48,7 @@ class GWRbase {
     shpRDD = inputRDD
     if (_dist == null) {
       _dist = getDist(shpRDD).map(t => Array2DenseVector(t))
+//      _dist2 = getDistRDD(shpRDD).map(t => Array2DenseVector(t))
       max_dist = _dist.map(t => max(t)).max
     }
   }
@@ -77,6 +80,7 @@ class GWRbase {
       _adaptive=adaptive
     }
     spweight_dvec = _dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
+//    spweight_dvec2 = _dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
   }
 
   def printweight(): Unit = {
