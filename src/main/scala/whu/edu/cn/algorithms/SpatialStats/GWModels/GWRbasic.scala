@@ -93,7 +93,8 @@ class GWRbasic extends GWRbase {
     val xtw = sc.makeRDD(weight.map(w => eachColProduct(X, w).t))
     val xtwx = xtw.map(t => t * X)
     val xtwy = xtw.map(t => t * Y)
-    val xtwx_inv = xtwx.map(t => inv(t))
+//    val xtwx_inv = xtwx.map(t => inv(t))
+    val xtwx_inv = xtwx.collect().map(t => inv(t))
     val xtwx_inv_idx = xtwx_inv.zipWithIndex
     val arr_xtwy=xtwy.collect()
     val betas = xtwx_inv_idx.map(t => t._1 * arr_xtwy(t._2.toInt))
@@ -106,10 +107,14 @@ class GWRbasic extends GWRbase {
       val b = t._1.toDenseMatrix
       a * b
     })
-    val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(t => t.toArray))
-    val yhat = getYhat(X, betas.collect())
-    val residual = Y - getYhat(X, betas.collect())
-    (betas.collect(), yhat, residual, shat, sum_ci.collect())
+//    val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(t => t.toArray))
+//    val yhat = getYhat(X, betas.collect())
+//    val residual = Y - getYhat(X, betas.collect())
+//    (betas.collect(), yhat, residual, shat, sum_ci.collect())
+    val shat = DenseMatrix.create(rows = si.length, cols = si.length, data = si.flatMap(t => t.toArray))
+    val yhat = getYhat(X, betas)
+    val residual = Y - getYhat(X, betas)
+    (betas, yhat, residual, shat, sum_ci)
   }
 
   def bandwidthSelection(implicit sc: SparkContext, kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
@@ -181,7 +186,7 @@ class GWRbasic extends GWRbase {
       setweight(bw, _kernel, _adaptive)
     }
     val spweight_idx = spweight_dvec.zipWithIndex
-    spweight_idx.map(t => t._1(t._2.toInt) = 0)
+    spweight_idx.map(t => t._1(t._2) = 0)
     val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
     val residual = results._3
     residual.toArray.map(t => t * t).sum
