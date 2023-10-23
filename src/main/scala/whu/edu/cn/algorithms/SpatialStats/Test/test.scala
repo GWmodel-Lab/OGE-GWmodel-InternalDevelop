@@ -19,7 +19,7 @@ import whu.edu.cn.util.ShapeFileUtil._
 
 object test {
   //global variables
-  val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
+  val conf: SparkConf = new SparkConf().setMaster("local[4]").setAppName("query")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
