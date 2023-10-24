@@ -4,10 +4,13 @@ import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det,
 import breeze.plot.{Figure, plot}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.locationtech.jts.geom.Geometry
 
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
+
+import scala.collection.mutable
 
 class GWRbasic extends GWRbase {
 
@@ -33,8 +36,7 @@ class GWRbasic extends GWRbase {
     _Y = DenseVector(y)
   }
 
-  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true):
-  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
+  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Array[(String, (Geometry, mutable.Map[String, Any]))] = {
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
     println(s"best bandwidth is $bwselect")
     val f = Figure()
@@ -46,8 +48,7 @@ class GWRbasic extends GWRbase {
     fit(bwselect, kernel = kernel, adaptive = adaptive)
   }
 
-  def fit(bw:Double= 0, kernel: String="gaussian", adaptive: Boolean = true):
-  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
+  def fit(bw:Double= 0, kernel: String="gaussian", adaptive: Boolean = true): Array[(String, (Geometry, mutable.Map[String, Any]))] = {
     if(bw > 0){
       setweight(bw, kernel, adaptive)
     }else if(spweight_dvec!=null){
@@ -58,10 +59,17 @@ class GWRbasic extends GWRbase {
     //    printweight()
     val results = fitFunction(_dX, _Y, spweight_dvec)
 //    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
-    val betas = results._1
-    val yhat = results._2
-    val residual = results._3
-    val shat = results._4
+    val betas = DenseMatrix.create(_xcols+1,_xrows,data = results._1.flatMap(t=>t.toArray)).t
+    val arr_yhat = results._2.toArray
+    val arr_residual = results._3.toArray
+    val shpRDDidx = shpRDD.collect().zipWithIndex
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("yhat" -> arr_yhat(t._2))
+      t._1._2._2 += ("residual" -> arr_residual(t._2))
+    })
+//    sc.makeRDD(shpRDDidx.map(t => t._1))
+//    println(betas)
+//    results._1.foreach(println)
     var bw_type = "Fixed"
     if (adaptive) {
       bw_type = "Adaptive"
@@ -75,8 +83,8 @@ class GWRbasic extends GWRbase {
     println("Distance metric: Euclidean distance metric is used.")
 //    println(yhat)
 //    println(residual)
-    calDiagnostic(_dX, _Y, residual, shat)
-    results
+    calDiagnostic(_dX, _Y, results._3, results._4)
+    shpRDDidx.map(t=>t._1)
   }
 
   private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
@@ -110,7 +118,12 @@ class GWRbasic extends GWRbase {
 
   private def fitRDDFunction(implicit sc: SparkContext, X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
-    val xtw = sc.makeRDD(weight.map(w => eachColProduct(X, w).t))
+    val xtw0 = weight.map(w => {
+      val v1 = (DenseVector.ones[Double](_xrows) * w).toArray
+      val xw = _X.flatMap(t => (t * w).toArray)
+      DenseMatrix.create(_xrows, _xcols + 1, data = v1 ++ xw).t
+    })
+    val xtw = sc.makeRDD(xtw0)
     val xtwx = xtw.map(t => t * X)
     val xtwy = xtw.map(t => t * Y)
     val xtwx_inv = xtwx.map(t => inv(t))
@@ -128,7 +141,7 @@ class GWRbasic extends GWRbase {
     })
     val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(t => t.toArray))
     val yhat = getYhat(X, betas.collect())
-    val residual = Y - getYhat(X, betas.collect())
+    val residual = Y - yhat
     (betas.collect(), yhat, residual, shat, sum_ci.collect())
   }
 
@@ -233,13 +246,13 @@ class GWRbasic extends GWRbase {
     DenseVector(yhat)
   }
 
-  def eachColProduct(Mat: DenseMatrix[Double], Vec: DenseVector[Double]): DenseMatrix[Double] = {
-    val arrbuf = new ArrayBuffer[DenseVector[Double]]()
-    for (i <- 0 until Mat.cols) {
-      arrbuf += Mat(::, i) * Vec
-    }
-    val data = arrbuf.toArray.flatMap(t => t.toArray)
-    DenseMatrix.create(rows = Mat.rows, cols = Mat.cols, data = data)
-  }
+//  def eachColProduct(Mat: DenseMatrix[Double], Vec: DenseVector[Double]): DenseMatrix[Double] = {
+//    val arrbuf = new ArrayBuffer[DenseVector[Double]]()
+//    for (i <- 0 until Mat.cols) {
+//      arrbuf += Mat(::, i) * Vec
+//    }
+//    val data = arrbuf.toArray.flatMap(t => t.toArray)
+//    DenseMatrix.create(rows = Mat.rows, cols = Mat.cols, data = data)
+//  }
 
 }

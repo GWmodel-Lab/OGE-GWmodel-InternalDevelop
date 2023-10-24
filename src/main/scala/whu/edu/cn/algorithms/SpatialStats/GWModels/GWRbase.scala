@@ -13,7 +13,7 @@ import scala.math._
 
 class GWRbase {
 
-  private var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
+  protected var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
   protected var _X: Array[DenseVector[Double]] = _
   protected var _Y: DenseVector[Double] = _
 

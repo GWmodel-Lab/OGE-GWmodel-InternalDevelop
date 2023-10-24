@@ -56,10 +56,10 @@ object test {
     mdl.init(shpfile)
     mdl.setX(x)
     mdl.setY(y)
-//    mdl.fit(bw = 10000,kernel="bisquare",adaptive = false)
+    mdl.fit(bw = 10000,kernel="bisquare",adaptive = false)
 //    val bw=mdl.bandwidthSelection(adaptive = false)
 //    mdl.fit(bw = bw,kernel="gaussian",adaptive = false)
-    mdl.auto(kernel="gaussian",approach = "CV", adaptive = false)
+//    mdl.auto(kernel="gaussian",approach = "CV", adaptive = false)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }
