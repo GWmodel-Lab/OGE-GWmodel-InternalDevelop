@@ -6,7 +6,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
-
+import breeze.plot._
 import scala.util.control.Breaks
 
 class GWRbasic extends GWRbase {
@@ -16,7 +16,7 @@ class GWRbasic extends GWRbase {
   val select_eps = 1e-2
 
   var opt_value:Array[Double]= _
-//  var opt_result:Array[Double]= _
+  var opt_result:Array[Double]= _
   var opt_iters:Array[Double]= _
 
   private var _dX: DenseMatrix[Double] = _
@@ -37,6 +37,13 @@ class GWRbasic extends GWRbase {
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     val bwselect = bandwidthSelection(sc, kernel = kernel, approach = approach, adaptive = adaptive)
     println(s"best bandwidth is $bwselect")
+    val f = Figure()
+    val p = f.subplot(0)
+    val optv_sort=opt_value.zipWithIndex.map(t=>(t._1,opt_result(t._2))).sortBy(_._1)
+    p += plot(optv_sort.map(_._1),optv_sort.map(_._2))
+    p.xlabel = "bandwidth"
+    p.ylabel = s"$approach"
+
     fit(sc, bwselect, kernel = kernel, adaptive = adaptive)
   }
 
@@ -56,14 +63,18 @@ class GWRbasic extends GWRbase {
     val yhat = results._2
     val residual = results._3
     val shat = results._4
-    println("*************************************")
-    println(yhat)
-    println(residual)
-    print(s"bandwidth of GWR is $bw")
+    var bw_type = "Fixed"
+    if (adaptive) {      bw_type = "Adaptive"    }
+    println("*********************************************************************************")
+    println("*               Results of Geographically Weighted Regression                   *")
+    println("*********************************************************************************")
+    println("**************************Model calibration information**************************")
+    print(s"Kernel function: $kernel\n$bw_type bandwidth: ")
+    print(f"$bw%.2f\n")
+    println("Distance metric: Euclidean distance metric is used.")
+//    println(yhat)
+//    println(residual)
     calDiagnostic(_dX, _Y, residual, shat)
-    //    val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = true)
-    //    println(bwselect)
-    println("*************************************")
     results
   }
 
@@ -140,7 +151,7 @@ class GWRbasic extends GWRbase {
       val re = goldenSelection(sc, lower, upper, eps = select_eps, findMax = false, function = approachfunc)
       opt_iters=re._2
       opt_value=re._3
-//      opt_result=re._4
+      opt_result=re._4
       bw=re._1
     } catch {
       case e: MatrixSingularException => {
@@ -163,7 +174,7 @@ class GWRbasic extends GWRbase {
       val re = goldenSelection(sc, lower, upper, eps = select_eps, findMax = false, function = approachfunc)
       opt_iters = re._2
       opt_value = re._3
-//      opt_result = re._4
+      opt_result = re._4
       bw = re._1.toInt
     } catch {
       case e: MatrixSingularException => {
@@ -231,7 +242,7 @@ class GWRbasic extends GWRbase {
   }
 
   def goldenSelection(implicit sc: SparkContext, lower: Double, upper: Double, eps: Double = 1e-10, findMax: Boolean = true, function: (SparkContext, Double) => Double):
-  (Double, Array[Double], Array[Double]) = {
+  (Double, Array[Double], Array[Double], Array[Double]) = {
     var iter: Int = 0
     val max_iter = 1000
     val loop = new Breaks
@@ -247,7 +258,7 @@ class GWRbasic extends GWRbase {
     var f_q = function(sc, q)
     val opt_iter = new ArrayBuffer[Double]()
     val opt_val = new ArrayBuffer[Double]()
-//    val opt_res = new ArrayBuffer[Double]()
+    val opt_res = new ArrayBuffer[Double]()
     //    println(f_a,f_b,f_p,f_q)
     loop.breakable {
       while (abs(f_a - f_b) >= eps && iter < max_iter) {
@@ -291,17 +302,19 @@ class GWRbasic extends GWRbase {
         }
         iter += 1
         opt_iter += iter
-        opt_val += (b + a) / 2.0
-//        opt_res += function(sc, (b + a) / 2.0)
-        println(s"the iter is $iter, optimize value is ${(b + a) / 2.0}")
+        //        opt_val += (b + a) / 2.0
+        //        opt_res += function(sc, (b + a) / 2.0)
+        opt_val += p
+        opt_res += f_p
+        println(s"Iter: $iter, optimize value: $p, result is $f_p")
         if (abs(a - b) < eps / 10) {
           loop.break()
         }
       }
     }
     //    println((b + a) / 2.0, function((b + a) / 2.0))
-//    ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray, opt_res.toArray)
-    ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray)
+    //    ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray)
+    ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray, opt_res.toArray)
   }
 
 }
