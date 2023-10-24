@@ -1,6 +1,7 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, qr, sum, trace}
+import breeze.plot.{Figure, plot}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
@@ -13,6 +14,10 @@ class GWRbasic extends GWRbase {
   var _xrows = 0
   var _xcols = 0
   val select_eps=1e-2
+
+  var opt_value: Array[Double] = _
+  var opt_result: Array[Double] = _
+  var opt_iters: Array[Double] = _
 
   private var _dX: DenseMatrix[Double] = _
 
@@ -32,6 +37,12 @@ class GWRbasic extends GWRbase {
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
     println(s"best bandwidth is $bwselect")
+    val f = Figure()
+    val p = f.subplot(0)
+    val optv_sort = opt_value.zipWithIndex.map(t => (t._1, opt_result(t._2))).sortBy(_._1)
+    p += plot(optv_sort.map(_._1), optv_sort.map(_._2))
+    p.xlabel = "bandwidth"
+    p.ylabel = s"$approach"
     fit(bwselect, kernel = kernel, adaptive = adaptive)
   }
 
@@ -51,14 +62,20 @@ class GWRbasic extends GWRbase {
     val yhat = results._2
     val residual = results._3
     val shat = results._4
-    println("*************************************")
-    println(yhat)
-    println(residual)
-    print(s"bandwidth of GWR is $bw")
+    var bw_type = "Fixed"
+    if (adaptive) {
+      bw_type = "Adaptive"
+    }
+    println("*********************************************************************************")
+    println("*               Results of Geographically Weighted Regression                   *")
+    println("*********************************************************************************")
+    println("**************************Model calibration information**************************")
+    print(s"Kernel function: $kernel\n$bw_type bandwidth: ")
+    print(f"$bw%.2f\n")
+    println("Distance metric: Euclidean distance metric is used.")
+//    println(yhat)
+//    println(residual)
     calDiagnostic(_dX, _Y, residual, shat)
-//    val bwselect = bandwidthSelection(kernel = "bisquare", approach = "CV", adaptive = true)
-//    println(bwselect)
-    println("*************************************")
     results
   }
 
@@ -132,7 +149,11 @@ class GWRbasic extends GWRbase {
       approachfunc = bandwidthCV
     }
     try {
-      bw = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)
+      val re = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)
+      opt_iters = re._2
+      opt_value = re._3
+      opt_result = re._4
+      bw = re._1
     } catch {
       case e: MatrixSingularException => {
         val low = lower * 2
@@ -151,7 +172,11 @@ class GWRbasic extends GWRbase {
       approachfunc = bandwidthCV
     }
     try {
-      bw = round(goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)).toInt
+      val re = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = approachfunc)
+      opt_iters = re._2
+      opt_value = re._3
+      opt_result = re._4
+      bw = re._1.toInt
     } catch {
       case e: MatrixSingularException => {
                 println("error")

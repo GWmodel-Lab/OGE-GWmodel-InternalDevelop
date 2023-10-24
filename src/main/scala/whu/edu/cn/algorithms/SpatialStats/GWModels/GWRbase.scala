@@ -38,7 +38,11 @@ class GWRbase {
     val yss = sum((Y - mean(Y)) * (Y - mean(Y)))
     val r2 = 1 - rss / yss
     val r2_adj = 1 - (1 - r2) * (n - 1) / (edf - 1)
-    println(s"\ndiagnostics:\nSSE is $rss\nAIC is $AIC \nAICc is $AICc\nedf is $edf \nenp is $enp\nR2 is $r2\nadjust R2 is $r2_adj")
+    println("*****************************Diagnostic information******************************")
+    println(f"Number of data points: $n \nEffective number of parameters (2trace(S) - trace(S'S)): $enp%.4f")
+    println(f"Effective degrees of freedom (n-2trace(S) + trace(S'S)): $edf%.4f\nAICc (GWR book, Fotheringham, et al. 2002, p. 61, eq 2.33): $AICc%.3f")
+    println(f"AIC (GWR book, Fotheringham, et al. 2002,GWR p. 96, eq. 4.22): $AIC%.3f\nResidual sum of squares: $rss%.2f\nR-square value: $r2%.7f\nAdjusted R-square value: $r2_adj%.7f")
+    println("*********************************************************************************")
   }
 
   def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {
