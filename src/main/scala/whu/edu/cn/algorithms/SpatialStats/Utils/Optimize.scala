@@ -76,7 +76,7 @@ object Optimize {
           }
         }
         iter += 1
-        println(s"the iter is $iter, optimize value is ${(b + a) / 2.0}, optimize result is ${function((b + a) / 2.0)}")
+        println(s"the iter is $iter, optimize value is $p, optimize result is $f_p")
         if (abs(a - b) < eps/10) {
           loop.break()
         }

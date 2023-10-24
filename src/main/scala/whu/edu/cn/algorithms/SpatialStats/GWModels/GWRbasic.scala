@@ -64,7 +64,12 @@ class GWRbasic extends GWRbase {
 
   private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
-    val xtw = weight.map(w => eachColProduct(X, w).t)
+//    val xtw = weight.map(w => eachColProduct(X, w).t)
+    val xtw=weight.map(w=>{
+      val v1=(DenseVector.ones[Double](_xrows) * w).toArray
+      val xw=_X.flatMap(t=>(t*w).toArray)
+      DenseMatrix.create(_xrows,_xcols+1,data = v1 ++ xw).t
+    })
     val xtwx = xtw.map(t => t * X)
     val xtwy = xtw.map(t => t * Y)
     val xtwx_inv = xtwx.map(t => inv(t))
@@ -203,7 +208,7 @@ class GWRbasic extends GWRbase {
     DenseVector(yhat)
   }
 
-  private def eachColProduct(Mat: DenseMatrix[Double], Vec: DenseVector[Double]): DenseMatrix[Double] = {
+  def eachColProduct(Mat: DenseMatrix[Double], Vec: DenseVector[Double]): DenseMatrix[Double] = {
     val arrbuf = new ArrayBuffer[DenseVector[Double]]()
     for (i <- 0 until Mat.cols) {
       arrbuf += Mat(::, i) * Vec
