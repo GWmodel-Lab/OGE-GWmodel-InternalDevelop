@@ -1,7 +1,5 @@
 package whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity
 
-//package whu.edu.cn.debug.GWmodelUtil.SpatialHeterogeneity
-
 import geotrellis.raster.mapalgebra.local
 import org.apache.spark.rdd.RDD
 //import org.apache.spark.sql.catalyst.expressions.Sqrt
@@ -26,9 +24,7 @@ import org.apache.commons.math3.special._
 
 import sys.process._
 
-
 object Geodetector {
-
 
   /**
    *
@@ -41,9 +37,8 @@ object Geodetector {
   : (List[String], List[Double], List[Double]) = {
     val y_col = Feature.getNumber(featureRDD, y_title)
     val x_cols = x_titles.map(t => Feature.get(featureRDD, t))
-    val q_list = x_cols.map(t => FD_single(y_col, t))
-    val sig = x_cols.map(t => FD_test(y_col, t))
-    (x_titles, q_list, sig)
+    val QandP = x_cols.map(t => FD_single(y_col, t))
+    (x_titles, QandP.map(t => t._1), QandP.map(t => t._2))
   }
 
   /**
@@ -54,59 +49,53 @@ object Geodetector {
    * @param x_col
    * @return
    */
-  protected def FD_single(y_col: List[Double], x_col: List[Any]): Double = {
+  protected def FD_single(y_col: List[Double], x_col: List[Any]): (Double, Double) = {
     //检测到长度不同，报错
     if (y_col.length != x_col.length) {
       println(s" Error: the sizes of the y and x are not equal.")
     }
-    // 计算Y的总方差
-    val SST = getDev(y_col) * y_col.length
-    // 计算X的分层方差
-    val SSW = Grouping(y_col, x_col).map(t => t.length * getDev(t)).sum
-    // 最终结果
-    1 - SSW / SST
-
-  }
-
-  /**
-   * F test for FD_single
-   *
-   * @param y_col
-   * @param x_col
-   */
-  protected def FD_test(y_col: List[Double], x_col: List[Any]): Double = {
-    val groups = Grouping(y_col, x_col).toList // Grouping results of y
-
+    val groups = Grouping(y_col, x_col) // Grouping results of y
+    /*------------------------------------ computing q-statistic -------------------------------------------*/
+    val SST = getDev(y_col) * y_col.length // Y的总方差
+    val SSW = groups.map(t => t.length * getDev(t)).sum // X的分层方差
+    val q = 1 - SSW / SST
+    /*------------------------------------------- F-test ------------------------------------------*/
     val sum_sq_mean = groups.map(t => Math.pow(stats.mean(t), 2)).sum
     val sq_sum = groups.map(t => Math.sqrt(t.length) * stats.mean(t)).sum
     val N: Double = y_col.length // number of samples
     val L: Double = groups.length // number of groups
-    val q: Double = FD_single(y_col, x_col)
-
     var m = L - 1 //numeratorDegreesOfFreedom
     var n = N - L //denominatorDegreesOfFreedom
     val lambda = (sum_sq_mean - sq_sum * sq_sum / N) / stats.variance(y_col) //nonCentralParameter
-
-    // Not considering the lambda
-
     val x: Double = (N - L) / (L - 1) * (q / (1 - q)) // f_value
+    val p = 1 - noncentralFCDF(x, m, n, lambda, maxIterations = 1000, tolerance = 1e-8)
+    // (q-statistic, p-value)
+    (q, p)
 
-    1-noncentralFCDF(x,m,n,lambda, maxIterations = 1000, tolerance = 1e-8)
+  }
+
+  protected def getQ(y_col: List[Double], x_col: List[Any]): Double = {
+    if (y_col.length != x_col.length) {
+      println(s" Error: the sizes of the y and x are not equal.")
+    }
+    val groups = Grouping(y_col, x_col) // Grouping results of y
+    val SST = getDev(y_col) * y_col.length
+    val SSW = groups.map(t => t.length * getDev(t)).sum
+    val q = 1 - SSW / SST
+    q
   }
 
   def interactionDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))], y_title: String, x_titles: List[String])
   : (linalg.Matrix[Double], linalg.Matrix[String]) = {
     var y_col = Feature.getNumber(featureRDD, y_title)
     var x_cols = x_titles.map(t => Feature.get(featureRDD, t))
-
     var interactions = linalg.Matrix.zeros[Double](x_titles.length, x_titles.length)
     var enhancement = linalg.Matrix.zeros[String](x_titles.length, x_titles.length)
-
     for (i <- 0 until x_titles.length) {
       for (j <- 0 until i) {
         var q = ID_single(y_col, x_cols(i), x_cols(j))
-        var q1 = FD_single(y_col, x_cols(i))
-        var q2 = FD_single(y_col, x_cols(j))
+        var q1 = getQ(y_col, x_cols(i))
+        var q2 = getQ(y_col, x_cols(j))
         var q_min = Math.min(q1, q2)
         var q_max = Math.max(q1, q2)
         interactions(i, j) = q
@@ -144,39 +133,46 @@ object Geodetector {
     for (i <- 0 until x_col1.length) {
       interaction.append(List(x_col1(i), x_col2(i)))
     }
-    val q = FD_single(y_col, interaction.drop(1).toList)
+    val q = getQ(y_col, interaction.drop(1).toList)
     q
   }
 
   def ecologicalDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                          y_title: String, x_titles: List[String])
-  : (linalg.Matrix[Double], linalg.Matrix[Boolean]) = {
+  : linalg.Matrix[Boolean] = {
     val y_col = Feature.getNumber(featureRDD, y_title)
     val x_cols = x_titles.map(t => Feature.get(featureRDD, t))
-    val F_mat = linalg.Matrix.zeros[Double](x_titles.length, x_titles.length) // Matrix of Statistic F
+    //val F_mat = linalg.Matrix.zeros[Double](x_titles.length, x_titles.length) // Matrix of Statistic F
     val Sig_mat = linalg.Matrix.zeros[Boolean](x_titles.length, x_titles.length) // Matrix of True or False
-    //val alpha = 0.05 // 置信度
-
     for (i <- 0 until x_titles.length) {
       for (j <- 0 until x_titles.length) {
-        F_mat(i, j) = ED_single(y_col, x_cols(i), x_cols(j))
+        val F_val = ED_single(y_col, x_cols(i), x_cols(j))
+        //F_mat(i, j) = F_val
         //F-test
         val Nx1 = x_cols(i).length
         val Nx2 = x_cols(j).length
         val F = new FDistribution((Nx1 - 1), (Nx2 - 1))
-        Sig_mat(i, j) = F_mat(i, j) > F.inverseCumulativeProbability(0.9)
+        Sig_mat(i, j) = F_val > F.inverseCumulativeProbability(0.9)
       }
     }
-    (F_mat, Sig_mat)
+    Sig_mat
   }
 
   protected def ED_single(y_col: List[Double], x_col1: List[Any], x_col2: List[Any]): Double = {
-    val f_numerator = FD_single(y_col, x_col2)
-    val f_denominator = FD_single(y_col, x_col1)
+    val f_numerator = getQ(y_col, x_col2)
+    val f_denominator = getQ(y_col, x_col1)
     val res = f_numerator / f_denominator
     breeze.linalg.max(res, 1 / res)
   }
 
+  /**
+   *
+   * @param featureRDD
+   * @param y_title
+   * @param x_titles
+   * @return 包括四个部分：x的名称、各x的子区域、各x子区域下y的均值，以及x中任一子区域对另一个子区域的显著性矩阵。
+   *         矩阵中1表示显著，0表示不显著，-1表示因数据特殊（如子区域所含样本数过少）无法计算
+   */
   def riskDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                    y_title: String, x_titles: List[String]):
   (List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Int]]) = {
@@ -186,7 +182,6 @@ object Geodetector {
     val lst2 = ListBuffer(List(""))
     val lst3 = ListBuffer(List(0.0))
     val lst4 = ListBuffer(linalg.Matrix.zeros[Int](1, 1))
-
     for (i <- 0 until x_cols.length) {
       val res = RD_single(y_col, x_cols(i))
       lst1.append(x_titles(i))
@@ -273,8 +268,6 @@ object Geodetector {
     for (i <- 0 until y_col.length) {
       list_xy.append((x_col(i).toString, y_col(i)))
     }
-    //println(list_xy.sortBy(_._1).toList.groupBy(_._1))
-    //val sorted_xy = list_xy.drop(1).toList.groupBy(_._1).mapValues(r => r.map(r => {r._2}))
     val sorted_xy = list_xy.drop(1).sortBy(_._1).toList.groupBy(_._1).mapValues(r => r.map(r => {
       r._2
     }))
@@ -290,21 +283,19 @@ object Geodetector {
     else {
       x * factorial(x - 1)
     }
-
   }
 
-  protected def noncentralFCDF(x: Double, df1: Double, df2: Double, noncentrality: Double, maxIterations: Int = 1000, tolerance: Double = 1e-9): Double = {
+  protected def noncentralFCDF(x: Double, df1: Double, df2: Double, noncentrality: Double,
+                               maxIterations: Int = 1000, tolerance: Double = 1e-9): Double = {
     var result = 0.0
     var k = 0
     var term = 1.0
-
     while (k < maxIterations && math.abs(term) > tolerance) {
       term = math.pow(noncentrality / 2, k) / factorial(k) * math.exp(-noncentrality / 2)
       term *= Beta.regularizedBeta(df1 * x / (df2 + df1 * x), df1 / 2.0 + k, df2 / 2.0)
       result += term
       k += 1
     }
-
     result
   }
 

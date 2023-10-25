@@ -162,7 +162,7 @@ object test {
     val x_titles = List("FLOORSZ", "TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
     val FD = factorDetector(shpfile, y_title, x_titles)
     val ID = interactionDetector(shpfile, y_title, x_titles)
-    var ED = ecologicalDetector(shpfile, y_title, x_titles)
+    val ED = ecologicalDetector(shpfile, y_title, x_titles)
     val RD = riskDetector(shpfile, y_title, x_titles)
 
     val tused = (System.currentTimeMillis() - t1) / 1000.0
@@ -178,7 +178,7 @@ object test {
     println("enhancement: ")
     println(ID._2)
     println("ecological significance: ")
-    println(ED._2)
+    println(ED)
 
     val RD_0 = (RD._1(0), RD._2(0), RD._3(0), RD._4(0))
     println("VARIABLE: " + RD_0._1) // name of variable
