@@ -77,7 +77,7 @@ class GWRbasic extends GWRbase {
     for(i<-0 until betas.rows){
       shpRDDidx.map(t=>{
         val a=betas(i,t._2)
-        t._1._2._2 += (name(i)+"_" -> a)
+        t._1._2._2 += (name(i) -> a)
       })
     }
 //    val a=shpRDDidx.map(t=>t._1._2._2)
@@ -95,7 +95,7 @@ class GWRbasic extends GWRbase {
     println("**************************Model calibration information**************************")
     print(s"Kernel function: $kernel\n$bw_type bandwidth: ")
     print(f"$bw%.2f\n")
-    println("Distance metric: Euclidean distance metric is used.")
+//    println("Distance metric: Euclidean distance metric is used.")
     calDiagnostic(_dX, _Y, results._3, results._4)
     shpRDDidx.map(t => t._1)
   }
