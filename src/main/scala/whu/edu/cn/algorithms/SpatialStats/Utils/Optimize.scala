@@ -20,7 +20,8 @@ object Optimize {
    * @param function 获取（更新）优化值的函数，需要为输入double，输出double的类型
    * @return 优化结果
    */
-  def goldenSelection(lower: Double, upper: Double, eps: Double = 1e-10, findMax: Boolean = true, function: Double => Double): Double = {
+  def goldenSelection(lower: Double, upper: Double, eps: Double = 1e-10, findMax: Boolean = true, function: Double => Double):
+  (Double, Array[Double], Array[Double], Array[Double]) = {
     var iter: Int = 0
     val max_iter = 1000
     val loop=new Breaks
@@ -34,6 +35,9 @@ object Optimize {
     var f_b = function(b)
     var f_p = function(p)
     var f_q = function(q)
+    val opt_iter = new ArrayBuffer[Double]()
+    val opt_val = new ArrayBuffer[Double]()
+    val opt_res = new ArrayBuffer[Double]()
     //    println(f_a,f_b,f_p,f_q)
     loop.breakable {
       while (abs(f_a - f_b) >= eps && iter < max_iter) {
@@ -76,14 +80,20 @@ object Optimize {
           }
         }
         iter += 1
-        println(s"the iter is $iter, optimize value is ${(b + a) / 2.0}, optimize result is ${function((b + a) / 2.0)}")
+        opt_iter += iter
+        //        opt_val += (b + a) / 2.0
+        //        opt_res += function(sc, (b + a) / 2.0)
+        opt_val += p
+        opt_res += f_p
+        println(s"Iter: $iter, optimize value: $p, result is $f_p")
         if (abs(a - b) < eps/10) {
           loop.break()
         }
       }
     }
     //    println((b + a) / 2.0, function((b + a) / 2.0))
-    (b + a) / 2.0
+    //    ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray)
+    ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray, opt_res.toArray)
   }
 
 
