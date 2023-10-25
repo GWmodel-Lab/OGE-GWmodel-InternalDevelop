@@ -16,6 +16,7 @@ class GWRbase {
   protected var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
   protected var _X: Array[DenseVector[Double]] = _
   protected var _Y: DenseVector[Double] = _
+  protected var _nameX: Array[String] = _
 
   protected var _geom: RDD[Geometry] = _
   protected var _dist: Array[DenseVector[Double]]=_
@@ -54,11 +55,16 @@ class GWRbase {
     }
   }
 
-  protected def setX(x: Array[DenseVector[Double]]): Unit = {
+  protected def setX(properties: String, split:String=","): Unit = {
+    _nameX=properties.split(split)
+    val x=_nameX.map(s=>{
+      DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
+    })
     _X = x
   }
 
-  protected def setY(y: Array[Double]): Unit = {
+  protected def setY(property: String): Unit = {
+    val y = shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
     _Y = DenseVector(y)
   }
 
