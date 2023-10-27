@@ -181,7 +181,7 @@ object test {
     println(ED)
 
     val RD_0 = (RD._1(0), RD._2(0), RD._3(0), RD._4(0))
-    println("VARIABLE: " + RD_0._1) // name of variable
+    println("VARIABLE: " + RD_0._1)
     println()
     println("MEAN")
     for (i <- 0 until RD_0._2.length) { // mean of variable strata
@@ -194,7 +194,7 @@ object test {
     val strata1 = "35.0"
     val strata2 = "141.0"
     println("Significance of " + strata1 + " and " + strata2 + " is " +
-      RD_0._4(RD_0._2.indexOf(strata1), RD_0._2.indexOf(strata2)))
+      RD_0._4(RD_0._2.indexOf(strata1), RD_0._2.indexOf(strata2)).toString)
 
     println()
     println(s"time used is: $tused s")
