@@ -14,12 +14,14 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
+import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
+    .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -42,7 +44,8 @@ object test {
     //    linear_test()
     //    correlation_test()
     //    pca_test()
-    gwrbasic_test()
+    //    gwrbasic_test()
+    geodetector_test()
     sc.stop()
   }
 
@@ -146,6 +149,51 @@ object test {
     println(re._3)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
+  }
+
+  def geodetector_test():Unit ={
+
+    val t1 = System.currentTimeMillis()
+    val y_title = "PURCHASE"
+    val x_titles = List("FLOORSZ", "TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
+    val FD = factorDetector(shpfile, y_title, x_titles)
+    val ID = interactionDetector(shpfile, y_title, x_titles)
+    var ED = ecologicalDetector(shpfile, y_title, x_titles)
+    val RD = riskDetector(shpfile, y_title, x_titles)
+
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println()
+
+    println(FD._1)
+    println("q statistics: ")
+    println(FD._2)
+    println("p-value: ")
+    println(FD._3)
+    println("q of interactions: ")
+    println(ID._1)
+    println("enhancement: ")
+    println(ID._2)
+    println("ecological significance: ")
+    println(ED._2)
+
+    val RD_0 = (RD._1(0), RD._2(0), RD._3(0), RD._4(0))
+    println("VARIABLE: " + RD_0._1) // name of variable
+    println()
+    println("MEAN")
+    for (i <- 0 until RD_0._2.length) { // mean of variable strata
+      println((RD_0._2(i), RD_0._3(i)))
+    }
+    println()
+    println("SIG_MATRIX")
+    println(RD_0._4) // sig. matrix of variable strata
+    println()
+    val strata1 = "35.0"
+    val strata2 = "141.0"
+    println("Significance of " + strata1 + " and " + strata2 + " is " +
+      RD_0._4(RD_0._2.indexOf(strata1), RD_0._2.indexOf(strata2)))
+
+    println()
+    println(s"time used is: $tused s")
   }
 
 }
