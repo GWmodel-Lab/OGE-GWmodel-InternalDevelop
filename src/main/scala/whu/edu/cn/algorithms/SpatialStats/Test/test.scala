@@ -152,47 +152,14 @@ object test {
   }
 
   def geodetector_test():Unit ={
-
-    val t1 = System.currentTimeMillis()
+    var t1 = System.currentTimeMillis()
     val y_title = "PURCHASE"
-    val x_titles = List("FLOORSZ", "TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
+    val x_titles = List("FLOORSZ","TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
     val FD = factorDetector(shpfile, y_title, x_titles)
     val ID = interactionDetector(shpfile, y_title, x_titles)
-    var ED = ecologicalDetector(shpfile, y_title, x_titles)
+    val ED = ecologicalDetector(shpfile, y_title, x_titles)
     val RD = riskDetector(shpfile, y_title, x_titles)
-
-    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println()
-
-    println(FD._1)
-    println("q statistics: ")
-    println(FD._2)
-    println("p-value: ")
-    println(FD._3)
-    println("q of interactions: ")
-    println(ID._1)
-    println("enhancement: ")
-    println(ID._2)
-    println("ecological significance: ")
-    println(ED._2)
-
-    val RD_0 = (RD._1(0), RD._2(0), RD._3(0), RD._4(0))
-    println("VARIABLE: " + RD_0._1) // name of variable
-    println()
-    println("MEAN")
-    for (i <- 0 until RD_0._2.length) { // mean of variable strata
-      println((RD_0._2(i), RD_0._3(i)))
-    }
-    println()
-    println("SIG_MATRIX")
-    println(RD_0._4) // sig. matrix of variable strata
-    println()
-    val strata1 = "35.0"
-    val strata2 = "141.0"
-    println("Significance of " + strata1 + " and " + strata2 + " is " +
-      RD_0._4(RD_0._2.indexOf(strata1), RD_0._2.indexOf(strata2)))
-
-    println()
+    var tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is: $tused s")
   }
 
