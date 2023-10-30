@@ -14,12 +14,14 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
+import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
+    .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -42,7 +44,8 @@ object test {
     //    linear_test()
     //    correlation_test()
     //    pca_test()
-    gwrbasic_test()
+    //    gwrbasic_test()
+    geodetector_test()
     sc.stop()
   }
 
@@ -146,6 +149,18 @@ object test {
     println(re._3)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
+  }
+
+  def geodetector_test():Unit ={
+    var t1 = System.currentTimeMillis()
+    val y_title = "PURCHASE"
+    val x_titles = List("FLOORSZ","TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
+    val FD = factorDetector(shpfile, y_title, x_titles)
+    val ID = interactionDetector(shpfile, y_title, x_titles)
+    val ED = ecologicalDetector(shpfile, y_title, x_titles)
+    val RD = riskDetector(shpfile, y_title, x_titles)
+    var tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is: $tused s")
   }
 
 }
