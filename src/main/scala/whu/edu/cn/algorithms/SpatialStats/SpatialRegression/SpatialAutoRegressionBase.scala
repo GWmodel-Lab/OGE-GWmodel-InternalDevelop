@@ -13,10 +13,11 @@ import scala.math._
 //抽象类，不可以被初始化
 abstract class SpatialAutoRegressionBase {
 
-  private var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
+  protected var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
   protected var _X: Array[DenseVector[Double]] = _
   protected var _Y: DenseVector[Double] = _
 
+  protected var _nameX: Array[String] = _
   protected var geom: RDD[Geometry] = _
   protected var spweight_dvec: Array[DenseVector[Double]] = _
   protected var spweight_dmat: DenseMatrix[Double] = _
@@ -54,12 +55,12 @@ abstract class SpatialAutoRegressionBase {
     setweight(style = style)
   }
 
-  protected def setX(x: Array[DenseVector[Double]]): Unit = {
-    _X = x
+  protected def setX(properties: String, split: String = ","): Unit = {
+
   }
 
-  protected def setY(y: Array[Double]): Unit = {
-    _Y = DenseVector(y)
+  protected def setY(property: String): Unit = {
+
   }
 
   /**
@@ -117,13 +118,7 @@ abstract class SpatialAutoRegressionBase {
   }
 
   protected def betasMap(coef: DenseVector[Double]): mutable.Map[String, Double] = {
-    val arrbuf = new ArrayBuffer[String]()
-    arrbuf += "Intercept"
-    for (i <- 1 until coef.length) {
-      val tmp = "X" + i.toString
-      arrbuf += tmp
-    }
-    val coefname = arrbuf.toArray
+    val coefname = Array("Intercept")++_nameX
     val coefvalue = coef.toArray
     val betas_map: mutable.Map[String, Double] = mutable.Map()
     for (i <- 0 until coef.length) {

@@ -10,7 +10,7 @@ import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis._
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.SpatialAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.linearRegression
-import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
@@ -21,7 +21,7 @@ import whu.edu.cn.util.ShapeFileUtil._
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-    .set("spark.testing.memory", "512000000")
+//    .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -45,7 +45,7 @@ object test {
     //    correlation_test()
     //    pca_test()
     //    gwrbasic_test()
-    geodetector_test()
+    //    geodetector_test()
     sc.stop()
   }
 
@@ -86,15 +86,10 @@ object test {
 
   def sarmodel_test(): Unit = {
     val t1 = System.currentTimeMillis()
-    val x1 = shpfile2.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-    val x2 = shpfile2.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-    val y = shpfile2.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
-    val x = Array(DenseVector(x1), DenseVector(x2))
-    //    x.foreach(println)
     val mdl = new SpatialDurbinModel//error，lag
     mdl.init(shpfile2)
-    mdl.setX(x)
-    mdl.setY(y)
+    mdl.setX("PO60,UE60")
+    mdl.setY("HR60")
     mdl.fit()
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
