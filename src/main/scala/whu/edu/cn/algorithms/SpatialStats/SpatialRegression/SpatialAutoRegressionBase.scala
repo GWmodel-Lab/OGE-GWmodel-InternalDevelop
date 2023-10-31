@@ -40,7 +40,7 @@ abstract class SpatialAutoRegressionBase {
     val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
     val r2 = 1 - rss / yss
     val r2_adj = 1 - (1 - r2) * (n - 1) / (n - df - 1)
-    println(s"diagnostics:\nSSE is $rss\nLog likelihood is $loglikelihood\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
+    println(s"diagnostics:\nSSE : $rss\nLog likelihood : $loglikelihood\nAIC : $AIC \nAICc: $AICc\nR2 : $r2\nadjust R2 : $r2_adj")
   }
 
   /**

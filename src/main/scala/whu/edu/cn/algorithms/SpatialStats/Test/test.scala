@@ -46,6 +46,7 @@ object test {
     //    pca_test()
     //    gwrbasic_test()
     //    geodetector_test()
+    val r=readcsv2(sc,csvpath,false)
     sc.stop()
   }
 
@@ -140,10 +141,10 @@ object test {
     val per = attributeSelectHead(csvdata, "precipitation").map(t => t.toDouble)
     val tem = attributeSelectHead(csvdata, "temperature").map(t => t.toDouble)
     val x = Array(DenseVector(tem), DenseVector(per))
-    val re = linearRegression(x, DenseVector(aqi))
-    println(re._1)
-    println(re._2)
-    println(re._3)
+//    val re = linearRegression(x, DenseVector(aqi))
+//    println(re._1)
+//    println(re._2)
+//    println(re._3)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }

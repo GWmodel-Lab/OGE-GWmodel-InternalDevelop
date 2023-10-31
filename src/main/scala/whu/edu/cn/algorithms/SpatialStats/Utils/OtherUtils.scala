@@ -22,6 +22,45 @@ object OtherUtils {
    * @param csvPath csvPath
    * @return        RDD
    */
+  def readcsv2(implicit sc: SparkContext, csvPath: String, firstline: Boolean = true): RDD[mutable.Map[String, Any]] = {
+    val data = sc.textFile(csvPath)
+    val csvdata = data.map(line => {
+      val reader = new CSVReader(new StringReader(line))
+      reader.readNext()
+    })
+    val preRDD=ArrayBuffer.empty[mutable.Map[String, Any]]
+    val names = csvdata.take(1).flatten
+    if(firstline) {
+      val no1line = csvdata.collect().drop(1)
+      no1line.foreach(t => {
+        val mapdata = mutable.Map.empty[String, Any]
+        for (i <- names.indices) {
+          mapdata += (names(i) -> t(i))
+        }
+        preRDD += mapdata
+      })
+    }
+    else{
+      val nameidx=names.zipWithIndex.map(t=>"x"+t._2.toString)
+      csvdata.collect().foreach(t => {
+        val mapdata = mutable.Map.empty[String, Any]
+        for (i <- nameidx.indices) {
+          mapdata += (nameidx(i) -> t(i))
+        }
+        preRDD += mapdata
+      })
+    }
+    preRDD.foreach(println)
+    sc.makeRDD(preRDD)
+  }
+
+  /**
+   * 读入csv
+   *
+   * @param sc      SparkContext
+   * @param csvPath csvPath
+   * @return RDD
+   */
   def readcsv(implicit sc: SparkContext, csvPath: String): RDD[Array[(String, Int)]] = {
     val data = sc.textFile(csvPath)
     val csvdata = data.map(line => {
