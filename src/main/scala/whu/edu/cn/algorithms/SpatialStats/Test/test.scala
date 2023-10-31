@@ -46,7 +46,8 @@ object test {
     //    pca_test()
     //    gwrbasic_test()
     //    geodetector_test()
-    val r=readcsv2(sc,csvpath,false)
+    val r=readcsv2(sc,csvpath)
+    linearRegression(r,"aqi","temperature,precipitation")
     sc.stop()
   }
 
