@@ -12,18 +12,18 @@ object LinearRegression {
   private var _X: DenseMatrix[Double] = _
   private var _Y: DenseVector[Double] = _
   private var _1X: DenseMatrix[Double] = _
-  private var _xlength: Int = 0
+  private var _rows: Int = 0
 
   private def setX(properties: String, split: String = ",", Intercept: Boolean): Unit = {
     val _nameX = properties.split(split)
     val x = _nameX.map(s => {
-      DenseVector(_data.map(t => t(s).asInstanceOf[String].toDouble).collect())
+      _data.map(t => t(s).asInstanceOf[String].toDouble).collect()
     })
-    _xlength = x(0).length
-    _X = DenseMatrix.create(rows = _xlength, cols = x.length, data = x.flatMap(t => t.toArray))
+    _rows = x(0).length
+    _X = DenseMatrix.create(rows = _rows, cols = x.length, data = x.flatten)
     if (Intercept) {
-      val ones_x = Array(DenseVector.ones[Double](_xlength).toArray, x.flatMap(t => t.toArray))
-      _1X = DenseMatrix.create(rows = _xlength, cols = x.length + 1, data = ones_x.flatten)
+      val ones_x = Array(DenseVector.ones[Double](_rows).toArray, x.flatten)
+      _1X = DenseMatrix.create(rows = _rows, cols = x.length + 1, data = ones_x.flatten)
     }
   }
 
@@ -49,7 +49,7 @@ object LinearRegression {
       X= _X
     }
     val Y=_Y
-    val W = DenseMatrix.eye[Double](_xlength)
+    val W = DenseMatrix.eye[Double](_rows)
     val xtw = X.t * W
     val xtwx = xtw * X
     val xtwy = xtw * Y

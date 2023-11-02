@@ -50,7 +50,7 @@ object OtherUtils {
         preRDD += mapdata
       })
     }
-    preRDD.foreach(println)
+//    preRDD.foreach(println)
     sc.makeRDD(preRDD)
   }
 
