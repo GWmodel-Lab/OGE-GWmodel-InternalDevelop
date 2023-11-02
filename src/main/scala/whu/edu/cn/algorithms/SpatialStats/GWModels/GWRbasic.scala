@@ -9,6 +9,7 @@ import org.locationtech.jts.geom.Geometry
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
+import whu.edu.cn.util.ShapeFileUtil.readShp
 
 import scala.collection.mutable
 
@@ -40,20 +41,23 @@ class GWRbasic extends GWRbase {
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
-  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Array[(String, (Geometry, mutable.Map[String, Any]))] = {
-    println("start bandwidth selection")
+  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): (Array[(String, (Geometry, Map[String, Any]))], String) = {
+    var printString = "Auto bandwidth selection\n"
+    //    println("auto bandwidth selection")
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
-    println(s"best bandwidth is $bwselect")
+    printString += s"Best bandwidth is $bwselect\n"
+    //    println(s"best bandwidth is $bwselect")
     val f = Figure()
     val p = f.subplot(0)
     val optv_sort = opt_value.zipWithIndex.map(t => (t._1, opt_result(t._2))).sortBy(_._1)
     p += plot(optv_sort.map(_._1), optv_sort.map(_._2))
     p.xlabel = "bandwidth"
     p.ylabel = s"$approach"
-    fit(bwselect, kernel = kernel, adaptive = adaptive)
+    printString += fit(bwselect, kernel = kernel, adaptive = adaptive)._2
+    (fit(bwselect, kernel = kernel, adaptive = adaptive)._1, printString)
   }
 
-  def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): Array[(String, (Geometry, mutable.Map[String, Any]))] = {
+  def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, Map[String, Any]))], String)  = {
     if (bw > 0) {
       setweight(bw, kernel, adaptive)
     } else if (spweight_dvec != null) {
@@ -80,8 +84,8 @@ class GWRbasic extends GWRbase {
         t._1._2._2 += (name(i) -> a)
       })
     }
-//    val a=shpRDDidx.map(t=>t._1._2._2)
-//    a.foreach(println)
+    //    val a=shpRDDidx.map(t=>t._1._2._2)
+    //    a.foreach(println)
     //    sc.makeRDD(shpRDDidx.map(t => t._1))
     //    println(betas)
     //    results._1.foreach(println)
@@ -89,15 +93,20 @@ class GWRbasic extends GWRbase {
     if (adaptive) {
       bw_type = "Adaptive"
     }
-    println("*********************************************************************************")
-    println("*               Results of Geographically Weighted Regression                   *")
-    println("*********************************************************************************")
-    println("**************************Model calibration information**************************")
-    print(s"Kernel function: $kernel\n$bw_type bandwidth: ")
-    print(f"$bw%.2f\n")
-//    println("Distance metric: Euclidean distance metric is used.")
-    calDiagnostic(_dX, _Y, results._3, results._4)
-    shpRDDidx.map(t => t._1)
+    var fitString = "*********************************************************************************\n" +
+      "*               Results of Geographically Weighted Regression                   *\n" +
+      "*********************************************************************************\n" +
+      "**************************Model calibration information**************************\n" +
+      s"Kernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n"
+    //    println("*********************************************************************************")
+    //    println("*               Results of Geographically Weighted Regression                   *")
+    //    println("*********************************************************************************")
+    //    println("**************************Model calibration information**************************")
+    //    print(s"Kernel function: $kernel\n$bw_type bandwidth: ")
+    //    print(f"$bw%.2f\n")
+    //    println("Distance metric: Euclidean distance metric is used.")
+    fitString += calDiagnostic(_dX, _Y, results._3, results._4)
+    (shpRDDidx.map(t => t._1),fitString)
   }
 
   private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
@@ -266,5 +275,55 @@ class GWRbasic extends GWRbase {
   //    val data = arrbuf.toArray.flatMap(t => t.toArray)
   //    DenseMatrix.create(rows = Mat.rows, cols = Mat.cols, data = data)
   //  }
+
+}
+
+object GWRbasic {
+
+  /** *
+   *
+   * @param sc          SparkContext
+   * @param shpRDD      shapefile path
+   * @param Yproperty   dependant property
+   * @param Xproperties independant properties
+   * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
+   * @param approach    approach function: AICc, CV
+   * @param adaptive    true for adaptive distance, false for fixed distance
+   * @return featureRDD and diagnostic String
+   */
+  def autoFit(sc: SparkContext, shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], Yproperty: String, Xproperties: String,
+              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true)
+  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    val model = new GWRbasic
+    model.init(shpRDD)
+    model.setY(Yproperty)
+    model.setX(Xproperties)
+    val re = model.auto(kernel = kernel, approach = approach, adaptive = adaptive)
+    print(re._2)
+    (sc.makeRDD(re._1), re._2)
+  }
+
+  /** *
+   *
+   * @param sc          SparkContext
+   * @param shpRDD      shapefile path
+   * @param Yproperty   dependant property
+   * @param Xproperties independant properties
+   * @param bandwidth   bandwidth value
+   * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
+   * @param adaptive    true for adaptive distance, false for fixed distance
+   * @return featureRDD and diagnostic String
+   */
+  def Fit(sc: SparkContext, shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], Yproperty: String, Xproperties: String,
+          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = true)
+  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    val model = new GWRbasic
+    model.init(shpRDD)
+    model.setY(Yproperty)
+    model.setX(Xproperties)
+    val re = model.fit(bw = bandwidth, kernel = kernel, adaptive = adaptive)
+    print(re._2)
+    (sc.makeRDD(re._1), re._2)
+  }
 
 }
