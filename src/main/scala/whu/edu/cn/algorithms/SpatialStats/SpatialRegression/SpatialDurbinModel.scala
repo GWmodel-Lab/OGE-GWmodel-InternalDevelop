@@ -2,6 +2,8 @@ package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.sqrt
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 
 import scala.math._
@@ -34,9 +36,9 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
    */
   override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
-      val x = _nameX.map(s => {
-        DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
-      })
+    val x = _nameX.map(s => {
+      DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
+    })
     _X = x
     _xcols = x.length
     _xrows = _X(0).length
@@ -60,17 +62,17 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
    *
    * @return 返回拟合值
    */
-  def fit(): Array[(String, (Geometry, mutable.Map[String, Any]))]= {
+  def fit(): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val arr = firstvalue()
     val optresult = nelderMead(arr, paras4optimize)
-//    println("----------optimize result----------")
-//    optresult.foreach(println)
+    //    println("----------optimize result----------")
+    //    optresult.foreach(println)
     val rho = optresult(0)
     val lambda = optresult(1)
     _durbinX = _1X - lambda * _wx
     _durbinY = _Y - rho * _wy - lambda * _wy + rho * lambda * _wwy
     val betas = get_betas(X = _durbinX, Y = _durbinY)
-    println(betas)
+    //    println(betas)
     val betas_map = betasMap(betas)
     val res = get_res(X = _durbinX, Y = _durbinY)
     //log likelihood
@@ -78,17 +80,24 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
     val lly = get_logLik(get_res(X = _1X))
 
     fitvalue = (_Y - res).toArray
-    println("---------------------------------spatial durbin model---------------------------------")
-    println(s"rho is $rho\nlambda is $lambda")
-    try_LRtest(-llopt, lly, chi_pama = 2)
-    println(s"coeffients:\n$betas_map")
-    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
-    println("------------------------------------------------------------------------------------")
+    var printStr = "-----------------------------Spatial Durbin Model-----------------------------\n" +
+      f"rho is $rho%.6f\nlambda is $lambda%.6f\n"
+    printStr += try_LRtest(-llopt, lly, chi_pama = 2)
+    printStr += f"coeffients:\n$betas_map\n"
+    printStr += calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
+    printStr += "------------------------------------------------------------------------------"
+    //    println("---------------------------------spatial durbin model---------------------------------")
+    //    println(s"rho is $rho\nlambda is $lambda")
+    //    try_LRtest(-llopt, lly, chi_pama = 2)
+    //    println(s"coeffients:\n$betas_map")
+    //    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
+    //    println("--------------------------------------------------------------------------------------")
+    println(printStr)
     val shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1._2._2 += ("fitValue" -> fitvalue(t._2))
     })
-    shpRDDidx.map(t => t._1)
+    (shpRDDidx.map(t => t._1), printStr)
   }
 
   def get_betas(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xrows)): DenseVector[Double] = {
@@ -167,4 +176,25 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
       throw new IllegalArgumentException("optmize array should have rho and lambda")
     }
   }
+}
+
+object SpatialDurbinModel {
+  /** *
+   *
+   * @param sc          SparkContext
+   * @param shpRDD      shapefile RDD
+   * @param Yproperty   dependant property
+   * @param Xproperties independant properties
+   * @return featureRDD and diagnostic String
+   */
+  def fit(sc: SparkContext, shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], Yproperty: String, Xproperties: String)
+  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    val mdl = new SpatialDurbinModel
+    mdl.init(shpRDD)
+    mdl.setX(Xproperties)
+    mdl.setY(Yproperty)
+    val re = mdl.fit()
+    (sc.makeRDD(re._1), re._2)
+  }
+
 }

@@ -47,6 +47,7 @@ object test {
     //    gwrbasic_test()
     //    geodetector_test()
     GWRbasic.Fit(sc,shpfile,"PURCHASE","FLOORSZ,PROF",50)
+    SpatialLagModel.fit(sc,shpfile2,"HR60","PO60,UE60")
     val r=readcsv2(sc,csvpath)
     linearRegression(r,"aqi","temperature,precipitation")
     sc.stop()
