@@ -10,15 +10,15 @@ import scala.math.pow
 
 object TemporalAutoCorrelation {
 
-  /** *
+  /** Autocorrelation Coefficient
    *
-   * @param shpRDD   shapefile RDD
+   * @param featureRDD   shapefile RDD
    * @param property property
    * @param timelag  time lag, default:20
    * @return pic, ACF list
    */
-  def ACF(shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, timelag: Int = 20): String = {
-    val timeArr = shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
+  def ACF(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, timelag: Int = 20): String = {
+    val timeArr = featureRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
     timeSeriesACF(timeArr, timelag.toInt)
   }
 
@@ -46,7 +46,7 @@ object TemporalAutoCorrelation {
     } else {
       throw new IllegalArgumentException("Illegal Argument of time lag")
     }
-    val str=acfarr.mkString("ACF-list(", ", ", ")")
+    val str = acfarr.mkString("ACF-list(", ", ", ")")
     println(str)
     str
   }

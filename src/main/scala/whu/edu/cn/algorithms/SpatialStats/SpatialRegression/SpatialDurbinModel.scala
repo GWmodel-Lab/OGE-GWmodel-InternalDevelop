@@ -179,20 +179,20 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
 }
 
 object SpatialDurbinModel {
-  /** *
+  /** Spatial Durbin Model (SDM) for spatial regression
    *
    * @param sc          SparkContext
-   * @param shpRDD      shapefile RDD
-   * @param Yproperty   dependant property
-   * @param Xproperties independant properties
+   * @param featureRDD      shapefile RDD
+   * @param propertyY   dependant property
+   * @param propertiesX independant properties
    * @return featureRDD and diagnostic String
    */
-  def fit(sc: SparkContext, shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], Yproperty: String, Xproperties: String)
+  def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val mdl = new SpatialDurbinModel
-    mdl.init(shpRDD)
-    mdl.setX(Xproperties)
-    mdl.setY(Yproperty)
+    mdl.init(featureRDD)
+    mdl.setX(propertiesX)
+    mdl.setY(propertyY)
     val re = mdl.fit()
     (sc.makeRDD(re._1), re._2)
   }

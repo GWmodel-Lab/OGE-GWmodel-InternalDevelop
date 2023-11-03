@@ -11,26 +11,26 @@ import scala.math.{abs, max, min, pow, sqrt}
 
 object CorrelationAnalysis {
 
-  /** *
+  /** Correlation matrix for properties
    *
-   * @param inputshp   shapefile RDD
+   * @param featureRDD   shapefile RDD
    * @param properties properties
    * @param split      properties split, default: ","
    * @param method     pearson or spearman
    * @return correlation matrix
    */
-  def corrMat(inputshp: RDD[(String, (Geometry, mutable.Map[String, Any]))], properties: String, method: String = "pearson", split: String = ","): String = {
+  def corrMat(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], properties: String, method: String = "pearson", split: String = ","): String = {
     val propertyArr = properties.split(split)
     val n = propertyArr.length
     var cor = new Array[Array[Double]](n)
-    val arrList = propertyArr.map(p => inputshp.map(t => t._2._2(p).asInstanceOf[String].toDouble).collect())
+    val arrList = propertyArr.map(p => featureRDD.map(t => t._2._2(p).asInstanceOf[String].toDouble).collect())
     if (method == "pearson") {
       cor = arrList.map(t => {
         arrList.map(t2 => pcorr2arr(t2, t))
       })
     } else if (method == "spearman") {
       cor = arrList.map(t => {
-//        arrList.map(t2 => spcorr2arr(t2, t))
+        //        arrList.map(t2 => spcorr2arr(t2, t))
         arrList.map(t2 => pcorr2arr(ranks(DenseVector(t2)), ranks(DenseVector(t))))
       })
     } else {

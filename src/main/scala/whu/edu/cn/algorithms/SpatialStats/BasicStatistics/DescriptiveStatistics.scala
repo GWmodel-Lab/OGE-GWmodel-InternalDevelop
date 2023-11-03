@@ -11,15 +11,15 @@ import scala.collection.mutable.Map
 
 object DescriptiveStatistics {
 
-  /** *
+  /** Descriptive statistics for specific property of feature
    *
-   * @param testshp  shapefile
+   * @param featureRDD  shapefile
    * @param property property
    * @param histBins number of histogram bins
    * @return pic and count, sum, stdev .etc
    */
-  def result(testshp: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, histBins: Int = 10): String = {
-    val lr = testshp.map(t => t._2._2(property).asInstanceOf[String].toDouble)
+  def result(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, histBins: Int = 10): String = {
+    val lr = featureRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble)
     describe(lr, lr.collect().toList, histBins)
   }
 

@@ -280,47 +280,47 @@ class GWRbasic extends GWRbase {
 
 object GWRbasic {
 
-  /** *
+  /** Basic GWR calculation with bandwidth auto selection
    *
    * @param sc          SparkContext
-   * @param shpRDD      shapefile path
-   * @param Yproperty   dependant property
-   * @param Xproperties independant properties
+   * @param featureRDD      shapefile RDD
+   * @param propertyY   dependant property
+   * @param propertiesX independant properties
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
    * @return featureRDD and diagnostic String
    */
-  def autoFit(sc: SparkContext, shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], Yproperty: String, Xproperties: String,
+  def autoFit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
               kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWRbasic
-    model.init(shpRDD)
-    model.setY(Yproperty)
-    model.setX(Xproperties)
+    model.init(featureRDD)
+    model.setY(propertyY)
+    model.setX(propertiesX)
     val re = model.auto(kernel = kernel, approach = approach, adaptive = adaptive)
     print(re._2)
     (sc.makeRDD(re._1), re._2)
   }
 
-  /** *
+  /** Basic GWR calculation with specific bandwidth
    *
    * @param sc          SparkContext
-   * @param shpRDD      shapefile path
-   * @param Yproperty   dependant property
-   * @param Xproperties independant properties
+   * @param featureRDD      shapefile RDD
+   * @param propertyY   dependant property
+   * @param propertiesX independant properties
    * @param bandwidth   bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
    * @return featureRDD and diagnostic String
    */
-  def Fit(sc: SparkContext, shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], Yproperty: String, Xproperties: String,
+  def Fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
           bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = true)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWRbasic
-    model.init(shpRDD)
-    model.setY(Yproperty)
-    model.setX(Xproperties)
+    model.init(featureRDD)
+    model.setY(propertyY)
+    model.setX(propertiesX)
     val re = model.fit(bw = bandwidth, kernel = kernel, adaptive = adaptive)
     print(re._2)
     (sc.makeRDD(re._1), re._2)

@@ -4,18 +4,15 @@ import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics}
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.AverageNearestNeighbor.result
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.DescriptiveStatistics.result
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
-import whu.edu.cn.algorithms.SpatialStats.STCorrelations.SpatialAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.linearRegression
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
-import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, TemporalAutoCorrelation}
+import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
@@ -39,18 +36,14 @@ object test {
 
   def main(args: Array[String]): Unit = {
 
-    //    sarmodel_test()
-    //        morani_test()
-    //        acf_test()
+    //    acf_test()
     //    linear_test()
-    //        correlation_test()
     //    pca_test()
-    //    gwrbasic_test()
     //    geodetector_test()
     AverageNearestNeighbor.result(shpfile)
     DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
-    globalMoranI(shpfile2, "HR60", plot = true, test = true)
-    localMoranI(shpfile2, "HR60")
+    SpatialAutoCorrelation.globalMoranI(shpfile2, "HR60", plot = true, test = true)
+    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
     TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
     CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
     GWRbasic.Fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
@@ -78,35 +71,8 @@ object test {
     println(s"time used is $tused s")
   }
 
-  def correlation_test(): Unit = {
-    val t0 = System.currentTimeMillis()
-    val p = "PROF,FLOORSZ,UNEMPLOY,PURCHASE"
-    val mat = corrMat(shpfile, p)
-    val tused = (System.currentTimeMillis() - t0) / 1000.0
-    println(s"time used is $tused s")
-  }
-
   def pca_test():Unit= {
     PCA(shpfile)
-  }
-
-  def sarmodel_test(): Unit = {
-    val t1 = System.currentTimeMillis()
-    val mdl = new SpatialDurbinModel//error，lag
-    mdl.init(shpfile2)
-    mdl.setX("PO60,UE60")
-    mdl.setY("HR60")
-    mdl.fit()
-    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is $tused s")
-  }
-
-  def morani_test(): Unit = {
-    val t1 = System.currentTimeMillis()
-    val globali = globalMoranI(shpfile2, "HR60", plot = true, test = true)
-    val locali = localMoranI(shpfile2, "HR60")
-    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is $tused s")
   }
 
   def acf_test(): Unit = {
