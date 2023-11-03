@@ -34,6 +34,7 @@ object LinearRegression {
   /**
    * 线性回归
    *
+   * @param data      RDD, csv读入
    * @param x         输入X
    * @param y         输入Y
    * @param Intercept 是否需要截距项，默认：是（true）
