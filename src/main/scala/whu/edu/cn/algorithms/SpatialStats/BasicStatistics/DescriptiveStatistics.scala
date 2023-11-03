@@ -18,7 +18,7 @@ object DescriptiveStatistics {
    * @param histBins number of histogram bins
    * @return pic and count, sum, stdev .etc
    */
-  def result(testshp: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, histBins: HistogramBins = 10): String = {
+  def result(testshp: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, histBins: Int = 10): String = {
     val lr = testshp.map(t => t._2._2(property).asInstanceOf[String].toDouble)
     describe(lr, lr.collect().toList, histBins)
   }

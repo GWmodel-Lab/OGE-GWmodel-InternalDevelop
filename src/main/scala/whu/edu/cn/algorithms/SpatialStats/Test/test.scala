@@ -27,7 +27,7 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
@@ -47,16 +47,16 @@ object test {
     //    pca_test()
     //    gwrbasic_test()
     //    geodetector_test()
-        AverageNearestNeighbor.result(shpfile)
-        DescriptiveStatistics.result(shpfile, "FLOORSZ")
-        globalMoranI(shpfile2, "HR60", plot = true, test = true)
-        localMoranI(shpfile2, "HR60")
-        TemporalAutoCorrelation.ACF(shpfile,"FLOORSZ",30)
-        CorrelationAnalysis.corrMat(shpfile,"PROF,FLOORSZ,UNEMPLOY,PURCHASE")
-        GWRbasic.Fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
-        SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
-        SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
-        SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+    AverageNearestNeighbor.result(shpfile)
+    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
+    globalMoranI(shpfile2, "HR60", plot = true, test = true)
+    localMoranI(shpfile2, "HR60")
+    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
+    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
+    GWRbasic.Fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
+    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")
     sc.stop()
