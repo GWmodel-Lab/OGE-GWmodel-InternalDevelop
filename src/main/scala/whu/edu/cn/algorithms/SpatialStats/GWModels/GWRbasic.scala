@@ -37,6 +37,17 @@ class GWRbasic extends GWRbase {
     _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
   }
 
+  def resetX(name: Array[String]): Unit = {
+    val x = name.map(s => {
+      DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
+    })
+    _X = x
+    _xcols = x.length
+    _xrows = _X(0).length
+    val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, x.flatMap(t => t.toArray))
+    _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
+  }
+
   override def setY(property: String): Unit = {
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
@@ -53,8 +64,41 @@ class GWRbasic extends GWRbase {
     p += plot(optv_sort.map(_._1), optv_sort.map(_._2))
     p.xlabel = "bandwidth"
     p.ylabel = s"$approach"
-    printString += fit(bwselect, kernel = kernel, adaptive = adaptive)._2
-    (fit(bwselect, kernel = kernel, adaptive = adaptive)._1, printString)
+    val result=fit(bwselect, kernel = kernel, adaptive = adaptive)
+    printString += result._2
+    (result._1, printString)
+  }
+
+
+  def variableSelect(kernel: String = "gaussian"): String={
+    //name change
+    val remainNameBuf=_nameX.toBuffer.asInstanceOf[ArrayBuffer[String]]
+    val getNameBuf = ArrayBuffer.empty[String]
+    for(i <- remainNameBuf.indices) {
+      _kernel = kernel
+      val valBuf = ArrayBuffer.empty[Double]
+      for (i <- remainNameBuf.indices) {
+        val nameArr = getNameBuf.toArray ++ Array(remainNameBuf(i))
+        resetX(nameArr)
+        valBuf += variableResult(nameArr)
+//        println(nameArr.toList)
+      }
+      println(valBuf.toList)
+      val valArrIdx = valBuf.toArray.zipWithIndex.sorted
+//      println(valArrIdx.toList)
+      getNameBuf += remainNameBuf.apply(valArrIdx(0)._2)
+      remainNameBuf.remove(valArrIdx(0)._2)
+//      println(getNameBuf.toList)
+    }
+    println(getNameBuf.mkString("+"))
+    getNameBuf.toString()
+  }
+
+  def variableResult(arrX: Array[String]): Double = {
+    resetX(arrX)
+    val bw = 10.0 * max_dist
+    setweight(bw * max_dist, _kernel, false)
+    bandwidthAICc(bw)
   }
 
   def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, Map[String, Any]))], String)  = {
