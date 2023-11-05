@@ -2,9 +2,14 @@ package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.sqrt
-import scala.math._
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+import org.locationtech.jts.geom.Geometry
 
+import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
+
+import scala.collection.mutable
 
 /**
  * 空间误差模型，考虑自变量误差项λ。
@@ -31,7 +36,11 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
    *
    * @param x 自变量
    */
-  override def setX(x: Array[DenseVector[Double]]): Unit = {
+  override def setX(properties: String, split: String = ","): Unit = {
+    _nameX = properties.split(split)
+    val x = _nameX.map(s => {
+      DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
+    })
     _X = x
     _xcols = x.length
     _xrows = _X(0).length
@@ -46,8 +55,8 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
    *
    * @param y 因变量
    */
-  override def setY(y: Array[Double]): Unit = {
-    _Y = DenseVector(y)
+  override def setY(property: String): Unit = {
+    _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
   /**
@@ -55,9 +64,9 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
    *
    * @return 返回拟合值（Array）形式
    */
-  def fit(): Array[Double] = {
+  def fit(): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val interval = get_interval()
-    val lambda = goldenSelection(interval._1, interval._2, function = lambda4optimize)
+    val lambda = goldenSelection(interval._1, interval._2, function = lambda4optimize)._1
     //    println(s"lambda is $lambda")
     _errorX = _1X - lambda * _wx
     _errorY = _Y - lambda * _wy
@@ -70,13 +79,25 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     val lllambda = lambda4optimize(lambda)
 
     fitvalue = (_Y - res).toArray
-    println("---------------------------------spatial lag model---------------------------------")
-    println(s"rho is $lambda")
-    try_LRtest(lllambda, lly)
-    println(s"coeffients:\n$betas_map")
-    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
-    println("------------------------------------------------------------------------------------")
-    fitvalue
+
+    var printStr = "-----------------------------Spatial Error Model-----------------------------\n" +
+      f"lambda is $lambda%.6f\n"
+    printStr += try_LRtest(-lllambda, lly)
+    printStr += f"coeffients:\n$betas_map\n"
+    printStr += calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
+    printStr += "------------------------------------------------------------------------------"
+    //    println("------------------------------spatial error model------------------------------")
+    //    println(s"lambda is $lambda")
+    //    try_LRtest(lllambda, lly)
+    //    println(s"coeffients:\n$betas_map")
+    //    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
+    //    println("--------------------------------------------------------------------------------")
+    println(printStr)
+    val shpRDDidx = shpRDD.collect().zipWithIndex
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("fitValue" -> fitvalue(t._2))
+    })
+    (shpRDDidx.map(t => t._1), printStr)
   }
 
   def get_betas(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, W: DenseMatrix[Double] = DenseMatrix.eye(_xrows)): DenseVector[Double] = {
@@ -158,6 +179,27 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
     //    println(SSE, ret)
     ret
+  }
+
+}
+
+object SpatialErrorModel {
+  /** Spatial Error Model (SEM) for spatial regression
+   *
+   * @param sc          SparkContext
+   * @param featureRDD      shapefile RDD
+   * @param propertyY   dependant property
+   * @param propertiesX independant properties
+   * @return featureRDD and diagnostic String
+   */
+  def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String)
+  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    val mdl = new SpatialErrorModel
+    mdl.init(featureRDD)
+    mdl.setX(propertiesX)
+    mdl.setY(propertyY)
+    val re = mdl.fit()
+    (sc.makeRDD(re._1), re._2)
   }
 
 }
