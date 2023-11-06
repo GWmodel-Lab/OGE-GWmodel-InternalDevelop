@@ -61,7 +61,11 @@ class GWRbasic extends GWRbase {
     var printString = "Auto bandwidth selection\n"
     //    println("auto bandwidth selection")
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
-    printString += s"Best bandwidth is $bwselect\n"
+    opt_iters.foreach(t=>{
+      val i= (t-1).toInt
+      printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.2f, $approach: ${opt_result(i)}%.3f\n")
+    })
+    printString += f"Best bandwidth is $bwselect%.2f\n"
     //    println(s"best bandwidth is $bwselect")
     val f = Figure()
     f.height = 600
@@ -69,6 +73,7 @@ class GWRbasic extends GWRbase {
     val p = f.subplot(0)
     val optv_sort = opt_value.zipWithIndex.map(t => (t._1, opt_result(t._2))).sortBy(_._1)
     p += plot(optv_sort.map(_._1), optv_sort.map(_._2))
+    p.title = "bandwidth selection"
     p.xlabel = "bandwidth"
     p.ylabel = s"$approach"
     val result = fit(bwselect, kernel = kernel, adaptive = adaptive)
@@ -118,6 +123,7 @@ class GWRbasic extends GWRbase {
     f.width = 900
     val p = f.subplot(0)
     p += plot(plotIdx.toArray, plotAic.toArray)
+    p.title = "variable selection"
     p.xlabel = "variable selection order"
     p.ylabel = "AICc"
     _outString = "Auto variable selection\n"
@@ -367,6 +373,7 @@ object GWRbasic {
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param split       split of the x properties, default: ","
    * @param varSelTh    threshold of variable selection, default: 3.0
    * @return featureRDD and diagnostic String
    */
@@ -394,6 +401,7 @@ object GWRbasic {
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param split       split of the x properties, default: ","
    * @return featureRDD and diagnostic String
    */
   def autoFit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
@@ -417,6 +425,7 @@ object GWRbasic {
    * @param bandwidth   bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param split       split of the x properties, default: ","
    * @return featureRDD and diagnostic String
    */
   def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
