@@ -61,8 +61,8 @@ class GWRbasic extends GWRbase {
     var printString = "Auto bandwidth selection\n"
     //    println("auto bandwidth selection")
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
-    opt_iters.foreach(t=>{
-      val i= (t-1).toInt
+    opt_iters.foreach(t => {
+      val i = (t - 1).toInt
       printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.2f, $approach: ${opt_result(i)}%.3f\n")
     })
     printString += f"Best bandwidth is $bwselect%.2f\n"
@@ -78,7 +78,11 @@ class GWRbasic extends GWRbase {
     p.ylabel = s"$approach"
     val result = fit(bwselect, kernel = kernel, adaptive = adaptive)
     printString += result._2
-    _outString += printString
+    if (_outString == null) {
+      _outString = printString
+    } else {
+      _outString += printString
+    }
     (result._1, _outString)
   }
 
