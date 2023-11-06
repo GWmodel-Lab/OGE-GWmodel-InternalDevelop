@@ -40,7 +40,7 @@ class GWRbasic extends GWRbase {
     _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
   }
 
-  def resetX(name: Array[String]): Unit = {
+  private def resetX(name: Array[String]): Unit = {
     _nameUsed = name
     val x = name.map(s => {
       DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
@@ -131,7 +131,7 @@ class GWRbasic extends GWRbase {
     (getNameBuf.toArray, select_idx)
   }
 
-  def variableResult(arrX: Array[String]): Double = {
+  private def variableResult(arrX: Array[String]): Double = {
     resetX(arrX)
     val bw = 10.0 * max_dist
     setweight(bw, _kernel, adaptive = false)
@@ -368,8 +368,8 @@ object GWRbasic {
    *
    * @param sc          SparkContext
    * @param featureRDD  shapefile RDD
-   * @param propertyY   dependant property
-   * @param propertiesX independant properties
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
@@ -396,8 +396,8 @@ object GWRbasic {
    *
    * @param sc          SparkContext
    * @param featureRDD  shapefile RDD
-   * @param propertyY   dependant property
-   * @param propertiesX independant properties
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
@@ -420,8 +420,8 @@ object GWRbasic {
    *
    * @param sc          SparkContext
    * @param featureRDD  shapefile RDD
-   * @param propertyY   dependant property
-   * @param propertiesX independant properties
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
    * @param bandwidth   bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
