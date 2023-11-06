@@ -24,7 +24,7 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
@@ -41,14 +41,15 @@ object test {
     //    pca_test()
     //    geodetector_test()
 //    gwrbasic_test()
-    GWRbasic.auto(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH")
+    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
+    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)
 //    AverageNearestNeighbor.result(shpfile)
 //    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
 //    SpatialAutoCorrelation.globalMoranI(shpfile2, "HR60", plot = true, test = true)
 //    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
 //    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
 //    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
-    GWRbasic.Fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
+//    GWRbasic.fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
 //    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
 //    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
 //    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
