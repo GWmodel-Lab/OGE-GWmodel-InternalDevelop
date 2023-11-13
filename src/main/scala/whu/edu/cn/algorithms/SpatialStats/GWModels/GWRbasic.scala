@@ -9,8 +9,10 @@ import org.locationtech.jts.geom.Geometry
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
-import whu.edu.cn.util.ShapeFileUtil.readShp
+import whu.edu.cn.util.ShapeFileUtil.{builderFeatureType, readShp}
 
+import java.awt.Graphics2D
+import java.awt.image.BufferedImage
 import scala.collection.mutable
 
 class GWRbasic extends GWRbase {
@@ -67,6 +69,9 @@ class GWRbasic extends GWRbase {
     })
     printString += f"Best bandwidth is $bwselect%.2f\n"
     //    println(s"best bandwidth is $bwselect")
+    //    val d= new BufferedImage(900,600,BufferedImage.TYPE_4BYTE_ABGR)
+    //    val g=d.createGraphics()
+    //    g.drawString("str",10,10)
     val f = Figure()
     f.height = 600
     f.width = 900

@@ -24,7 +24,7 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
@@ -50,8 +50,8 @@ object test {
 //    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
 //    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
     GWRbasic.auto(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH", kernel = "bisquare")
-    GWRbasic.fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 80, adaptive = true)
-    GWRbasic.autoFit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY",approach = "CV", adaptive = true)
+//    GWRbasic.fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 80, adaptive = true)
+//    GWRbasic.autoFit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY",approach = "CV", adaptive = true)
 //    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
 //    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
 //    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
