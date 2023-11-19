@@ -11,7 +11,7 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.lin
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
+import whu.edu.cn.algorithms.SpatialStats.GWModels.{GWAverage, GWRbasic}
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.oge.Feature._
@@ -40,16 +40,22 @@ object test {
     //    linear_test()
     //    pca_test()
     //    geodetector_test()
-    AverageNearestNeighbor.result(shpfile)
-    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
-    SpatialAutoCorrelation.globalMoranI(shpfile2, "HR60", plot = true, test = true)
-    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
-    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
-    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
-    GWRbasic.Fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
-    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
-    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
-    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+    val m=new GWAverage
+    m.init(shpfile)
+    m.setX("PURCHASE,FLOORSZ")
+    m.setY("PURCHASE")
+    m.calAverage()
+
+//    AverageNearestNeighbor.result(shpfile)
+//    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
+//    SpatialAutoCorrelation.globalMoranI(shpfile2, "HR60", plot = true, test = true)
+//    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
+//    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
+//    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
+//    GWRbasic.Fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
+//    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+//    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+//    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")
     sc.stop()
