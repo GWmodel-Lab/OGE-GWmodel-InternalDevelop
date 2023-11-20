@@ -40,12 +40,8 @@ object test {
     //    linear_test()
     //    pca_test()
     //    geodetector_test()
-    val m=new GWAverage
-    m.init(shpfile)
-    m.setX("PURCHASE,FLOORSZ")
-    m.setY("PURCHASE")
-    m.calAverage()
 
+    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
 //    AverageNearestNeighbor.result(shpfile)
 //    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
 //    SpatialAutoCorrelation.globalMoranI(shpfile2, "HR60", plot = true, test = true)
@@ -56,6 +52,7 @@ object test {
 //    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
 //    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
 //    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")
     sc.stop()
