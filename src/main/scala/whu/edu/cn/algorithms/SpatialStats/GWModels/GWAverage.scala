@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
-import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, linspace, qr, sum, trace}
+import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, linspace, mmwrite, qr, sum, trace}
 import breeze.stats.median
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
@@ -69,27 +69,34 @@ class GWAverage extends GWRbase {
     q
   }
 
-  def calAverage(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false): Unit = {
+  def calAverage(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false): Array[((String, (Geometry, mutable.Map[String, Any])), Int)] = {
     setweight(bw = 20, kernel = kernel, adaptive = adaptive)
     shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.foreach(t => t._1._2._2.clear())
+    var str = "*                Results of Geographically Weighted Average                    *\n"
+    print("*                Results of Geographically Weighted Average                    *\n")
     val Xidx = _X.zipWithIndex
-    Xidx.foreach(t => {
+    val reStr=Xidx.map(t => {
       calAverageSerial(t._1, t._2, quantile)
     })
+    println("x\tmin\tmedian\tmax")
+    reStr.foreach(t => {
+      for(i<-t.indices) {
+        print(s"${t(i)._1}")
+        print(f"\t${t(i)._2}%.4f\t${t(i)._3}%.4f\t${t(i)._4}%.4f\n")
+      }
+    })
+    print("*********************************************************************************\n")
+    shpRDDidx
   }
 
-  def calAverageSerial(x: DenseVector[Double], num: Int, quantile:Boolean =false): Unit = {
+  def calAverageSerial(x: DenseVector[Double], num: Int, quantile:Boolean =false): Array[(String, Double, Double, Double)] = {
     val name = _nameX(num)
-    var str="*                Results of Geographically Weighted Average                    *\n"
-    print("*                Results of Geographically Weighted Average                    *\n")
     val w_i = spweight_dvec.map(t => {
       val tmp = 1 / sum(t)
       t * tmp
     })
     val aLocalMean = w_i.map(w => w.t * x)
-    val m=median(DenseVector(aLocalMean))
-
     val x_lm = aLocalMean.map(t => {
       x.map(i => {
         i - t
@@ -119,7 +126,7 @@ class GWAverage extends GWRbase {
         val tmp = t.toArray
         tmp(2)
       })
-      println("calculate quantile value")
+//      println("calculate quantile value")
       val mLocalMedian = quant1
       val mIQR = DenseVector(quant2) - DenseVector(quant0)
       val mQI = ((2.0 * DenseVector(quant1)) - DenseVector(quant2) - DenseVector(quant0)) / mIQR
@@ -141,7 +148,18 @@ class GWAverage extends GWRbase {
       t._1._2._2 += (name + "_LSke" -> aLocalSkewness(t._2))
       t._1._2._2 += (name + "_LCV" -> mLcv(t._2))
     })
-    print("*********************************************************************************\n")
+    val mmmStr=new Array[(String, Double, Double, Double)](5)
+    mmmStr(0)=findmmm(name + "_LM", aLocalMean)
+    mmmStr(1)=findmmm(name + "_LVar", aLVar)
+    mmmStr(2)=findmmm(name + "_LSD", aStandardDev)
+    mmmStr(3)=findmmm(name + "_LSke", aLocalSkewness)
+    mmmStr(4)=findmmm(name + "_LCV", mLcv.toArray)
+    mmmStr
+  }
+
+  def findmmm(str: String, arr: Array[Double]):(String, Double, Double, Double)={
+    val med=median(DenseVector(arr))
+    (str, arr.min, med, arr.max)
   }
 
 
