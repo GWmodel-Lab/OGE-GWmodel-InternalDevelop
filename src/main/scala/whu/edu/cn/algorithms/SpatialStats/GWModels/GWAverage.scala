@@ -34,7 +34,7 @@ class GWAverage extends GWRbase {
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
-  def findq(x: DenseVector[Double], w: DenseVector[Double], p: DenseVector[Double] = DenseVector(0.25, 0.50, 0.75)): DenseVector[Double] = {
+  private def findq(x: DenseVector[Double], w: DenseVector[Double], p: DenseVector[Double] = DenseVector(0.25, 0.50, 0.75)): DenseVector[Double] = {
     val lp = p.length
     val q = DenseVector(0.0, 0.0, 0.0)
     val x_ord = x.toArray.sorted
@@ -162,7 +162,7 @@ class GWAverage extends GWRbase {
     mmmStr
   }
 
-  def findmmm(str: String, arr: Array[Double]): (String, Double, Double, Double) = {
+  private def findmmm(str: String, arr: Array[Double]): (String, Double, Double, Double) = {
     val med = median(DenseVector(arr))
     (str, arr.min, med, arr.max)
   }
@@ -171,6 +171,18 @@ class GWAverage extends GWRbase {
 
 object GWAverage {
 
+  /** *
+   *
+   * @param sc          SparkContext
+   * @param featureRDD  shapefile RDD
+   * @param propertyY   dependant property
+   * @param propertiesX independant properties
+   * @param bw          bandwidth value
+   * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
+   * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param quantile    true for quantile value calculation
+   * @return featureRDD and diagnostic String
+   */
   def cal(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
           bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
@@ -179,7 +191,7 @@ object GWAverage {
     model.setX(propertiesX)
     model.setY(propertyY)
     val r = model.calAverage(bw, kernel, adaptive, quantile)
-//    print(r._2)
+    //    print(r._2)
     (sc.makeRDD(r._1), r._2)
   }
 
