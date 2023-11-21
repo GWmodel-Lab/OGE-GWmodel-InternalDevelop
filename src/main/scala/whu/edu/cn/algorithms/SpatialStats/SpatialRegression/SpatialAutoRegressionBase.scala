@@ -13,10 +13,11 @@ import scala.math._
 //抽象类，不可以被初始化
 abstract class SpatialAutoRegressionBase {
 
-  private var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
+  protected var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
   protected var _X: Array[DenseVector[Double]] = _
   protected var _Y: DenseVector[Double] = _
 
+  protected var _nameX: Array[String] = _
   protected var geom: RDD[Geometry] = _
   protected var spweight_dvec: Array[DenseVector[Double]] = _
   protected var spweight_dmat: DenseMatrix[Double] = _
@@ -30,7 +31,7 @@ abstract class SpatialAutoRegressionBase {
 
   }
 
-  protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], loglikelihood: Double, df: Double) {
+  protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], loglikelihood: Double, df: Double): String = {
     val n = X.rows.toDouble
     val rss = sum(residuals.toArray.map(t => t * t))
     val mean_y = Y.toArray.sum / Y.toArray.length
@@ -39,14 +40,15 @@ abstract class SpatialAutoRegressionBase {
     val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
     val r2 = 1 - rss / yss
     val r2_adj = 1 - (1 - r2) * (n - 1) / (n - df - 1)
-    println(s"diagnostics:\nSSE is $rss\nLog likelihood is $loglikelihood\nAIC is $AIC \nAICc is $AICc\nR2 is $r2\nadjust R2 is $r2_adj")
+    f"     diagnostics\nSSE : $rss%.6f\nLog likelihood : $loglikelihood%.6f\nAIC : $AIC%.6f\nAICc: $AICc%.6f\nR2 : $r2%.6f\nadjust R2 : $r2_adj%.6f\n"
+    //    println(s"diagnostics:\nSSE : $rss\nLog likelihood : $loglikelihood\nAIC : $AIC \nAICc: $AICc\nR2 : $r2\nadjust R2 : $r2_adj")
   }
 
   /**
    * 初始化空间数据，输入RDD形式的shpfile
    *
-   * @param inputRDD  RDD形式的shpfile
-   * @param style     非必选参数，邻接矩阵的类型，默认为W
+   * @param inputRDD RDD形式的shpfile
+   * @param style    非必选参数，邻接矩阵的类型，默认为W
    */
   def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], style: String = "W"): Unit = {
     geom = getGeometry(inputRDD)
@@ -54,12 +56,12 @@ abstract class SpatialAutoRegressionBase {
     setweight(style = style)
   }
 
-  protected def setX(x: Array[DenseVector[Double]]): Unit = {
-    _X = x
+  protected def setX(properties: String, split: String = ","): Unit = {
+
   }
 
-  protected def setY(y: Array[Double]): Unit = {
-    _Y = DenseVector(y)
+  protected def setY(property: String): Unit = {
+
   }
 
   /**
@@ -80,9 +82,9 @@ abstract class SpatialAutoRegressionBase {
   /**
    * 提供更改、设置权重计算方式的函数
    *
-   * @param neighbor  是否使用邻接矩阵方式构建权重，默认：是（true）
-   * @param k         如果不使用邻接矩阵形式，输入最近邻个数，默认为0
-   * @param style     非必选参数，邻接矩阵的类型，默认为W
+   * @param neighbor 是否使用邻接矩阵方式构建权重，默认：是（true）
+   * @param k        如果不使用邻接矩阵形式，输入最近邻个数，默认为0
+   * @param style    非必选参数，邻接矩阵的类型，默认为W
    */
   def setweight(neighbor: Boolean = true, k: Double = 0, style: String = "W"): Unit = {
     if (neighbor && !geom.isEmpty()) {
@@ -109,25 +111,22 @@ abstract class SpatialAutoRegressionBase {
     0.5 * (w.toArray.map(t => log(t)).sum - n * (log(2 * math.Pi) + 1.0 - log(n) + log((w * res * res).toArray.sum)))
   }
 
-  protected def try_LRtest(LLx: Double, LLy: Double, chi_pama: Double = 1): Unit = {
+  protected def try_LRtest(LLx: Double, LLy: Double, chi_pama: Double = 1): String = {
     val score = 2.0 * (LLx - LLy)
     val pchi = breeze.stats.distributions.ChiSquared
     val pvalue = 1 - pchi.distribution(chi_pama).cdf(abs(score))
-    println(s"ChiSquared test, score is $score, p value is $pvalue")
+    f"ChiSquared test, score is $score%.4f, p value is $pvalue%.6f\n"
+    //    println(s"ChiSquared test, score is $score, p value is $pvalue")
   }
 
   protected def betasMap(coef: DenseVector[Double]): mutable.Map[String, Double] = {
-    val arrbuf = new ArrayBuffer[String]()
-    arrbuf += "Intercept"
-    for (i <- 1 until coef.length) {
-      val tmp = "X" + i.toString
-      arrbuf += tmp
-    }
-    val coefname = arrbuf.toArray
+    val coefname = Array("Intercept") ++ _nameX
     val coefvalue = coef.toArray
     val betas_map: mutable.Map[String, Double] = mutable.Map()
     for (i <- 0 until coef.length) {
-      betas_map += (coefname(i) -> coefvalue(i))
+      val coefi = coefvalue(i).formatted("%.6f").toDouble
+      //      betas_map += (coefname(i) -> coefvalue(i))
+      betas_map += (coefname(i) -> coefi)
     }
     //    println(betas_map)
     betas_map
