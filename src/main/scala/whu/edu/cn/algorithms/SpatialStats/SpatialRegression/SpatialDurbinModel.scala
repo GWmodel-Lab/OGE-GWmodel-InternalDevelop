@@ -29,10 +29,10 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
 
-  /**
-   * 设置X
+  /** set x
    *
-   * @param x 自变量
+   * @param properties String
+   * @param split      default:","
    */
   override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
@@ -48,10 +48,9 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
     _df = _xcols + 1 + 1
   }
 
-  /**
-   * 设置Y
+  /** set y
    *
-   * @param y 因变量
+   * @param property String
    */
   override def setY(property: String): Unit = {
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
@@ -183,8 +182,8 @@ object SpatialDurbinModel {
    *
    * @param sc          SparkContext
    * @param featureRDD      shapefile RDD
-   * @param propertyY   dependant property
-   * @param propertiesX independant properties
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
    * @return featureRDD and diagnostic String
    */
   def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String)

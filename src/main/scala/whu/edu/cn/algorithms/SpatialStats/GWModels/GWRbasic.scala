@@ -9,8 +9,10 @@ import org.locationtech.jts.geom.Geometry
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
-import whu.edu.cn.util.ShapeFileUtil.readShp
+import whu.edu.cn.util.ShapeFileUtil.{builderFeatureType, readShp}
 
+import java.awt.Graphics2D
+import java.awt.image.BufferedImage
 import scala.collection.mutable
 
 class GWRbasic extends GWRbase {
@@ -18,6 +20,8 @@ class GWRbasic extends GWRbase {
   var _xrows = 0
   var _xcols = 0
   val select_eps = 1e-2
+  var _nameUsed: Array[String] = _
+  var _outString: String = _
 
   var opt_value: Array[Double] = _
   var opt_result: Array[Double] = _
@@ -25,8 +29,9 @@ class GWRbasic extends GWRbase {
 
   private var _dX: DenseMatrix[Double] = _
 
-  override def setX(properties: String, split:String=","): Unit = {
+  override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
+    _nameUsed = _nameX
     val x = _nameX.map(s => {
       DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
     })
@@ -37,27 +42,112 @@ class GWRbasic extends GWRbase {
     _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
   }
 
+  private def resetX(name: Array[String]): Unit = {
+    _nameUsed = name
+    val x = name.map(s => {
+      DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
+    })
+    _X = x
+    _xcols = x.length
+    _xrows = _X(0).length
+    val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, x.flatMap(t => t.toArray))
+    _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
+  }
+
   override def setY(property: String): Unit = {
+    _nameY = property
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
-  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): (Array[(String, (Geometry, Map[String, Any]))], String) = {
+  def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     var printString = "Auto bandwidth selection\n"
     //    println("auto bandwidth selection")
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
-    printString += s"Best bandwidth is $bwselect\n"
+    opt_iters.foreach(t => {
+      val i = (t - 1).toInt
+      printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.2f, $approach: ${opt_result(i)}%.3f\n")
+    })
+    printString += f"Best bandwidth is $bwselect%.2f\n"
     //    println(s"best bandwidth is $bwselect")
+    //    val d= new BufferedImage(900,600,BufferedImage.TYPE_4BYTE_ABGR)
+    //    val g=d.createGraphics()
+    //    g.drawString("str",10,10)
     val f = Figure()
+    f.height = 600
+    f.width = 900
     val p = f.subplot(0)
     val optv_sort = opt_value.zipWithIndex.map(t => (t._1, opt_result(t._2))).sortBy(_._1)
     p += plot(optv_sort.map(_._1), optv_sort.map(_._2))
+    p.title = "bandwidth selection"
     p.xlabel = "bandwidth"
     p.ylabel = s"$approach"
-    printString += fit(bwselect, kernel = kernel, adaptive = adaptive)._2
-    (fit(bwselect, kernel = kernel, adaptive = adaptive)._1, printString)
+    val result = fit(bwselect, kernel = kernel, adaptive = adaptive)
+    printString += result._2
+    if (_outString == null) {
+      _outString = printString
+    } else {
+      _outString += printString
+    }
+    (result._1, _outString)
   }
 
-  def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, Map[String, Any]))], String)  = {
+  def variableSelect(kernel: String = "gaussian", select_th: Double = 3.0): (Array[String], Int) = {
+    val remainNameBuf = _nameX.toBuffer.asInstanceOf[ArrayBuffer[String]]
+    val getNameBuf = ArrayBuffer.empty[String]
+    var index = 0
+    val plotIdx = ArrayBuffer.empty[Double]
+    val plotAic = ArrayBuffer.empty[Double]
+    var ordString = ""
+    var select_idx = _nameX.length
+    var minVal = 0.0
+    for (i <- remainNameBuf.indices) {
+      _kernel = kernel
+      val valBuf = ArrayBuffer.empty[Double]
+      for (i <- remainNameBuf.indices) {
+        val nameArr = getNameBuf.toArray ++ Array(remainNameBuf(i))
+        resetX(nameArr)
+        valBuf += variableResult(nameArr)
+        index += 1
+        plotIdx += index
+        ordString += index.toString + ", " + _nameY + "~" + nameArr.mkString("+") + "\n"
+      }
+      plotAic ++= valBuf
+      val valArrIdx = valBuf.toArray.zipWithIndex.sorted
+      //      println(valArrIdx.toList)
+      getNameBuf += remainNameBuf.apply(valArrIdx(0)._2)
+      if (minVal == 0.0) {
+        minVal = valArrIdx(0)._1 + 10.0
+      }
+      if ((minVal - valArrIdx(0)._1) < select_th && select_idx == _nameX.length) {
+        select_idx = i
+      } else {
+        minVal = valArrIdx(0)._1
+      }
+      //      println(_nameY + "~" + getNameBuf.mkString("+"))
+      //      println(i,select_idx)
+      remainNameBuf.remove(valArrIdx(0)._2)
+    }
+    val f = Figure()
+    f.height = 600
+    f.width = 900
+    val p = f.subplot(0)
+    p += plot(plotIdx.toArray, plotAic.toArray)
+    p.title = "variable selection"
+    p.xlabel = "variable selection order"
+    p.ylabel = "AICc"
+    _outString = "Auto variable selection\n"
+    _outString += ordString
+    (getNameBuf.toArray, select_idx)
+  }
+
+  private def variableResult(arrX: Array[String]): Double = {
+    resetX(arrX)
+    val bw = 10.0 * max_dist
+    setweight(bw, _kernel, adaptive = false)
+    bandwidthAICc(bw)
+  }
+
+  def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     if (bw > 0) {
       setweight(bw, kernel, adaptive)
     } else if (spweight_dvec != null) {
@@ -72,15 +162,16 @@ class GWRbasic extends GWRbase {
     val arr_yhat = results._2.toArray
     val arr_residual = results._3.toArray
     val shpRDDidx = shpRDD.collect().zipWithIndex
-    shpRDDidx.foreach(t=>t._1._2._2.clear())
+    shpRDDidx.foreach(t => t._1._2._2.clear())
     shpRDDidx.map(t => {
       t._1._2._2 += ("yhat" -> arr_yhat(t._2))
       t._1._2._2 += ("residual" -> arr_residual(t._2))
     })
-    val name=Array("Intercept")++_nameX
-    for(i<-0 until betas.rows){
-      shpRDDidx.map(t=>{
-        val a=betas(i,t._2)
+    //    results._1.map(t=>mean(t))
+    val name = Array("Intercept") ++ _nameUsed
+    for (i <- 0 until betas.rows) {
+      shpRDDidx.map(t => {
+        val a = betas(i, t._2)
         t._1._2._2 += (name(i) -> a)
       })
     }
@@ -93,11 +184,13 @@ class GWRbasic extends GWRbase {
     if (adaptive) {
       bw_type = "Adaptive"
     }
+    val fitFormula = _nameY + " ~ " + _nameUsed.mkString(" + ")
     var fitString = "*********************************************************************************\n" +
       "*               Results of Geographically Weighted Regression                   *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
-      s"Kernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n"
+      s"Formula: $fitFormula" +
+      s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n"
     //    println("*********************************************************************************")
     //    println("*               Results of Geographically Weighted Regression                   *")
     //    println("*********************************************************************************")
@@ -106,7 +199,7 @@ class GWRbasic extends GWRbase {
     //    print(f"$bw%.2f\n")
     //    println("Distance metric: Euclidean distance metric is used.")
     fitString += calDiagnostic(_dX, _Y, results._3, results._4)
-    (shpRDDidx.map(t => t._1),fitString)
+    (shpRDDidx.map(t => t._1), fitString)
   }
 
   private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
@@ -283,16 +376,45 @@ object GWRbasic {
   /** Basic GWR calculation with bandwidth auto selection
    *
    * @param sc          SparkContext
-   * @param featureRDD      shapefile RDD
-   * @param propertyY   dependant property
-   * @param propertiesX independant properties
+   * @param featureRDD  shapefile RDD
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param split       split of the x properties, default: ","
+   * @param varSelTh    threshold of variable selection, default: 3.0
+   * @return featureRDD and diagnostic String
+   */
+  def auto(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
+           kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, split: String = ",", varSelTh: Double = 3.0)
+  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    val model = new GWRbasic
+    model.init(featureRDD)
+    model.setY(propertyY)
+    model.setX(propertiesX, split)
+    val vars = model.variableSelect(kernel = kernel, select_th = varSelTh)
+    val r = vars._1.take(vars._2)
+    model.resetX(r)
+    val re = model.auto(kernel = kernel, approach = approach, adaptive = adaptive)
+    print(re._2)
+    (sc.makeRDD(re._1), re._2)
+  }
+
+  /** Basic GWR calculation with bandwidth auto selection
+   *
+   * @param sc          SparkContext
+   * @param featureRDD  shapefile RDD
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
+   * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
+   * @param approach    approach function: AICc, CV
+   * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param split       split of the x properties, default: ","
    * @return featureRDD and diagnostic String
    */
   def autoFit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true)
+              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, split: String = ",")
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWRbasic
     model.init(featureRDD)
@@ -306,16 +428,17 @@ object GWRbasic {
   /** Basic GWR calculation with specific bandwidth
    *
    * @param sc          SparkContext
-   * @param featureRDD      shapefile RDD
-   * @param propertyY   dependant property
-   * @param propertiesX independant properties
+   * @param featureRDD  shapefile RDD
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
    * @param bandwidth   bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param split       split of the x properties, default: ","
    * @return featureRDD and diagnostic String
    */
-  def Fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = true)
+  def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
+          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false, split: String = ",")
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWRbasic
     model.init(featureRDD)

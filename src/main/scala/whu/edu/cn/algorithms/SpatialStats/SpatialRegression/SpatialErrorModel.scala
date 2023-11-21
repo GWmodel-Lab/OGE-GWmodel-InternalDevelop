@@ -1,7 +1,7 @@
 package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
 import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
-import breeze.numerics.sqrt
+import breeze.numerics.{NaN, sqrt}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
@@ -25,16 +25,16 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
   private var _errorX: DenseMatrix[Double] = _
   private var _errorY: DenseVector[Double] = _
 
-  private var sum_lw: Double = _
+  private var sum_lw: Double = NaN
   private var sw: DenseVector[Double] = _
   private var _wy: DenseVector[Double] = _
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
 
-  /**
-   * 设置X
+  /** set x
    *
-   * @param x 自变量
+   * @param properties String
+   * @param split      default:","
    */
   override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
@@ -50,10 +50,9 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     _df = _xcols + 1 + 1
   }
 
-  /**
-   * 设置Y
+  /** set y
    *
-   * @param y 因变量
+   * @param property String
    */
   override def setY(property: String): Unit = {
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
@@ -124,7 +123,7 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
       if (_wy == null) {
         _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
       }
-      if (sum_lw == null || sw == null) {
+      if (sum_lw.isNaN || sw == null) {
         val weight1: DenseVector[Double] = DenseVector.ones[Double](_xrows)
         sum_lw = weight1.toArray.map(t => log(t)).sum
         sw = sqrt(weight1)
@@ -188,8 +187,8 @@ object SpatialErrorModel {
    *
    * @param sc          SparkContext
    * @param featureRDD      shapefile RDD
-   * @param propertyY   dependant property
-   * @param propertiesX independant properties
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
    * @return featureRDD and diagnostic String
    */
   def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String)
