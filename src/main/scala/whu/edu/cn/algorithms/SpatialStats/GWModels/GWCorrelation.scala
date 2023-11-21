@@ -1,29 +1,38 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, linspace, qr, ranks, sum, trace}
+import breeze.stats.median
+import org.locationtech.jts.geom.Geometry
 
 import scala.util.control.Breaks
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
 
+import scala.collection.mutable
+
 class GWCorrelation extends GWRbase {
 
   var _xrows = 0
   var _xcols = 0
   val select_eps = 1e-2
-
+  private var shpRDDidx: Array[((String, (Geometry, mutable.Map[String, Any])), Int)] = _
   private var _dX: DenseMatrix[Double] = _
 
-  override def setX(x: Array[DenseVector[Double]]): Unit = {
+  override def setX(properties: String, split: String = ","): Unit = {
+    _nameX = properties.split(split)
+    val x = _nameX.map(s => {
+      DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
+    })
     _X = x
     _xcols = x.length
     _xrows = _X(0).length
-    _dX = DenseMatrix.create(rows = _xrows, cols = _xcols, data = _X.flatMap(t => t.toArray))
+    val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, x.flatMap(t => t.toArray))
+    _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
   }
 
-  override def setY(y: Array[Double]): Unit = {
-    _Y = DenseVector(y)
+  override def setY(property: String): Unit = {
+    _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
   def findq(x: DenseVector[Double], w: DenseVector[Double], p: DenseVector[Double] = DenseVector(0.25, 0.50, 0.75)): DenseVector[Double] = {
@@ -53,47 +62,66 @@ class GWCorrelation extends GWRbase {
         c_idx = 0
       }
       q(j) = x_ord(c_idx)
-      //      println(s"q $j $q")
     }
     q
   }
 
   def calCorrelation(bw: Double = 100, kernel: String = "gaussian", adaptive: Boolean = true) = {
     setweight(bw = 20, kernel = "bisquare", adaptive = adaptive)
-//    _X.map(t => {
-//      calCorrelationSerial(t, _X)
-//    })
+//    setweight(bw = bw, kernel = kernel, adaptive = adaptive)
+    var bw_type = "Fixed"
+    if (adaptive) {
+      bw_type = "Adaptive"
+    }
+    var str = "*********************************************************************************\n" +
+      "*               Results of Geographically Weighted Regression                   *\n" +
+      "*********************************************************************************\n" +
+      "**************************Model calibration information**************************\n" +
+      s"Kernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
+      "*****************************Diagnostic information******************************\n"
+    shpRDDidx = shpRDD.collect().zipWithIndex
+    shpRDDidx.foreach(t => t._1._2._2.clear())
+    val reStr=new ArrayBuffer[Array[(String, Double, Double, Double)]]()
+    for (i <- 0 until _xcols) {
+      for (j <- i+1  until _xcols) {
+        reStr += calCorrelationSerial(i, j)
+      }
+    }
+    str += "\t\t\t\t\t\t  min\t\t\t\t  median\t\t\t\tmax\n"
+    reStr.foreach(t => {
+      for (i <- t.indices) {
+        str += f"${t(i)._1}%-25s${t(i)._2}%-20.4f${t(i)._3}%-20.4f${t(i)._4}%-20.4f\n"
+      }
+    })
+    str += "*********************************************************************************\n"
+    print(str)
+  }
 
-    //应该只能用for int i j 的方式
-
-    val x1 = _X(0)
-    val x2 = _X(1)
-
+  def calCorrelationSerial(ix1:Int,ix2:Int): Array[(String, Double, Double, Double)] = {
+    val x1 = _X(ix1)
+    val x2 = _X(ix2)
     val w_i = spweight_dvec.map(t => {
       val tmp = 1 / sum(t)
       t * tmp
     })
-//    val sum_wi2=w_i.map(t1=>sum(t1.map(t2=>t2*t2)))
+    //    val sum_wi2=w_i.map(t1=>sum(t1.map(t2=>t2*t2)))
     val aLocalMean = w_i.map(w => w.t * x1)
-    println("aLocalMean")
-    println(aLocalMean.toVector)
     val x_lm = aLocalMean.map(t => {
       x1.map(i => {
         i - t
       })
     })
     val x_lm2 = x_lm.map(t => t.map(i => i * i))
-    val x_lm3 = x_lm.map(t => t.map(i => i * i * i))
+    //    val x_lm3 = x_lm.map(t => t.map(i => i * i * i))
     val w_ii = w_i.zipWithIndex
     val aLVar = w_ii.map(t => {
       t._1.t * x_lm2(t._2)
     })
-    val aStandardDev = aLVar.map(t => sqrt(t))
-    val aLocalSkewness = w_ii.map(t => {
-      (t._1.t * x_lm3(t._2)) / (aLVar(t._2) * aStandardDev(t._2))
-    })
-    val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
-
+    //    val aStandardDev = aLVar.map(t => sqrt(t))
+    //    val aLocalSkewness = w_ii.map(t => {
+    //      (t._1.t * x_lm3(t._2)) / (aLVar(t._2) * aStandardDev(t._2))
+    //    })
+    //    val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
     val aLocalMean2 = w_i.map(w => w.t * x2)
     val x2_lm = aLocalMean2.map(t => {
       x2.map(i => {
@@ -104,14 +132,11 @@ class GWCorrelation extends GWRbase {
     val aLVar2 = w_ii.map(t => {
       t._1.t * x2_lm2(t._2)
     })
-
-    val corrSize = _xcols - 1
-
-    val covmat=w_i.map(t=>{
-      covwt(x1,x2,t)
+    val covmat = w_i.map(t => {
+      covwt(x1, x2, t)
     })
-    val corrmat= w_ii.map(t => {
-      val sum_wi2=sum(t._1.map(i=>i*i))
+    val corrmat = w_ii.map(t => {
+      val sum_wi2 = sum(t._1.map(i => i * i))
       val covjj = aLVar(t._2) / (1.0 - sum_wi2)
       val covkk = aLVar2(t._2) / (1.0 - sum_wi2)
       covwt(x1, x2, t._1) / sqrt(covjj * covkk)
@@ -119,9 +144,19 @@ class GWCorrelation extends GWRbase {
     val scorrmat = w_i.map(t => {
       corwt(DenseVector(ranks(x1)), DenseVector(ranks(x2)), t)
     })
-    println(covmat.toVector)
-    println(corrmat.toVector)
-    println(scorrmat.toVector)
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("cov_" + _nameX(ix1) + "_" + _nameX(ix2) -> covmat(t._2))
+      t._1._2._2 += ("corr_" + _nameX(ix1) + "_" + _nameX(ix2) -> corrmat(t._2))
+      t._1._2._2 += ("scorr_" + _nameX(ix1) + "_" + _nameX(ix2) -> scorrmat(t._2))
+    })
+//    println("cov_" + _nameX(ix1) + "_" + _nameX(ix2), covmat.toVector)
+//    println("corr_" + _nameX(ix1) + "_" + _nameX(ix2), corrmat.toVector)
+//    println("scorr_" + _nameX(ix1) + "_" + _nameX(ix2), scorrmat.toVector)
+    val mmmStr = new Array[(String, Double, Double, Double)](3)
+    mmmStr(0) = findmmm("cov_" + _nameX(ix1) + "_" + _nameX(ix2), covmat)
+    mmmStr(1) = findmmm("corr_" + _nameX(ix1) + "_" + _nameX(ix2), corrmat)
+    mmmStr(2) = findmmm("scorr_" + _nameX(ix1) + "_" + _nameX(ix2), scorrmat)
+    mmmStr
   }
 
   def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double  = {
@@ -134,6 +169,11 @@ class GWCorrelation extends GWRbase {
 
   def corwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
     covwt(x1, x2, w) / sqrt(covwt(x1, x1, w) * covwt(x2, x2, w))
+  }
+
+  private def findmmm(str: String, arr: Array[Double]): (String, Double, Double, Double) = {
+    val med = median(DenseVector(arr))
+    (str, arr.min, med, arr.max)
   }
 
 }

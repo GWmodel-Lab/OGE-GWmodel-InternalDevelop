@@ -13,6 +13,7 @@ import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.oge.Feature._
@@ -41,8 +42,13 @@ object test {
     //    linear_test()
     //    pca_test()
     //    geodetector_test()
+    val mdl = new GWCorrelation
+    mdl.init(shpfile)
+    mdl.setX("FLOORSZ,PROF,UNEMPLOY")
+    mdl.setY("PURCHASE")
+    mdl.calCorrelation()
 
-    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
+//    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
 //    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
 //    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)
 //    AverageNearestNeighbor.result(shpfile)
@@ -51,7 +57,7 @@ object test {
 //    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
 //    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
 //    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
-    GWRbasic.auto(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH", kernel = "bisquare")
+//    GWRbasic.auto(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH", kernel = "bisquare")
 //    GWRbasic.fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 80, adaptive = true)
 //    GWRbasic.autoFit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY",approach = "CV", adaptive = true)
 //    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
