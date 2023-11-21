@@ -24,7 +24,7 @@ object Optimize {
   (Double, Array[Double], Array[Double], Array[Double]) = {
     var iter: Int = 0
     val max_iter = 1000
-    val loop=new Breaks
+    val loop = new Breaks
     val ratio: Double = (sqrt(5) - 1) / 2.0
     var a = lower + 1e-12
     var b = upper - 1e-12
@@ -85,12 +85,15 @@ object Optimize {
         //        opt_res += function(sc, (b + a) / 2.0)
         opt_val += p
         opt_res += f_p
-//        println(s"Iter: $iter, optimize value: $p, result is $f_p")
-        if (abs(a - b) < eps/10) {
+        //        println(s"Iter: $iter, optimize value: $p, result is $f_p")
+        if (abs(a - b) < eps / 10) {
           loop.break()
         }
       }
     }
+    opt_iter += (iter + 1)
+    opt_val += (b + a) / 2.0
+    opt_res += function((b + a) / 2.0)
     //    println((b + a) / 2.0, function((b + a) / 2.0))
     //    ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray)
     ((b + a) / 2.0, opt_iter.toArray, opt_val.toArray, opt_res.toArray)

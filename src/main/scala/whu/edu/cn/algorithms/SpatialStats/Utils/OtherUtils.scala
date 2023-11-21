@@ -1,9 +1,15 @@
 package whu.edu.cn.algorithms.SpatialStats.Utils
 
 import au.com.bytecode.opencsv._
+import breeze.plot.Figure
+import com.alibaba.fastjson.JSONObject
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, MultiPolygon, Point}
+import whu.edu.cn.trigger.Trigger
+import whu.edu.cn.util.GlobalConstantUtil.DAG_ROOT_URL
+import whu.edu.cn.util.HttpRequestUtil.sendPost
+import whu.edu.cn.util.SSHClientUtil.{runCmd, versouSshUtil}
 import whu.edu.cn.util.ShapeFileUtil._
 
 import scala.collection.mutable.{ArrayBuffer, Map}
@@ -181,6 +187,35 @@ object OtherUtils {
     })
     date.foreach(println)
     println((date(300).getTime - date(0).getTime) / 1000 / 60 / 60 / 24)
+  }
+
+  def showPng(fileName: String, fig: Figure): Unit = {
+    val time = System.currentTimeMillis()
+
+    fig.saveas(s"$fileName+$time.png", 300)
+    val outputPath = s"$fileName+$time.png"
+
+    try {
+      versouSshUtil("10.101.240.10", "root", "ypfamily", 22)
+      val st =
+        raw"""scp "$outputPath" wkx@125.220.153.22:/home/wkx/oge/apache-tomcat-9.0.69/webapps/oge_vector/""".stripMargin
+      println(s"st = $st")
+      runCmd(st, "UTF-8")
+
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+    }
+    val storageURL = "http://125.220.153.22:8027/oge_vector/vector_" + time + ".json"
+    val geoJson = new JSONObject
+    geoJson.put(Trigger.layerName, storageURL)
+    val jsonObject = new JSONObject
+    jsonObject.put("vector", geoJson)
+    val outJsonObject: JSONObject = new JSONObject
+    outJsonObject.put("workID", Trigger.dagId)
+    outJsonObject.put("json", jsonObject)
+    sendPost(DAG_ROOT_URL + "/deliverUrl", outJsonObject.toJSONString)
+    println(outJsonObject.toJSONString)
   }
 
 }

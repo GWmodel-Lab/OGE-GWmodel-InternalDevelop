@@ -17,6 +17,7 @@ class GWRbase {
   protected var _X: Array[DenseVector[Double]] = _
   protected var _Y: DenseVector[Double] = _
   protected var _nameX: Array[String] = _
+  protected var _nameY: String = _
 
   protected var _geom: RDD[Geometry] = _
   protected var _dist: Array[DenseVector[Double]]=_
@@ -70,6 +71,7 @@ class GWRbase {
   }
 
   protected def setY(property: String): Unit = {
+    _nameY = property
     val y = shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
     _Y = DenseVector(y)
   }
