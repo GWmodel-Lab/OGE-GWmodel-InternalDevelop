@@ -42,12 +42,8 @@ object test {
     //    linear_test()
     //    pca_test()
     //    geodetector_test()
-    val mdl = new GWCorrelation
-    mdl.init(shpfile)
-    mdl.setX("FLOORSZ,PROF,UNEMPLOY")
-    mdl.setY("PURCHASE")
-    mdl.calCorrelation()
 
+    GWCorrelation.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", bw=20, kernel = "bisquare", adaptive = true)
 //    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
 //    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
 //    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)

@@ -2,6 +2,8 @@ package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg.{*, DenseMatrix, DenseVector, MatrixSingularException, det, eig, inv, linspace, qr, ranks, sum, trace}
 import breeze.stats.median
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 
 import scala.util.control.Breaks
@@ -35,55 +37,23 @@ class GWCorrelation extends GWRbase {
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
-  def findq(x: DenseVector[Double], w: DenseVector[Double], p: DenseVector[Double] = DenseVector(0.25, 0.50, 0.75)): DenseVector[Double] = {
-    val lp = p.length
-    val q = DenseVector(0.0, 0.0, 0.0)
-    val x_ord = x.toArray.sorted
-    val w_idx = w.toArray.zipWithIndex
-    val x_w = w_idx.map(t => (x(t._2), t._1))
-    val x_w_sort = x_w.sortBy(t => t._1)
-    val w_ord = x_w_sort.map(t => t._2)
-    //    println(w_ord.toVector)
-    val w_ord_idx = w_ord.zipWithIndex
-    val cumsum = w_ord_idx.map(t => {
-      w_ord.take(t._2 + 1).sum
-    })
-    //    println(cumsum.toVector)
-    for (j <- 0 until lp) {
-      //找小于等于的，所以找大于的第一个，然后再减1，就是小于等于的最后一个
-      val c_find = cumsum.find(_ > p(j))
-      val c_first = c_find match {
-        case Some(d) => d
-        case None => 0.0
-      }
-      //减1
-      var c_idx = cumsum.indexOf(c_first) - 1
-      if (c_idx < 0) {
-        c_idx = 0
-      }
-      q(j) = x_ord(c_idx)
-    }
-    q
-  }
-
-  def calCorrelation(bw: Double = 100, kernel: String = "gaussian", adaptive: Boolean = true) = {
-    setweight(bw = 20, kernel = "bisquare", adaptive = adaptive)
-//    setweight(bw = bw, kernel = kernel, adaptive = adaptive)
+  def calCorrelation(bw: Double = 100, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    setweight(bw = bw, kernel = kernel, adaptive = adaptive)
     var bw_type = "Fixed"
     if (adaptive) {
       bw_type = "Adaptive"
     }
     var str = "*********************************************************************************\n" +
-      "*               Results of Geographically Weighted Regression                   *\n" +
+      "*               Results of Geographically Weighted Correlation                   *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
       s"Kernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
       "*****************************Diagnostic information******************************\n"
     shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.foreach(t => t._1._2._2.clear())
-    val reStr=new ArrayBuffer[Array[(String, Double, Double, Double)]]()
+    val reStr = new ArrayBuffer[Array[(String, Double, Double, Double)]]()
     for (i <- 0 until _xcols) {
-      for (j <- i+1  until _xcols) {
+      for (j <- i + 1 until _xcols) {
         reStr += calCorrelationSerial(i, j)
       }
     }
@@ -94,7 +64,8 @@ class GWCorrelation extends GWRbase {
       }
     })
     str += "*********************************************************************************\n"
-    print(str)
+//        print(str)
+    (shpRDDidx.map(t => t._1), str)
   }
 
   def calCorrelationSerial(ix1:Int,ix2:Int): Array[(String, Double, Double, Double)] = {
@@ -117,11 +88,6 @@ class GWCorrelation extends GWRbase {
     val aLVar = w_ii.map(t => {
       t._1.t * x_lm2(t._2)
     })
-    //    val aStandardDev = aLVar.map(t => sqrt(t))
-    //    val aLocalSkewness = w_ii.map(t => {
-    //      (t._1.t * x_lm3(t._2)) / (aLVar(t._2) * aStandardDev(t._2))
-    //    })
-    //    val mLcv = DenseVector(aStandardDev) / DenseVector(aLocalMean)
     val aLocalMean2 = w_i.map(w => w.t * x2)
     val x2_lm = aLocalMean2.map(t => {
       x2.map(i => {
@@ -174,6 +140,33 @@ class GWCorrelation extends GWRbase {
   private def findmmm(str: String, arr: Array[Double]): (String, Double, Double, Double) = {
     val med = median(DenseVector(arr))
     (str, arr.min, med, arr.max)
+  }
+
+}
+
+object GWCorrelation {
+
+  /** *
+   *
+   * @param sc          SparkContext
+   * @param featureRDD  shapefile RDD
+   * @param propertyY   dependant property
+   * @param propertiesX independant properties
+   * @param bw          bandwidth value
+   * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
+   * @param adaptive    true for adaptive distance, false for fixed distance
+   * @return featureRDD and diagnostic String
+   */
+  def cal(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
+          bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true)
+  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    val model = new GWCorrelation
+    model.init(featureRDD)
+    model.setX(propertiesX)
+    model.setY(propertyY)
+    val r = model.calCorrelation(bw, kernel, adaptive)
+    //    print(r._2)
+    (sc.makeRDD(r._1), r._2)
   }
 
 }
