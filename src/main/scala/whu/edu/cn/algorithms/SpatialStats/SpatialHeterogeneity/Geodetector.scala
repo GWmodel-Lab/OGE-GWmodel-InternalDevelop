@@ -26,7 +26,7 @@ object Geodetector {
   def factorDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                      y_title: String, x_titles: List[String], is_print: Boolean = true)
   : (List[String], List[Double], List[Double]) = {
-    val y_col = Feature.getNumber(featureRDD, y_title)
+    val y_col = Feature.get(featureRDD, y_title).map(t=>t.toString.toDouble)
     val x_cols = x_titles.map(t => Feature.get(featureRDD, t))
     val QandP = x_cols.map(t => FD_single(y_col, t))
     val res = (x_titles, QandP.map(t => t._1), QandP.map(t => t._2))
@@ -74,7 +74,7 @@ object Geodetector {
   def interactionDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                           y_title: String, x_titles: List[String], is_print: Boolean = true)
   : (List[String], linalg.Matrix[Double], linalg.Matrix[String]) = {
-    val y_col = Feature.getNumber(featureRDD, y_title)
+    val y_col = Feature.get(featureRDD, y_title).map(t=>t.toString.toDouble)
     val x_cols = x_titles.map(t => Feature.get(featureRDD, t))
     var interactions = linalg.Matrix.zeros[Double](x_titles.length, x_titles.length)
     var enhancement = linalg.Matrix.zeros[String](x_titles.length, x_titles.length)
@@ -148,7 +148,7 @@ object Geodetector {
   def ecologicalDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                          y_title: String, x_titles: List[String], is_print: Boolean = true)
   : (List[String], linalg.Matrix[Boolean]) = {
-    val y_col = Feature.getNumber(featureRDD, y_title)
+    val y_col = Feature.get(featureRDD, y_title).map(t=>t.toString.toDouble)
     val x_cols = x_titles.map(t => Feature.get(featureRDD, t))
     //val F_mat = linalg.Matrix.zeros[Double](x_titles.length, x_titles.length) // Matrix of Statistic F
     val Sig_mat = linalg.Matrix.zeros[Boolean](x_titles.length, x_titles.length) // Matrix of True or False
@@ -193,7 +193,7 @@ object Geodetector {
   def riskDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                    y_title: String, x_titles: List[String], is_print: Boolean =true):
   (List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]]) = {
-    val y_col = Feature.getNumber(featureRDD, y_title)
+    val y_col = Feature.get(featureRDD, y_title).map(t=>t.toString.toDouble)
     val x_cols = x_titles.map(t => Feature.get(featureRDD, t))
     val lst1 = ListBuffer("")
     val lst2 = ListBuffer(List(""))

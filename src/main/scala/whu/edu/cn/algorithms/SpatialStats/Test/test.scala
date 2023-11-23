@@ -14,7 +14,9 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
+import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
+import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling._
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 
@@ -45,7 +47,8 @@ object test {
     //    correlation_test()
     //    pca_test()
     //    gwrbasic_test()
-    geodetector_test()
+    //    geodetector_test()
+    sandwichSampling_test()
     sc.stop()
   }
 
@@ -161,6 +164,16 @@ object test {
     val RD = riskDetector(shpfile, y_title, x_titles)
     var tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is: $tused s")
+  }
+
+  def sandwichSampling_test(): Unit = {
+    val purchase = getNumber(shpfile, "PURCHASE").toArray.map(t => t / 1e4)
+    val shpfile_mod = writeRDD(sc, shpfile, purchase, propertyName = "col1")
+    val t1 = System.currentTimeMillis()
+    val RDD_sample = SandwichSampling.sampling(shpfile_mod, sc,
+      "col1", "FLOORSZ", "TYPEDETCH")
+    var tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"Time used is ${tused} s.")
   }
 
 }
