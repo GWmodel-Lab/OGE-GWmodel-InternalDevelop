@@ -17,7 +17,6 @@ class GWCorrelation extends GWRbase {
 
   var _xrows = 0
   var _xcols = 0
-  val select_eps = 1e-2
   private var shpRDDidx: Array[((String, (Geometry, mutable.Map[String, Any])), Int)] = _
   private var _dX: DenseMatrix[Double] = _
 
@@ -44,11 +43,11 @@ class GWCorrelation extends GWRbase {
       bw_type = "Adaptive"
     }
     var str = "*********************************************************************************\n" +
-      "*               Results of Geographically Weighted Correlation                   *\n" +
+      "*               Results of Geographically Weighted Correlation                  *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
       s"Kernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
-      "*****************************Diagnostic information******************************\n"
+      "******************************Summary  information*******************************\n"
     shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.foreach(t => t._1._2._2.clear())
     val reStr = new ArrayBuffer[Array[(String, Double, Double, Double)]]()
@@ -64,11 +63,11 @@ class GWCorrelation extends GWRbase {
       }
     })
     str += "*********************************************************************************\n"
-//        print(str)
+        print(str)
     (shpRDDidx.map(t => t._1), str)
   }
 
-  def calCorrelationSerial(ix1:Int,ix2:Int): Array[(String, Double, Double, Double)] = {
+  private def calCorrelationSerial(ix1:Int,ix2:Int): Array[(String, Double, Double, Double)] = {
     val x1 = _X(ix1)
     val x2 = _X(ix2)
     val w_i = spweight_dvec.map(t => {
@@ -125,7 +124,7 @@ class GWCorrelation extends GWRbase {
     mmmStr
   }
 
-  def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double  = {
+  private def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double  = {
     val sqrtw = w.map(t => sqrt(t))
     val re1 = sqrtw * (x1 - sum(x1 * w))
     val re2 = sqrtw * (x2 - sum(x2 * w))
@@ -133,7 +132,7 @@ class GWCorrelation extends GWRbase {
     sum(re1 * re2 * (1 / sumww))
   }
 
-  def corwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
+  private def corwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
     covwt(x1, x2, w) / sqrt(covwt(x1, x1, w) * covwt(x2, x2, w))
   }
 
@@ -158,7 +157,7 @@ object GWCorrelation {
    * @return featureRDD and diagnostic String
    */
   def cal(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-          bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true)
+          bw: Double = 10, kernel: String = "gaussian", adaptive: Boolean = true)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWCorrelation
     model.init(featureRDD)
