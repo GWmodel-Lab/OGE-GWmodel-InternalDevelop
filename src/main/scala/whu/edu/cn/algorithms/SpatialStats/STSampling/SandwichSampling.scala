@@ -137,7 +137,8 @@ object SandwichSampling {
       }
     }
 
-    // 正式计算报告层均值与方差
+
+    // 正式计算报告层的均值与方差
     var meansReport: ListBuffer[Double] = ListBuffer.empty[Double]
     var varsReport: ListBuffer[Double] = ListBuffer.empty[Double]
     for (i <- 0 until namesReport.length) {
