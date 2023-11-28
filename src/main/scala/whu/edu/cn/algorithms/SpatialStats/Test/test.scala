@@ -3,18 +3,21 @@ package whu.edu.cn.algorithms.SpatialStats.Test
 import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.AverageNearestNeighbor.aveNearestNeighbor
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.DescriptiveStatistics.describe
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
-import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis._
-import whu.edu.cn.algorithms.SpatialStats.STCorrelations.SpatialAutoCorrelation._
+import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.linearRegression
-import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.SpatialDurbinModel
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
+<<<<<<< HEAD
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
+=======
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
+import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
+>>>>>>> 9d151760cb75027141eb6c5a6e486ef0107d9447
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling._
 import whu.edu.cn.oge.Feature._
@@ -23,11 +26,11 @@ import whu.edu.cn.util.ShapeFileUtil._
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-    .set("spark.testing.memory", "512000000")
+//    .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
@@ -39,16 +42,34 @@ object test {
 
   def main(args: Array[String]): Unit = {
 
-    //    descriptive_test()
-    //    sarmodel_test()
-    //    morani_test()
     //    acf_test()
     //    linear_test()
-    //    correlation_test()
     //    pca_test()
+<<<<<<< HEAD
     //    gwrbasic_test()
     //    geodetector_test()
     sandwichSampling_test()
+=======
+    //    geodetector_test()
+
+    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
+//    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
+//    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)
+//    AverageNearestNeighbor.result(shpfile)
+//    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
+//    SpatialAutoCorrelation.globalMoranI(shpfile2, "HR60", plot = true, test = true)
+//    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
+//    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
+//    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
+    GWRbasic.auto(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH", kernel = "bisquare")
+//    GWRbasic.fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 80, adaptive = true)
+//    GWRbasic.autoFit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY",approach = "CV", adaptive = true)
+//    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+//    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+//    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+    //    val r=readcsv2(sc,csvpath)
+    //    linearRegression(r,"aqi","temperature,precipitation")
+>>>>>>> 9d151760cb75027141eb6c5a6e486ef0107d9447
     sc.stop()
   }
 
@@ -56,66 +77,21 @@ object test {
     val t1 = System.currentTimeMillis()
     val mdl = new GWRbasic
     mdl.init(shpfile)
-    mdl.setX("FLOORSZ,PROF")
+    mdl.setX("FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH")
     mdl.setY("PURCHASE")
-//    mdl.fit(bw = 10000,kernel="bisquare",adaptive = false)
+//    val re=mdl.fit(bw = 10000,kernel="bisquare",adaptive = false)
 //    val bw=mdl.bandwidthSelection(adaptive = false)
 //    mdl.fit(bw = bw,kernel="gaussian",adaptive = false)
-    mdl.auto(kernel="gaussian",approach = "CV", adaptive = false)
+    mdl.variableSelect()
+//    mdl.auto(kernel="gaussian",approach = "CV", adaptive = false)
+//    val re_rdd=sc.makeRDD(re)
+//    writeshpfile(re_rdd,"D:\\Java\\testdata\\re_gwr.shp")
     val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is $tused s")
-  }
-
-  def correlation_test(): Unit = {
-    val t0 = System.currentTimeMillis()
-    val s = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE")
-    val mat = corrMat(shpfile, s)
-    val tused = (System.currentTimeMillis() - t0) / 1000.0
     println(s"time used is $tused s")
   }
 
   def pca_test():Unit= {
     PCA(shpfile)
-  }
-
-  def descriptive_test(): Unit = {
-    aveNearestNeighbor(shpfile)
-    val list_double: List[Double] = getNumber(shpfile, "PURCHASE")
-    val list_rdd: RDD[Double] = sc.makeRDD(list_double)
-    describe(list_rdd, list_double, 10)
-  }
-
-  def sarmodel_test(): Unit = {
-    val t1 = System.currentTimeMillis()
-    val x1 = shpfile2.map(t => t._2._2("PO60").asInstanceOf[String].toDouble).collect()
-    val x2 = shpfile2.map(t => t._2._2("UE60").asInstanceOf[String].toDouble).collect()
-    val y = shpfile2.map(t => t._2._2("HR60").asInstanceOf[String].toDouble).collect()
-    val x = Array(DenseVector(x1), DenseVector(x2))
-    //    x.foreach(println)
-    val mdl = new SpatialDurbinModel//error，lag
-    mdl.init(shpfile2)
-    mdl.setX(x)
-    mdl.setY(y)
-    mdl.fit()
-    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is $tused s")
-  }
-
-  def morani_test(): Unit = {
-    val t1 = System.currentTimeMillis()
-    val globali = globalMoranI(shpfile2, "HR60", plot = true, test = true)
-    println(s"global Moran's I is: ${globali._1}")
-    val locali = localMoranI(shpfile2, "HR60")
-    println("-----------local moran's I--------------")
-    locali._1.foreach(println)
-    println("-----------p-value--------------")
-    locali._5.foreach(println)
-    //    val result1 = writeRDD(sc, shpfile, locali._1, "moran_i")
-    //    val result2 = writeRDD(sc, result1, locali._2, "expect")
-    //    val outputpath = "testdata\\MississippiMoranI.shp"
-    //    writeshpfile(result2, outputpath)
-    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is $tused s")
   }
 
   def acf_test(): Unit = {
@@ -135,7 +111,7 @@ object test {
     val db_tem = tem.map(t => t.toDouble)
     //    println(db_tem.sum)
     val tem_acf = timeSeriesACF(db_tem, 30)
-    tem_acf.foreach(println)
+//    tem_acf.foreach(println)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }
@@ -146,10 +122,10 @@ object test {
     val per = attributeSelectHead(csvdata, "precipitation").map(t => t.toDouble)
     val tem = attributeSelectHead(csvdata, "temperature").map(t => t.toDouble)
     val x = Array(DenseVector(tem), DenseVector(per))
-    val re = linearRegression(x, DenseVector(aqi))
-    println(re._1)
-    println(re._2)
-    println(re._3)
+//    val re = linearRegression(x, DenseVector(aqi))
+//    println(re._1)
+//    println(re._2)
+//    println(re._3)
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
   }
