@@ -157,37 +157,35 @@ object SandwichSampling {
     }
 
 
-    println("-----------------三明治抽样报告------------------")
+    println("-----------------Results of Sandwich Sampling------------------")
     println(
-      f"""|知识层: ${knowledge_title}%-10s; 层数: ${namesKnowledge.length}
-          |报告层: ${reporting_title}%-10s; 层数: ${namesReport.length}
-          |检测属性: $y_title
-          |总体样本量: ${oriVals.length}
-          |期望精度: ${accuracy}
-          |应抽样本量: ${sampleSizeTotal}
-          |实抽样本量: ${res1.length}""".stripMargin)
-    println("-------------------知识层参数-------------------")
+      f"""|Variable: $y_title
+          |Knowledge layer: ${knowledge_title}%-10s; number of strata: ${namesKnowledge.length}
+          |Reporting layer: ${reporting_title}%-10s; number of strata: ${namesReport.length}
+          |Total size: ${oriVals.length}
+          |Accuracy: ${accuracy}
+          |Expected sample size: ${sampleSizeTotal}
+          |Actual sample size: ${res1.length}""".stripMargin)
+    println("-------------------Parameters of Knowledge Layer-------------------")
     println(
-      f"""|均值方差: ${stats.variance(meansKnowledge)}%-2.3f
-          |均值空间标准差: ${stats.stddev(meansKnowledge)}%-2.3f
-          |均值上限: ${meansKnowledge.max}%-2.3f
-          |均值下限: ${meansKnowledge.min}%-2.3f """.stripMargin
+      f"""|Mean-variance: ${stats.variance(meansKnowledge)}%-2.3f
+          |Spatial standard deviation: ${stats.stddev(meansKnowledge)}%-2.3f
+          |Upper limit: ${meansKnowledge.max}%-2.3f
+          |Lower limit: ${meansKnowledge.min}%-2.3f """.stripMargin
     )
-    println("知识层     均值        方差       样本量")
     for (i <- 0 until meansKnowledge.length) {
-      println(f"${namesKnowledge(i)}%5s     ${meansKnowledge(i)}%2.3f     ${varsKnowledge(i)}%2.3f     ${sizeKnowledge(i)}")
+      println(f"stratum ${i+1}: ${namesKnowledge(i)}, mean: ${meansKnowledge(i)}%-5f, variance: ${varsKnowledge(i)}%-5f, sample size: ${sizeKnowledge(i)}")
     }
     // println("NO       Value     Zoning     Reporting")
     // for (i <- 0 until res.length) {
     //   println(f"${res(i)._1}%4s     ${res(i)._2}%-2.5f    ${res(i)._3}%-5s     ${res(i)._4}%-5s")
     //   //println(res1(i))
     // }
-    println("----------各报告层及其参数----------")
-    println("报告层     均值        方差       样本量")
+    println("----------Parameters of Reporting Layers----------")
     for (i <- 0 until meansReport.length) {
-      println(f"${namesReport(i)}%5s     ${meansReport(i)}%-2.3f     ${varsReport(i)}%-2.3f     ${sampleSizeReport(namesReport(i))}")
+      println(f"stratum ${i+1}: ${namesReport(i)}, mean: ${meansReport(i)}%-5f, variance: ${varsReport(i)}%-5f, sample size: ${sampleSizeReport(namesReport(i))}")
     }
-    println("-------------报告结束-------------")
+    println("--------------------------------------------------")
 
     //output
     sc.makeRDD(res1)

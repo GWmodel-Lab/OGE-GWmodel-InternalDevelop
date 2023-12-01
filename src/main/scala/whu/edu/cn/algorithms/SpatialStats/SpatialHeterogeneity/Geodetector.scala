@@ -53,11 +53,11 @@ object Geodetector {
   }
 
   protected def FD_print(res: (List[String], List[Double], List[Double])): Unit = {
-    println("--------------------------Factor Detector Results--------------------------------")
+    println("--------------------------Results of Factor Detector--------------------------------")
     val len = res._1.length
     var no = 1
     for (i <- 0 until len) {
-      println(f"$no%-2d var: ${res._1(i)}%-15s, q: ${res._2(i)}%-8f, p: ${res._3(i)}%-5g")
+      println(f"variable $no%-2d: ${res._1(i)}%-10s, q: ${res._2(i)}%-1.5f, p: ${res._3(i)}%-5g")
       no += 1
     }
     println()
@@ -91,17 +91,17 @@ object Geodetector {
           enhancement(i, j) = "Weakened, nonlinear"
         }
         else if (q > q_min && q < q_max) {
-          enhancement(i, j) = "Weakened, single factor nonlinear"
+          enhancement(i, j) = "Weakened, uni-"
         }
         else {
           if (q > q1 + q2) {
-            enhancement(i, j) = "Enhanced, nonlinear"
+            enhancement(i, j) = "Enhanced, Nonlinear"
           }
           else if (q == q1 + q2) {
             enhancement(i, j) = "Independent"
           }
           else {
-            enhancement(i, j) = "Enhanced, double factors"
+            enhancement(i, j) = "Enhanced, bi-"
           }
         }
       }
@@ -123,14 +123,14 @@ object Geodetector {
   }
 
   protected def ID_print(res: (List[String], linalg.Matrix[Double], linalg.Matrix[String])): Unit = {
-    println("--------------------------Interaction Detector Results--------------------------------")
+    println("--------------------------Results of Interaction Detector--------------------------------")
     //printMatrixWithTitles_Double((res._1,res._2))
     //printMatrixWithTitles_String((res._1,res._3))
     val N_var = res._1.length
     var no = 1
     for (i <- 0 until N_var) {
       for (j <- 0 until i) {
-        println(f"$no%-2d var1: ${res._1(i)}%-15s, var2: ${res._1(j)}%-15s, q: ${res._2(i, j)}%-8f, enhancement: ${res._3(i, j)}%s")
+        println(f"interaction $no, variable1: ${res._1(i)}%-10s, variable2: ${res._1(j)}%-10s, q: ${res._2(i, j)}%-1.5f, sig: ${res._3(i, j)}%s")
         no += 1
       }
     }
@@ -178,7 +178,7 @@ object Geodetector {
   }
 
   protected def ED_print(res: (List[String], linalg.Matrix[Boolean])): Unit = {
-    println("--------------------------Ecological Detector Results--------------------------------")
+    println("--------------------------Results of Ecological Detector--------------------------------")
     printMatrixWithTitles_Boolean(res)
     println()
   }
@@ -257,14 +257,14 @@ object Geodetector {
 
   protected def RD_print(res: (List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]])):
   Unit ={
-    println("--------------------------Risk Detector Results--------------------------------")
+    println("--------------------------Result of Risk Detector--------------------------------")
     val N_var = res._1.length
     for(no <- 0 until N_var){
       println(f"Variable: ${res._1(no)}")
       println("-------------------------")
-      println(f"Means of strata: ")
+      println(f"Means of Strata: ")
       for(i <- 0 until res._2(no).length){
-        println(f"${i+1}%-2d stratum: ${res._2(no)(i)}, mean: ${res._3(no)(i)}")
+        println(f"stratum ${i+1}: ${res._2(no)(i)}, mean: ${res._3(no)(i)}%10f")
       }
       println("-------------------------")
       println(f"Significance: ")
@@ -277,7 +277,7 @@ object Geodetector {
 
   protected def Grouping(y_col: List[Double], x_col: List[Any]): List[List[Double]] = {
     if (y_col.length != x_col.length) {
-      throw new IllegalArgumentException("The sizes of the y and x are not equal.")
+      throw new IllegalArgumentException(s"The sizes of the y and x are not equal, size of y is ${y_col.length} while size of x is ${x_col.length}.")
     }
     val list_xy: ListBuffer[Tuple2[Any, Double]] = ListBuffer(("", 0.0))
     for (i <- 0 until y_col.length) {
@@ -290,6 +290,9 @@ object Geodetector {
   }
 
   protected def GroupingXAndY(y_col: List[Double], x_col: List[Any]): List[Tuple2[String, List[Double]]] = {
+    if (y_col.length != x_col.length) {
+      throw new IllegalArgumentException(s"The sizes of the y and x are not equal, size of y is ${y_col.length} while size of x is ${x_col.length}.")
+    }
     val list_xy: ListBuffer[Tuple2[String, Double]] = ListBuffer(("", 0.0))
     for (i <- 0 until y_col.length) {
       list_xy.append((x_col(i).toString, y_col(i)))
