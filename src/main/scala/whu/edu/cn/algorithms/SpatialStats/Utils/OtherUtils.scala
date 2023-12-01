@@ -197,8 +197,7 @@ object OtherUtils {
 
     try {
       versouSshUtil("10.101.240.10", "root", "ypfamily", 22)
-      val st =
-        raw"""scp "$outputPath" wkx@125.220.153.22:/home/wkx/oge/apache-tomcat-9.0.69/webapps/oge_vector/""".stripMargin
+      val st = s"scp $outputPath root@10.101.240.20:/home/oge/tomcat/apache-tomcat-8.5.57/webapps/oge_vector/vector_${time}.json"
       println(s"st = $st")
       runCmd(st, "UTF-8")
 
@@ -206,7 +205,7 @@ object OtherUtils {
       case e: Exception =>
         e.printStackTrace()
     }
-    val storageURL = "http://125.220.153.22:8027/oge_vector/vector_" + time + ".json"
+    val storageURL = "http://10.101.240.20:8080/oge_vector/vector_" + time + ".json"
     val geoJson = new JSONObject
     geoJson.put(Trigger.layerName, storageURL)
     val jsonObject = new JSONObject

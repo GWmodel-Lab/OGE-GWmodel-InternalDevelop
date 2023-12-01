@@ -25,10 +25,10 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath: String = "D:\\Java\\testdata\\whhp.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
-  val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
+  val shpPath2: String = "D:\\Java\\testdata\\londonhp_wgs84.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
@@ -42,20 +42,20 @@ object test {
     //    pca_test()
     //    geodetector_test()
 
-    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
+//    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
 //    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
 //    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)
 //    AverageNearestNeighbor.result(shpfile)
 //    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
-//    SpatialAutoCorrelation.globalMoranI(shpfile2, "HR60", plot = true, test = true)
+//    SpatialAutoCorrelation.globalMoranI(shpfile2, "PURCHASE", plot = true, test = true)
 //    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
-//    TemporalAutoCorrelation.ACF(shpfile, "FLOORSZ", 30)
-//    CorrelationAnalysis.corrMat(shpfile, "PURCHASE,FLOORSZ,PROF,UNEMPLOY", method = "spearman")
-    GWRbasic.auto(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH", kernel = "bisquare")
-//    GWRbasic.fit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 80, adaptive = true)
-//    GWRbasic.autoFit(sc, shpfile, "PURCHASE", "FLOORSZ,PROF,UNEMPLOY",approach = "CV", adaptive = true)
+//    TemporalAutoCorrelation.ACF(shpfile, "Avg_HP_avg", 30)
+    CorrelationAnalysis.corrMat(shpfile, "Avg_HP_avg,Avg_Pop,Avg_AQI,Avg_Green_", method = "spearman")
+//    GWRbasic.auto(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI,Avg_Green_,Avg_GDP_pe,Avg_Land_r,Avg_Fixed_,Avg_Pro_st", kernel = "bisquare")
+//    GWRbasic.fit(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI,Avg_Green_", 80, adaptive = true)
+//    GWRbasic.autoFit(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI,Avg_Green_,Avg_GDP_pe,Avg_Land_r,Avg_Fixed_,Avg_Pro_st",approach = "CV", adaptive = true)
 //    SpatialLagModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
-//    SpatialErrorModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+//    SpatialErrorModel.fit(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI")
 //    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")

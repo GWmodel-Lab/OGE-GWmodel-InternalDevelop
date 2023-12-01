@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
-import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
+import breeze.linalg.{DenseMatrix, DenseVector, diag, eig, inv, qr, sum}
 import breeze.numerics.{NaN, sqrt}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -30,6 +30,7 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
   private var _wy: DenseVector[Double] = _
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
+  private var _eigValue: DenseVector[Double] = _
 
   /** set x
    *
@@ -136,7 +137,19 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
       }
       if (spweight_dmat != null) {
         if (_eigen == null) {
-          _eigen = breeze.linalg.eig(spweight_dmat.t)
+          try {
+            _eigen = breeze.linalg.eig(spweight_dmat.t)
+            _eigValue = _eigen.eigenvalues.copy
+          } catch {
+            case e: IllegalArgumentException => {
+              var A=breeze.linalg.qr(spweight_dmat.t)
+              for (i <- 0 until 2) {
+                val Ai = A.r * A.q
+                A = breeze.linalg.qr(Ai)
+              }
+              _eigValue = diag(A.r * A.q)
+            }
+          }
         }
       } else {
         throw new NullPointerException("the shpfile is not initialized! please check!")
@@ -153,12 +166,25 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     if (spweight_dmat == null) {
       throw new NullPointerException("the shpfile is not initialized! please check!")
     }
+    var A=breeze.linalg.qr(spweight_dmat.t)
     if (_eigen == null) {
-      _eigen = breeze.linalg.eig(spweight_dmat.t)
+      try{
+        _eigen = breeze.linalg.eig(spweight_dmat.t)
+        _eigValue = _eigen.eigenvalues.copy
+      }catch {
+        case e: IllegalArgumentException => {
+          for(i<-0 until 2){
+            val Ai=A.r * A.q
+            A = breeze.linalg.qr(Ai)
+          }
+          _eigValue = diag(A.r * A.q)
+        }
+      }
     }
-    val eigvalue = _eigen.eigenvalues.copy
-    val min = eigvalue.toArray.min
-    val max = eigvalue.toArray.max
+    var min=0.1
+    var max=1.0
+    min = _eigValue.toArray.min
+    max = _eigValue.toArray.max
     (1.0 / min, 1.0 / max)
   }
 
@@ -173,7 +199,7 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     val SSE = yl.t * yl - xl_q_yl.t * xl_q_yl
     val n = _xrows
     val s2 = SSE / n
-    val eigvalue = _eigen.eigenvalues.copy
+    val eigvalue = _eigValue
     val ldet = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
     val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
     //    println(SSE, ret)
