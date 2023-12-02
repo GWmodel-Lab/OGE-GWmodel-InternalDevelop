@@ -166,21 +166,39 @@ object FeatureSpatialWeight {
   }
 
   def getNeighborBool(polyrdd: RDD[(Geometry)]): RDD[Array[Boolean]] = {
+    val polyidx=polyrdd.zipWithIndex()
     val arr_geom = polyrdd.collect()
-    val rdd_isnb = polyrdd.map(t => testNeighborBool(t, arr_geom))
+    var i=0
+    val a=polyidx.collect().map(t=>{
+      println(i)
+      i += 1
+      testNeighborBool(t._1,arr_geom,t._2.toInt,true)})
+//    a.foreach(t=>println(t.toVector))
+    val rdd_isnb = polyidx.map(t => testNeighborBool(t._1, arr_geom,t._2.toInt))
     rdd_isnb
   }
 
-  def testNeighborBool(poly1: Geometry, poly2: Array[Geometry]): Array[Boolean] = {
+  def testNeighborBool(poly1: Geometry, poly2: Array[Geometry],id:Int,p:Boolean=false): Array[Boolean] = {
     val arr_isnb = new Array[Boolean](poly2.length)
-    for (i <- 0 until poly2.length) {
+    var flag=false
+    for (i <- poly2.indices) {
       try {
-        arr_isnb(i) = poly1.touches(poly2(i))
+        if(i!=id) {
+          arr_isnb(i) = poly1.touches(poly2(i))
+        }
       } catch {
         case e: TopologyException => {
+          flag=true
+          if(p) {
+            println(s"----$i")
+          }
           arr_isnb(i) = true//这里是有问题的，需要改
         }
       }
+      arr_isnb(id)=false
+    }
+    if (flag && p) {
+      println(arr_isnb.toVector)
     }
     arr_isnb
   }
@@ -197,6 +215,7 @@ object FeatureSpatialWeight {
       val dvec_t=DenseVector(arr_t)
       dvec_t
     })
+//    nb_w.foreach(println)
     nb_w
 //    nb_weight
   }
