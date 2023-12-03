@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.Utils
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseVector, sum}
 import breeze.numerics._
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.{Geometry, TopologyException}
@@ -44,10 +44,11 @@ object FeatureSpatialWeight {
     val geomRDD = getGeometry(polyRDD)
     val nb_bool = getNeighborBool(geomRDD)
     val nb_weight = boolNeighborWeight(nb_bool)
-    val sum_nb: Double = nb_weight.collect().map(t => t.toArray.sum).sum
-    val avg_nb: Double = nb_weight.collect().length.toDouble
+    val nb_collect = nb_weight.collect()
+    val sum_nb: Double = nb_collect.map(t => t.toArray.sum).sum
+    val avg_nb: Double = nb_collect.length.toDouble
     style match {
-      case "W" => nb_weight.map(t => t * (t / t.sum))
+      case "W" => nb_weight.map(t => t * (t / sum(t)))
       case "B" => nb_weight.map(t => t)
       case "C" => nb_weight.map(t => (t * (1.0 * avg_nb / sum_nb)))
       case "U" => nb_weight.map(t => (t * (1.0 / sum_nb)))
@@ -168,19 +169,12 @@ object FeatureSpatialWeight {
   def getNeighborBool(polyrdd: RDD[(Geometry)]): RDD[Array[Boolean]] = {
     val polyidx=polyrdd.zipWithIndex()
     val arr_geom = polyrdd.collect()
-    var i=0
-    val a=polyidx.collect().map(t=>{
-      println(i)
-      i += 1
-      testNeighborBool(t._1,arr_geom,t._2.toInt,true)})
-//    a.foreach(t=>println(t.toVector))
     val rdd_isnb = polyidx.map(t => testNeighborBool(t._1, arr_geom,t._2.toInt))
     rdd_isnb
   }
 
-  def testNeighborBool(poly1: Geometry, poly2: Array[Geometry],id:Int,p:Boolean=false): Array[Boolean] = {
+  def testNeighborBool(poly1: Geometry, poly2: Array[Geometry],id:Int): Array[Boolean] = {
     val arr_isnb = new Array[Boolean](poly2.length)
-    var flag=false
     for (i <- poly2.indices) {
       try {
         if(i!=id) {
@@ -188,17 +182,10 @@ object FeatureSpatialWeight {
         }
       } catch {
         case e: TopologyException => {
-          flag=true
-          if(p) {
-            println(s"----$i")
-          }
-          arr_isnb(i) = true//这里是有问题的，需要改
+          arr_isnb(i) = true//这里可能有问题的，不确定。相当于将touch出错的全部认为是由于矢量精度问题导致的
         }
       }
       arr_isnb(id)=false
-    }
-    if (flag && p) {
-      println(arr_isnb.toVector)
     }
     arr_isnb
   }
@@ -207,8 +194,8 @@ object FeatureSpatialWeight {
 //    var nb_weight: DenseVector[Double] = DenseVector.zeros(rdd_isnb.take(0).length)
     val nb_w = rdd_isnb.map(t => {
       val arr_t=new Array[Double](t.length)
-      for (i <- 0 until t.length) {
-        if (t(i) == true) {
+      for (i <- t.indices) {
+        if (t(i)) {
           arr_t(i)=1
         }
       }
@@ -230,8 +217,8 @@ object FeatureSpatialWeight {
 
   def arrIndextrue(arr: Array[Boolean]): Array[String] = {
     var arrbufidx: ArrayBuffer[String] = ArrayBuffer()
-    for (i <- 0 until arr.length) {
-      if (arr(i) == true) {
+    for (i <- arr.indices) {
+      if (arr(i)) {
         arrbufidx += i.toString
       }
     }

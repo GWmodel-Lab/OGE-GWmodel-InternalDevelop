@@ -14,6 +14,48 @@ import scala.math.{pow, sqrt}
 
 object SpatialAutoCorrelation {
 
+  def moranI(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W"): String = {
+    val nb_weight = getNeighborWeight(featureRDD, weightstyle)
+    val sum_weight = sumWeight(nb_weight)
+    val input = featureRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble)
+    val arr_mean = rddmeandiff(input)
+    val meanidx=arr_mean.collect()
+    val n = input.count().toInt
+    val arr_mul = arr_mean.map(t => {
+      val re = new Array[Double](n)
+      for (i <- 0 until n) {
+        re(i) = t * meanidx(i)
+      }
+      DenseVector(re)
+    })
+    val weight_m_arr = rrdvec2multi(nb_weight, arr_mul.collect())
+    val rightup = weight_m_arr.map(t => sum(t)).sum
+    val rightdn = arr_mean.map(t => t * t).sum
+    val moran_i = n / sum_weight * rightup / rightdn
+    val kurtosis = (n * arr_mean.map(t => pow(t, 4)).sum) / pow(rightdn, 2)
+    var outStr = s"global Moran's I is: ${moran_i.formatted("%.4f")}\n"
+    outStr += s"kurtosis is: ${kurtosis.formatted("%.4f")}\n"
+    if (test) {
+      val E_I = -1.0 / (n - 1)
+      val S_1 = 0.5 * nb_weight.map(t => sum(t * 2.0 * t * 2.0)).sum()
+      val S_2 = nb_weight.map(t => sum(t) * 2).sum()
+      val E_A = n * ((n * n - 3 * n + 3) * S_1) - n * S_2 + 3 * sum_weight * sum_weight
+      val E_B = (arr_mean.map(t => t * t * t * t).sum / (rightdn * rightdn)) * ((n * n - n) * S_1 - 2 * n * S_2 + 6 * sum_weight * sum_weight)
+      val E_C = (n - 1) * (n - 2) * (n - 3) * sum_weight * sum_weight
+      val V_I = (E_A - E_B) / E_C - pow(E_I, 2)
+      val Z_I = (moran_i - E_I) / sqrt(V_I)
+      val gaussian = breeze.stats.distributions.Gaussian(0, 1)
+      val Pvalue = 2 * (1.0 - gaussian.cdf(Z_I))
+      //      println(s"global Moran's I is: $moran_i")
+      //      println(s"Z-Score is: $Z_I , p-value is: $Pvalue")
+      outStr += s"Z-Score is: ${Z_I.formatted("%.4f")} , "
+      outStr += s"p-value is: ${Pvalue.formatted("%.6f")}"
+    }
+    println(outStr)
+    outStr
+    //    (moran_i, kurtosis)
+  }
+
   /**
    * 输入RDD直接计算全局莫兰指数
    *
@@ -161,6 +203,18 @@ object SpatialAutoCorrelation {
   def meandiff(arr: Array[Double]): Array[Double] = {
     val ave = arr.sum / arr.length
     arr.map(t => t - ave)
+  }
+
+  def rrdvec2multi(arr1: RDD[DenseVector[Double]], arr2: Array[DenseVector[Double]]): RDD[DenseVector[Double]] = {
+    val arr1idx = arr1.zipWithIndex
+    arr1idx.map(t => {
+      t._1 * arr2(t._2.toInt)
+    })
+  }
+
+  def rddmeandiff(input: RDD[Double]): RDD[Double] = {
+    val ave = input.sum / input.count()
+    input.map(t => t - ave)
   }
 
   def sumWeight(weightRDD: RDD[DenseVector[Double]]): Double = {
