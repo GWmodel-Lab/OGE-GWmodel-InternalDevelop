@@ -14,12 +14,22 @@ import scala.math.{pow, sqrt}
 
 object SpatialAutoCorrelation {
 
-  def moranI(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W"): String = {
+  /**
+   * 输入RDD直接计算全局莫兰指数
+   *
+   * @param featureRDD     RDD
+   * @param property    要计算的属性，String
+   * @param plot        bool类型，是否画散点图，默认为否(false)
+   * @param test        是否进行测试(计算P值等)
+   * @param weightstyle 邻接矩阵的权重类型，参考 getNeighborWeight 函数
+   * @return 全局莫兰指数，峰度
+   */
+  def globalMoranI(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W"): String = {
     val nb_weight = getNeighborWeight(featureRDD, weightstyle)
     val sum_weight = sumWeight(nb_weight)
     val input = featureRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble)
     val arr_mean = rddmeandiff(input)
-    val meanidx=arr_mean.collect()
+    val meanidx = arr_mean.collect()
     val n = input.count().toInt
     val arr_mul = arr_mean.map(t => {
       val re = new Array[Double](n)
@@ -53,61 +63,6 @@ object SpatialAutoCorrelation {
     }
     println(outStr)
     outStr
-    //    (moran_i, kurtosis)
-  }
-
-  /**
-   * 输入RDD直接计算全局莫兰指数
-   *
-   * @param featureRDD     RDD
-   * @param property    要计算的属性，String
-   * @param plot        bool类型，是否画散点图，默认为否(false)
-   * @param test        是否进行测试(计算P值等)
-   * @param weightstyle 邻接矩阵的权重类型，参考 getNeighborWeight 函数
-   * @return 全局莫兰指数，峰度
-   */
-  def globalMoranI(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W"): String = {
-    val nb_weight = getNeighborWeight(featureRDD, weightstyle)
-    val sum_weight = sumWeight(nb_weight)
-    val arr = featureRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
-    val arr_mean = meandiff(arr)
-    val arr_mul = arr_mean.map(t => {
-      val re = new Array[Double](arr_mean.length)
-      for (i <- 0 until arr_mean.length) {
-        re(i) = t * arr_mean(i)
-      }
-      DenseVector(re)
-    })
-    val weight_m_arr = arrdvec2multi(nb_weight.collect(), arr_mul)
-    val rightup = weight_m_arr.map(t => sum(t)).sum
-    val rightdn = arr_mean.map(t => t * t).sum
-    val n = arr.length
-    val moran_i = n / sum_weight * rightup / rightdn
-    val kurtosis = (n * arr_mean.map(t => pow(t, 4)).sum) / pow(rightdn, 2)
-    if (plot) {
-      plotmoran(arr, nb_weight, moran_i)
-    }
-    var outStr=s"global Moran's I is: ${moran_i.formatted("%.4f")}\n"
-    outStr += s"kurtosis is: ${kurtosis.formatted("%.4f")}\n"
-    if (test) {
-      val E_I = -1.0 / (n - 1)
-      val S_1 = 0.5 * nb_weight.map(t => sum(t * 2.0 * t * 2.0)).sum()
-      val S_2 = nb_weight.map(t => sum(t) * 2).sum()
-      val E_A = n * ((n * n - 3 * n + 3) * S_1) - n * S_2 + 3 * sum_weight * sum_weight
-      val E_B = (arr_mean.map(t => t * t * t * t).sum / (rightdn * rightdn)) * ((n * n - n) * S_1 - 2 * n * S_2 + 6 * sum_weight * sum_weight)
-      val E_C = (n - 1) * (n - 2) * (n - 3) * sum_weight * sum_weight
-      val V_I = (E_A - E_B) / E_C - pow(E_I, 2)
-      val Z_I = (moran_i - E_I) / sqrt(V_I)
-      val gaussian = breeze.stats.distributions.Gaussian(0, 1)
-      val Pvalue = 2 * (1.0 - gaussian.cdf(Z_I))
-      //      println(s"global Moran's I is: $moran_i")
-      //      println(s"Z-Score is: $Z_I , p-value is: $Pvalue")
-      outStr += s"Z-Score is: ${Z_I.formatted("%.4f")} , "
-      outStr += s"p-value is: ${Pvalue.formatted("%.6f")}"
-    }
-    println(outStr)
-    outStr
-    //    (moran_i, kurtosis)
   }
 
   /**
