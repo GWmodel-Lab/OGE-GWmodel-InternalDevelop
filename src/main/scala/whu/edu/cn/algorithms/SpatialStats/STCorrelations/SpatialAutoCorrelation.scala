@@ -30,7 +30,7 @@ object SpatialAutoCorrelation {
     val input = featureRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble)
     val arr_mean = rddmeandiff(input)
     val meanidx = arr_mean.collect()
-    val n = input.count().toInt
+    val n = meanidx.length
     val arr_mul = arr_mean.map(t => {
       val re = new Array[Double](n)
       for (i <- 0 until n) {

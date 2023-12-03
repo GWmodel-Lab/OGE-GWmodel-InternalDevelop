@@ -175,18 +175,31 @@ object FeatureSpatialWeight {
 
   def testNeighborBool(poly1: Geometry, poly2: Array[Geometry],id:Int): Array[Boolean] = {
     val arr_isnb = new Array[Boolean](poly2.length)
-    for (i <- poly2.indices) {
+    val poly2idx=poly2.zipWithIndex
+    poly2idx.foreach(t=> {
       try {
-        if(i!=id) {
-          arr_isnb(i) = poly1.touches(poly2(i))
+        if (t._2 != id) {
+          arr_isnb(t._2) = poly1.touches(t._1)
         }
       } catch {
         case e: TopologyException => {
-          arr_isnb(i) = true//这里可能有问题的，不确定。相当于将touch出错的全部认为是由于矢量精度问题导致的
+          arr_isnb(t._2) = true //这里可能有问题的，不确定。相当于将touch出错的全部认为是由于矢量精度问题导致的
         }
       }
-      arr_isnb(id)=false
-    }
+      arr_isnb(id) = false
+    })
+//    for (i <- poly2.indices) {
+//      try {
+//        if(i!=id) {
+//          arr_isnb(i) = poly1.touches(poly2(i))
+//        }
+//      } catch {
+//        case e: TopologyException => {
+//          arr_isnb(i) = true//这里可能有问题的，不确定。相当于将touch出错的全部认为是由于矢量精度问题导致的
+//        }
+//      }
+//      arr_isnb(id)=false
+//    }
     arr_isnb
   }
 

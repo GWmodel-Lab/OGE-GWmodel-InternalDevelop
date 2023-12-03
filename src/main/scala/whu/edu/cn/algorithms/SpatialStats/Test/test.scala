@@ -28,11 +28,11 @@ object test {
   val shpPath: String = "D:\\Java\\testdata\\whhp.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
-  val shpPath2: String = "D:\\ArcGIS_data\\data\\cn_aging.shp"
-  val shpfile2 = readShp(sc, shpPath2, encode)
-
-//  val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
+//  val shpPath2: String = "D:\\ArcGIS_data\\data\\cn_aging.shp"
 //  val shpfile2 = readShp(sc, shpPath2, encode)
+
+  val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
+  val shpfile2 = readShp(sc, shpPath2, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
@@ -44,13 +44,13 @@ object test {
     //    linear_test()
     //    pca_test()
     //    geodetector_test()
-
+    val t1 = System.currentTimeMillis()
 //    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
 //    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
 //    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)
 //    AverageNearestNeighbor.result(shpfile)
 //    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
-    SpatialAutoCorrelation.globalMoranI(shpfile2, "aging", plot = false, test = true)
+//    SpatialAutoCorrelation.globalMoranI(shpfile2, "aging", plot = false, test = true)
 //    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
 //    TemporalAutoCorrelation.ACF(shpfile, "Avg_HP_avg", 30)
 //    CorrelationAnalysis.corrMat(shpfile, "Avg_HP_avg,Avg_Pop,Avg_AQI,Avg_Green_", method = "spearman")
@@ -62,6 +62,8 @@ object test {
 //    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
+    println(s"time used is $tused s")
     sc.stop()
   }
 
