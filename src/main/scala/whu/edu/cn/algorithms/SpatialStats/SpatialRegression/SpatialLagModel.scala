@@ -76,7 +76,11 @@ class SpatialLagModel extends SpatialAutoRegressionBase {
     var printStr = "------------------------------Spatial Lag Model------------------------------\n" +
       f"rho is $rho%.6f\n"
     printStr += try_LRtest(-llrho, lly)
-    printStr += f"coeffients:\n$betas_map\n"
+//    printStr += f"coeffients:\n$betas_map\n"
+    printStr += f"     coeffients:\n"
+    for ((key, value) <- betas_map) {
+      printStr += (s"*$key :$value\n")
+    }
     printStr += calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = llrho, df = _df)
     printStr += "------------------------------------------------------------------------------"
     //    println("--------------------------------spatial Lag model--------------------------------")

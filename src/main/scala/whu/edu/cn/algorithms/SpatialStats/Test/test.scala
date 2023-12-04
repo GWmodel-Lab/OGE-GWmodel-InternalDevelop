@@ -13,6 +13,7 @@ import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.oge.Feature._
@@ -25,14 +26,14 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "D:\\Java\\testdata\\whhp.shp"
+  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\cn_aging.shp"
   val shpfile = readShp(sc, shpPath, encode)
-
-//  val shpPath2: String = "D:\\ArcGIS_data\\data\\cn_aging.shp"
-//  val shpfile2 = readShp(sc, shpPath2, encode)
 
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
+
+//  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+//  val shpfile3 = readShp(sc, shpPath3, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
@@ -40,28 +41,30 @@ object test {
 
   def main(args: Array[String]): Unit = {
 
+    val t1 = System.currentTimeMillis()
     //    acf_test()
     //    linear_test()
     //    pca_test()
     //    geodetector_test()
-    val t1 = System.currentTimeMillis()
-//    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
-//    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
-//    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)
+//    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
+//    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
+
 //    AverageNearestNeighbor.result(shpfile)
-    DescriptiveStatistics.describe(shpfile)
-//    SpatialAutoCorrelation.globalMoranI(shpfile2, "aging", plot = false, test = true)
-//    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
-//    TemporalAutoCorrelation.ACF(shpfile, "Avg_HP_avg", 30)
-//    CorrelationAnalysis.corrMat(shpfile, "Avg_HP_avg,Avg_Pop,Avg_AQI,Avg_Green_", method = "spearman")
-//    GWRbasic.auto(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI,Avg_Green_,Avg_GDP_pe,Avg_Land_r,Avg_Fixed_,Avg_Pro_st", kernel = "bisquare")
-//    GWRbasic.fit(sc, shpfile2, "aging", "GDP,pop,GI,sci_tech,education,revenue", 50, adaptive = true)
-//    GWRbasic.autoFit(sc, shpfile2, "aging", "GDP,pop,GI,sci_tech,education,revenue",approach = "CV", adaptive = true)
-//    SpatialLagModel.fit(sc, shpfile2, "aging", "GDP,pop,GI,sci_tech,education,revenue")
-//    SpatialErrorModel.fit(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI")
-//    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
+//    DescriptiveStatistics.describe(shpfile)
+//    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
+//    SpatialAutoCorrelation.localMoranI(shpfile, "aging")
+//    TemporalAutoCorrelation.ACF(shpfile, "aging", 20)
+//    CorrelationAnalysis.corrMat(shpfile, "aging,GDP,pop,GI,sci_tech,education,revenue", method = "spearman")
+//    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
+//    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 10, adaptive = true)
+//    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "CV", adaptive = true)
+//    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
+//    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
+//    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
+
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")
+
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()

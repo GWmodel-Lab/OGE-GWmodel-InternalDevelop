@@ -30,7 +30,7 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
   private var _wy: DenseVector[Double] = _
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
-  private var _eigValue: DenseVector[Double] = _
+//  private var _eigValue: DenseVector[Double] = _
 
   /** set x
    *
@@ -83,7 +83,11 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     var printStr = "-----------------------------Spatial Error Model-----------------------------\n" +
       f"lambda is $lambda%.6f\n"
     printStr += try_LRtest(-lllambda, lly)
-    printStr += f"coeffients:\n$betas_map\n"
+//    printStr += f"coeffients:\n$betas_map\n"
+    printStr += f"     coeffients:\n"
+    for ((key, value) <- betas_map) {
+      printStr += (s"*$key :$value\n")
+    }
     printStr += calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
     printStr += "------------------------------------------------------------------------------"
     //    println("------------------------------spatial error model------------------------------")
@@ -137,19 +141,7 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
       }
       if (spweight_dmat != null) {
         if (_eigen == null) {
-          try {
-            _eigen = breeze.linalg.eig(spweight_dmat.t)
-            _eigValue = _eigen.eigenvalues.copy
-          } catch {
-            case e: IllegalArgumentException => {
-              var A=breeze.linalg.qr(spweight_dmat.t)
-              for (i <- 0 until 2) {
-                val Ai = A.r * A.q
-                A = breeze.linalg.qr(Ai)
-              }
-              _eigValue = diag(A.r * A.q)
-            }
-          }
+          _eigen = breeze.linalg.eig(spweight_dmat.t)
         }
       } else {
         throw new NullPointerException("the shpfile is not initialized! please check!")
@@ -166,25 +158,12 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     if (spweight_dmat == null) {
       throw new NullPointerException("the shpfile is not initialized! please check!")
     }
-    var A=breeze.linalg.qr(spweight_dmat.t)
     if (_eigen == null) {
-      try{
-        _eigen = breeze.linalg.eig(spweight_dmat.t)
-        _eigValue = _eigen.eigenvalues.copy
-      }catch {
-        case e: IllegalArgumentException => {
-          for(i<-0 until 2){
-            val Ai=A.r * A.q
-            A = breeze.linalg.qr(Ai)
-          }
-          _eigValue = diag(A.r * A.q)
-        }
-      }
+      _eigen = breeze.linalg.eig(spweight_dmat.t)
     }
-    var min=0.1
-    var max=1.0
-    min = _eigValue.toArray.min
-    max = _eigValue.toArray.max
+    val eigvalue = _eigen.eigenvalues.copy
+    val min = eigvalue.toArray.min
+    val max = eigvalue.toArray.max
     (1.0 / min, 1.0 / max)
   }
 
@@ -199,12 +178,81 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     val SSE = yl.t * yl - xl_q_yl.t * xl_q_yl
     val n = _xrows
     val s2 = SSE / n
-    val eigvalue = _eigValue
+    val eigvalue = _eigen.eigenvalues.copy
     val ldet = sum(breeze.numerics.log(-eigvalue * lambda + 1.0))
     val ret = (ldet + (1.0 / 2.0) * sum_lw - ((n / 2.0) * log(2.0 * math.Pi)) - (n / 2.0) * log(s2) - (1.0 / (2.0 * (s2))) * SSE)
     //    println(SSE, ret)
     ret
   }
+
+//  private def get_env(): Unit = {
+//    if (_Y != null && _X != null) {
+//      if (_wy == null) {
+//        _wy = DenseVector(spweight_dvec.map(t => (t dot _Y)))
+//      }
+//      if (sum_lw.isNaN || sw == null) {
+//        val weight1: DenseVector[Double] = DenseVector.ones[Double](_xrows)
+//        sum_lw = weight1.toArray.map(t => log(t)).sum
+//        sw = sqrt(weight1)
+//      }
+//      if (_wx == null) {
+//        val _dvecWx = _X.map(t => DenseVector(spweight_dvec.map(i => (i dot t))))
+//        //      val _dmatWx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length, data = _dvecWx.flatMap(t => t.toArray))
+//        val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, _dvecWx.flatMap(t => t.toArray))
+//        _wx = DenseMatrix.create(rows = _xrows, cols = _dvecWx.length + 1, data = ones_x.flatten)
+//      }
+//      if (spweight_dmat != null) {
+//        if (_eigen == null) {
+//          try {
+//            _eigen = breeze.linalg.eig(spweight_dmat.t)
+//            _eigValue = _eigen.eigenvalues.copy
+//          } catch {
+//            case e: IllegalArgumentException => {
+//              var A = breeze.linalg.qr(spweight_dmat.t)
+//              for (i <- 0 until 2) {
+//                val Ai = A.r * A.q
+//                A = breeze.linalg.qr(Ai)
+//              }
+//              _eigValue = diag(A.r * A.q)
+//            }
+//          }
+//        }
+//      } else {
+//        throw new NullPointerException("the shpfile is not initialized! please check!")
+//      }
+//    } else {
+//      throw new IllegalArgumentException("the x or y are not initialized! please check!")
+//    }
+//    //    println(_wy)
+//    //    println(s"-----------\n$sum_lw\n$sw")
+//    //    println(_wx)
+//  }
+//
+//  private def get_interval(): (Double, Double) = {
+//    if (spweight_dmat == null) {
+//      throw new NullPointerException("the shpfile is not initialized! please check!")
+//    }
+//    var A = breeze.linalg.qr(spweight_dmat.t)
+//    if (_eigen == null) {
+//      try {
+//        _eigen = breeze.linalg.eig(spweight_dmat.t)
+//        _eigValue = _eigen.eigenvalues.copy
+//      } catch {
+//        case e: IllegalArgumentException => {
+//          for (i <- 0 until 2) {
+//            val Ai = A.r * A.q
+//            A = breeze.linalg.qr(Ai)
+//          }
+//          _eigValue = diag(A.r * A.q)
+//        }
+//      }
+//    }
+//    var min = 0.1
+//    var max = 1.0
+//    min = _eigValue.toArray.min
+//    max = _eigValue.toArray.max
+//    (1.0 / min, 1.0 / max)
+//  }
 
 }
 
