@@ -72,15 +72,15 @@ class GWRbasic extends GWRbase {
     //    val d= new BufferedImage(900,600,BufferedImage.TYPE_4BYTE_ABGR)
     //    val g=d.createGraphics()
     //    g.drawString("str",10,10)
-    val f = Figure()
-    f.height = 600
-    f.width = 900
-    val p = f.subplot(0)
-    val optv_sort = opt_value.zipWithIndex.map(t => (t._1, opt_result(t._2))).sortBy(_._1)
-    p += plot(optv_sort.map(_._1), optv_sort.map(_._2))
-    p.title = "bandwidth selection"
-    p.xlabel = "bandwidth"
-    p.ylabel = s"$approach"
+//    val f = Figure()
+//    f.height = 600
+//    f.width = 900
+//    val p = f.subplot(0)
+//    val optv_sort = opt_value.zipWithIndex.map(t => (t._1, opt_result(t._2))).sortBy(_._1)
+//    p += plot(optv_sort.map(_._1), optv_sort.map(_._2))
+//    p.title = "bandwidth selection"
+//    p.xlabel = "bandwidth"
+//    p.ylabel = s"$approach"
     val result = fit(bwselect, kernel = kernel, adaptive = adaptive)
     printString += result._2
     if (_outString == null) {
@@ -127,14 +127,14 @@ class GWRbasic extends GWRbase {
       //      println(i,select_idx)
       remainNameBuf.remove(valArrIdx(0)._2)
     }
-    val f = Figure()
-    f.height = 600
-    f.width = 900
-    val p = f.subplot(0)
-    p += plot(plotIdx.toArray, plotAic.toArray)
-    p.title = "variable selection"
-    p.xlabel = "variable selection order"
-    p.ylabel = "AICc"
+//    val f = Figure()
+//    f.height = 600
+//    f.width = 900
+//    val p = f.subplot(0)
+//    p += plot(plotIdx.toArray, plotAic.toArray)
+//    p.title = "variable selection"
+//    p.xlabel = "variable selection order"
+//    p.ylabel = "AICc"
     _outString = "Auto variable selection\n"
     _outString += ordString
     (getNameBuf.toArray, select_idx)
