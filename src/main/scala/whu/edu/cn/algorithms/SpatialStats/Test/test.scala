@@ -49,7 +49,7 @@ object test {
 //    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
 //    GWRbasic.auto(sc, shp, "Avg_HP_avg", "Avg_Pop\tAvg_AQI\tAvg_Green_\tAvg_GDP_pe\tAvg_Land_r\tAvg_Fixed_\tAvg_Pro_st\tAvg_Poi_Mi\tAvg_Commun",split="\t",kernel="bisquare", adaptive = true)
 //    AverageNearestNeighbor.result(shpfile)
-//    DescriptiveStatistics.result(shpfile, "FLOORSZ", 20)
+    DescriptiveStatistics.describe(shpfile)
 //    SpatialAutoCorrelation.globalMoranI(shpfile2, "aging", plot = false, test = true)
 //    SpatialAutoCorrelation.localMoranI(shpfile2, "HR60")
 //    TemporalAutoCorrelation.ACF(shpfile, "Avg_HP_avg", 30)
