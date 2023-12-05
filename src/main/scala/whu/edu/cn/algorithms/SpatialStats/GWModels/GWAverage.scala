@@ -13,7 +13,6 @@ class GWAverage extends GWRbase {
 
   var _xrows = 0
   var _xcols = 0
-  val select_eps = 1e-2
 
   private var _dX: DenseMatrix[Double] = _
   private var shpRDDidx: Array[((String, (Geometry, mutable.Map[String, Any])), Int)] = _
@@ -75,11 +74,11 @@ class GWAverage extends GWRbase {
       bw_type = "Adaptive"
     }
     var str = "*********************************************************************************\n" +
-      "*               Results of Geographically Weighted Regression                   *\n" +
+      "*                Results of Geographically Weighted Average                     *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
       s"Kernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
-      "*****************************Diagnostic information******************************\n"
+      "******************************Summary  information*******************************\n"
     val Xidx = _X.zipWithIndex
     val reStr = Xidx.map(t => {
       calAverageSerial(t._1, t._2, quantile)
@@ -91,7 +90,7 @@ class GWAverage extends GWRbase {
       }
     })
     str += "*********************************************************************************\n"
-    //    print(str)
+        print(str)
     (shpRDDidx.map(t => t._1), str)
   }
 
@@ -184,7 +183,7 @@ object GWAverage {
    * @return featureRDD and diagnostic String
    */
   def cal(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-          bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false)
+          bw: Double = 10, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWAverage
     model.init(featureRDD)

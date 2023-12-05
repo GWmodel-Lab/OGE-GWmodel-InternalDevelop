@@ -82,7 +82,11 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
     var printStr = "-----------------------------Spatial Durbin Model-----------------------------\n" +
       f"rho is $rho%.6f\nlambda is $lambda%.6f\n"
     printStr += try_LRtest(-llopt, lly, chi_pama = 2)
-    printStr += f"coeffients:\n$betas_map\n"
+//    printStr += f"coeffients:\n$betas_map\n"
+    printStr += f"     coeffients:\n"
+    for ((key, value) <- betas_map) {
+      printStr += (s"*$key :$value\n")
+    }
     printStr += calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
     printStr += "------------------------------------------------------------------------------"
     //    println("---------------------------------spatial durbin model---------------------------------")
