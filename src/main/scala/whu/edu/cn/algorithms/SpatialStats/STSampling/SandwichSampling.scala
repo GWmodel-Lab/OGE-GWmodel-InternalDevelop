@@ -22,23 +22,26 @@ import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 object SandwichSampling {
 
   /**
+   *三明治随机抽样
    *
-   * @param featureRDD
-   * @param y_title
-   * @param knowledge_title
-   * @param reporting_title
-   * @param accuracy
-   * @return 返回RDD，即最终抽取的样本
+   * @param featureRDD      RDD
+   * @param y_title         因变量名称
+   * @param knowledge_title 知识层名称
+   * @param reporting_title 报告层名称
+   * @param accuracy        抽取精度
+   * @return                返回RDD，即最终抽取的样本
    */
-  def sampling(featureRDD: RDD[(String, (Geometry, Map[String, Any]))], sc: SparkContext,
+  def sampling(sc: SparkContext, featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                y_title: String, knowledge_title: String, reporting_title: String, accuracy: Double = 0.05):
   RDD[(String, (Geometry, Map[String, Any]))] = {
     // test error
-    if (accuracy > 1.0 || accuracy < 0.0) {
-      throw new Exception("抽样精度必须在0到1之间。")
+    if (accuracy > 1.0 || accuracy <= 0.0) {
+      throw new IllegalArgumentException("The accuracy must be in (0,1].")
     }
 
-    val oriVals = get(featureRDD, y_title).map(t => t.toString.toDouble)
+    val oriVals = getNumber(featureRDD, y_title)
+    //val oriVals = get(featureRDD, y_title).map(t => t.toString.toDouble)
+    //val oriVals = shpToList(featureRDD,y_title)
     val oriOrderNum = (0 until oriVals.length).toList // 序号
     val oriKnowledge = Feature.getString(featureRDD, knowledge_title)
     val oriReport = Feature.getString(featureRDD, reporting_title)
@@ -89,7 +92,6 @@ object SandwichSampling {
     }
     //println(s"t = ${(System.currentTimeMillis() - t0) / 1000.0} s.")
 
-
     /*-------------------------计算抽样结果指标------------------------*/
     val sampleVals = sampleOrderNumKnowledge.map(t => t.map(t => df(t)._2))
     val meansKnowledge = sampleVals.map(t => stats.mean(t)) //yZbar
@@ -115,21 +117,21 @@ object SandwichSampling {
         sampleReport_flat.append(sampleReport(i)(j))
       }
     }
-    var sampleSizeReport = sampleReport_flat.groupBy(identity).mapValues(_.length)
+    val sampleSizeReport = sampleReport_flat.groupBy(identity).mapValues(_.length)
 
     //计算报告层与知识层相交后，各子区内的样本量
     val sampleZoneAndReport = sampleOrderNumKnowledge.map(t => t.map(t => (df(t)._3, df(t)._4)))
-    var sampleZR_flat: ListBuffer[(String, String)] = ListBuffer.empty[(String, String)]
+    val sampleZR_flat: ListBuffer[(String, String)] = ListBuffer.empty[(String, String)]
     for (i <- 0 until sampleZoneAndReport.length) {
       for (j <- 0 until sampleZoneAndReport(i).length) {
         sampleZR_flat.append(sampleZoneAndReport(i)(j))
       }
     }
-    var sampleSzZR = sampleZR_flat.groupBy(identity).mapValues(_.length)
-    var matSzZR = linalg.Matrix.zeros[Int](namesKnowledge.length, namesReport.length)
+    val sampleSzZR = sampleZR_flat.groupBy(identity).mapValues(_.length)
+    val matSzZR = linalg.Matrix.zeros[Int](namesKnowledge.length, namesReport.length)
     for (i <- 0 until namesKnowledge.length) {
       for (j <- 0 until namesReport.length) {
-        var key0 = (namesKnowledge(i), namesReport(j))
+        val key0 = (namesKnowledge(i), namesReport(j))
         //println(key0)
         if (sampleSzZR.contains(key0)) {
           matSzZR(i, j) = sampleSzZR(key0)
@@ -137,10 +139,9 @@ object SandwichSampling {
       }
     }
 
-
     // 正式计算报告层的均值与方差
-    var meansReport: ListBuffer[Double] = ListBuffer.empty[Double]
-    var varsReport: ListBuffer[Double] = ListBuffer.empty[Double]
+    val meansReport: ListBuffer[Double] = ListBuffer.empty[Double]
+    val varsReport: ListBuffer[Double] = ListBuffer.empty[Double]
     for (i <- 0 until namesReport.length) {
       var yRbar = 0.0
       var V_yRbar = 0.0
@@ -156,51 +157,64 @@ object SandwichSampling {
       varsReport.append(V_yRbar)
     }
 
-
-    println("-----------------Results of Sandwich Sampling------------------")
-    println(
-      f"""|Variable: $y_title
-          |Knowledge layer: ${knowledge_title}%-10s; number of strata: ${namesKnowledge.length}
-          |Reporting layer: ${reporting_title}%-10s; number of strata: ${namesReport.length}
-          |Total size: ${oriVals.length}
-          |Accuracy: ${accuracy}
-          |Expected sample size: ${sampleSizeTotal}
-          |Actual sample size: ${res1.length}""".stripMargin)
-    println("-------------------Parameters of Knowledge Layer-------------------")
-    println(
-      f"""|Mean-variance: ${stats.variance(meansKnowledge)}%-2.3f
-          |Spatial standard deviation: ${stats.stddev(meansKnowledge)}%-2.3f
-          |Upper limit: ${meansKnowledge.max}%-2.3f
-          |Lower limit: ${meansKnowledge.min}%-2.3f """.stripMargin
-    )
+    var str = "************************Results of Sandwich Sampling************************\n"
+    str += f"Variable: $y_title\n" +
+      f"Knowledge layer: ${knowledge_title}%-10s, number of strata: ${namesKnowledge.length}\n" +
+      f"Reporting layer: ${reporting_title}%-10s, number of strata: ${namesReport.length}\n"+
+      f"Total size: ${oriVals.length}\nAccuracy: ${accuracy}\n"+
+      f"Expected sample size: ${sampleSizeTotal}\nActual sample size: ${res1.length}\n"+
+      f"************************Parameters of Knowledge Layer***********************\n"+
+      f"Mean-variance: ${stats.variance(meansKnowledge)}%-2.3f\n"+
+      f"Spatial standard deviation: ${stats.stddev(meansKnowledge)}%-2.3f\n"+
+      f"Upper limit: ${meansKnowledge.max}%-2.3f\n"+
+      f"Lower limit: ${meansKnowledge.min}%-2.3f\n"
     for (i <- 0 until meansKnowledge.length) {
-      println(f"stratum ${i+1}: ${namesKnowledge(i)}, mean: ${meansKnowledge(i)}%-5f, variance: ${varsKnowledge(i)}%-5f, sample size: ${sizeKnowledge(i)}")
+      str += f"stratum ${i+1}: ${namesKnowledge(i)}, mean: ${meansKnowledge(i)}%-5f, variance: ${varsKnowledge(i)}%-5f, sample size: ${sizeKnowledge(i)}\n"
     }
-    // println("NO       Value     Zoning     Reporting")
-    // for (i <- 0 until res.length) {
-    //   println(f"${res(i)._1}%4s     ${res(i)._2}%-2.5f    ${res(i)._3}%-5s     ${res(i)._4}%-5s")
-    //   //println(res1(i))
-    // }
-    println("----------Parameters of Reporting Layers----------")
+    str += f"************************Parameters of Reporting Layer***********************\n"
     for (i <- 0 until meansReport.length) {
-      println(f"stratum ${i+1}: ${namesReport(i)}, mean: ${meansReport(i)}%-5f, variance: ${varsReport(i)}%-5f, sample size: ${sampleSizeReport(namesReport(i))}")
+      str += f"stratum ${i + 1}: ${namesReport(i)}, mean: ${meansReport(i)}%-5f, variance: ${varsReport(i)}%-5f, sample size: ${sampleSizeReport(namesReport(i))}\n"
     }
-    println("--------------------------------------------------")
-
-    //output
+    str += f"****************************************************************************\n"
+    print(str)
+    //最终选择的样本
     sc.makeRDD(res1)
   }
 
-  protected def Grouping(y_col: List[Any], x_col: List[Any])
-  : List[List[Any]] = {
-    if (y_col.length != x_col.length) {
-      throw new IllegalArgumentException(s"The sizes of the y and x are not equal, size of y is ${y_col.length} while size of x is ${x_col.length}.")
+  ///**
+  // * 从RDD中得到对应属性p的数据
+  // *
+  // * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
+  // * @param p       String的形式
+  // * @return        List[Double]
+  // */
+  //protected def shpToList(testshp: RDD[(String, (Geometry, Map[String, Any]))], p: String): List[Double] = {
+  //  val list: List[Any] = Feature.get(testshp, p)
+  //  val typeOfElement = list(0).getClass.getSimpleName
+  //  var lst: List[Double] = List.empty
+  //  typeOfElement match {
+  //    case "String" => lst = list.collect({ case (i: String) => (i.toDouble) })//shp原始数据
+  //    case "Double" => lst = list.collect({ case (i: Double) => (i.toDouble) })//后期写入shp的属性
+  //  }
+  //  lst
+  //}
+
+  /**
+   * 以X为依据对Y分层
+   *
+   * @param Y List
+   * @param X List
+   * @return Y的分层结果
+   */
+  protected def Grouping(Y: List[Any], X: List[Any]): List[List[Any]] = {
+    if (Y.length != X.length) {
+      throw new IllegalArgumentException(s"The sizes of the y and x are not equal, size of y is ${Y.length} while size of x is ${X.length}.")
     }
 
     val list_xy: ListBuffer[Tuple2[Any, Any]] =
       ListBuffer(("", List(0, 0.0, "", "")))
-    for (i <- 0 until y_col.length) {
-      list_xy.append((x_col(i), y_col(i)))
+    for (i <- 0 until Y.length) {
+      list_xy.append((X(i), Y(i)))
     }
     val sorted_xy = list_xy.drop(1).toList.groupBy(_._1).mapValues(r => r.map(r => {
       r._2
@@ -208,16 +222,22 @@ object SandwichSampling {
     sorted_xy.toList
   }
 
-  protected def GroupingInt(y_col: List[Int], x_col: List[Any])
-  : List[List[Int]] = {
-    if (y_col.length != x_col.length) {
-      throw new IllegalArgumentException(s"The sizes of the y and x are not equal, size of y is ${y_col.length} while size of x is ${x_col.length}.")
+  /**
+   * 以X为依据对Y分层
+   *
+   * @param Y List[Int]
+   * @param X List
+   * @return Y的分层结果
+   */
+  protected def GroupingInt(Y: List[Int], X: List[Any]): List[List[Int]] = {
+    if (Y.length != X.length) {
+      throw new IllegalArgumentException(s"The sizes of the y and x are not equal, size of y is ${Y.length} while size of x is ${X.length}.")
     }
 
     val list_xy: ListBuffer[Tuple2[Any, Int]] =
       ListBuffer(("", 0))
-    for (i <- 0 until y_col.length) {
-      list_xy.append((x_col(i), y_col(i)))
+    for (i <- 0 until Y.length) {
+      list_xy.append((X(i), Y(i)))
     }
     val sorted_xy = list_xy.drop(1).toList.groupBy(_._1).mapValues(r => r.map(r => {
       r._2

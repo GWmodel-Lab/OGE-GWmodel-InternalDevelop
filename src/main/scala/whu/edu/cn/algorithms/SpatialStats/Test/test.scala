@@ -12,12 +12,12 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel,
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
-
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
-
+import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling._
+import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 
@@ -48,8 +48,7 @@ object test {
     //    pca_test()
     //    gwrbasic_test()
     //    geodetector_test()
-        sandwichSampling_test()
-        geodetector_test()
+    //    sandwichSampling_test()
 
 //    GWAverage.cal(sc, shpfile, "PURCHASE", "FLOORSZ,PROF", 50)
 //    val shp=readShp(sc,"D:\\ArcGIS_data\\data\\WHHP_2015.shp", encode)
@@ -68,6 +67,11 @@ object test {
 //    SpatialDurbinModel.fit(sc, shpfile2, "HR60", "PO60,UE60")
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")
+//    Geodetector.factorDetector(shpfile1, "PURCHASE", "FLOORSZ,TYPEDETCH,TPSEMIDTCH,TYPETRRD,TYPEFLAT,BLDPOSTW")
+//    Geodetector.interactionDetector(shpfile1, "PURCHASE", "FLOORSZ,TYPEDETCH,TPSEMIDTCH,TYPETRRD,TYPEFLAT,BLDPOSTW")
+//    Geodetector.ecologicalDetector(shpfile1, "PURCHASE", "FLOORSZ,TYPEDETCH,TPSEMIDTCH,TYPETRRD,TYPEFLAT,BLDPOSTW")
+//    Geodetector.riskDetector(shpfile1, "PURCHASE", "FLOORSZ,TYPEDETCH,TPSEMIDTCH,TYPETRRD,TYPEFLAT,BLDPOSTW")
+    SandwichSampling.sampling(sc, shpfile1,"PURCHASE", "FLOORSZ", "TYPEDETCH")
     sc.stop()
   }
 
@@ -129,24 +133,25 @@ object test {
   }
 
   def geodetector_test():Unit ={
-    var t1 = System.currentTimeMillis()
+    val t1 = System.currentTimeMillis()
     val y_title = "PURCHASE"
-    val x_titles = List("FLOORSZ","TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
+    val x_titles = "FLOORSZ,TYPEDETCH,TPSEMIDTCH,TYPETRRD,TYPEBNGLW,TYPEFLAT,BLDPWW1,BLDPOSTW"
+    //val x_titles = List("FLOORSZ","TYPEDETCH", "TPSEMIDTCH", "TYPETRRD",
+    // "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
     val FD = factorDetector(shpfile1, y_title, x_titles)
     val ID = interactionDetector(shpfile1, y_title, x_titles)
     val ED = ecologicalDetector(shpfile1, y_title, x_titles)
     val RD = riskDetector(shpfile1, y_title, x_titles)
-    var tused = (System.currentTimeMillis() - t1) / 1000.0
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is: $tused s")
   }
 
   def sandwichSampling_test(): Unit = {
-    val purchase = getNumber(shpfile1, "PURCHASE").toArray.map(t => t / 1e4)
-    val shpfile_mod = writeRDD(sc, shpfile1, purchase, propertyName = "col1")
+    //val purchase = getNumber(shpfile1, "PURCHASE").toArray.map(t => (t / 1e4))
+    //val shpfile_mod = writeRDD(sc, shpfile1, purchase, propertyName = "PURCHASE1")
     val t1 = System.currentTimeMillis()
-    val RDD_sample = sampling(shpfile_mod, sc,
-      "col1", "FLOORSZ", "TYPEDETCH")
-    var tused = (System.currentTimeMillis() - t1) / 1000.0
+    val RDD_sample = sampling(sc, shpfile,"PURCHASE", "FLOORSZ", "TYPEDETCH")
+    val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"Time used is ${tused} s.")
   }
 
