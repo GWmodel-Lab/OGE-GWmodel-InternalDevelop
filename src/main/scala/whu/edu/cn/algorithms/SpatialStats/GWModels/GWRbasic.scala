@@ -382,17 +382,16 @@ object GWRbasic {
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
-   * @param split       split of the x properties, default: ","
    * @param varSelTh    threshold of variable selection, default: 3.0
    * @return featureRDD and diagnostic String
    */
   def auto(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-           kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, split: String = ",", varSelTh: Double = 3.0)
+           kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, varSelTh: Double = 3.0)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWRbasic
     model.init(featureRDD)
     model.setY(propertyY)
-    model.setX(propertiesX, split)
+    model.setX(propertiesX)
     val vars = model.variableSelect(kernel = kernel, select_th = varSelTh)
     val r = vars._1.take(vars._2)
     model.resetX(r)
@@ -410,11 +409,10 @@ object GWRbasic {
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param approach    approach function: AICc, CV
    * @param adaptive    true for adaptive distance, false for fixed distance
-   * @param split       split of the x properties, default: ","
    * @return featureRDD and diagnostic String
    */
   def autoFit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, split: String = ",")
+              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWRbasic
     model.init(featureRDD)
@@ -434,11 +432,10 @@ object GWRbasic {
    * @param bandwidth   bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
-   * @param split       split of the x properties, default: ","
    * @return featureRDD and diagnostic String
    */
   def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false, split: String = ",")
+          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false)
   : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val model = new GWRbasic
     model.init(featureRDD)

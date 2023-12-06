@@ -32,8 +32,8 @@ object test {
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
-//  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
-//  val shpfile3 = readShp(sc, shpPath3, encode)
+  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpfile3 = readShp(sc, shpPath3, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
@@ -45,7 +45,7 @@ object test {
     //    acf_test()
     //    linear_test()
     //    pca_test()
-    //    geodetector_test()
+        geodetector_test()
 //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
 //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
 
@@ -128,15 +128,12 @@ object test {
   }
 
   def geodetector_test():Unit ={
-    var t1 = System.currentTimeMillis()
-    val y_title = "PURCHASE"
-    val x_titles = List("FLOORSZ","TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
+    val y_title = "aging"
+    val x_titles = "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education"
     val FD = factorDetector(shpfile, y_title, x_titles)
     val ID = interactionDetector(shpfile, y_title, x_titles)
     val ED = ecologicalDetector(shpfile, y_title, x_titles)
     val RD = riskDetector(shpfile, y_title, x_titles)
-    var tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is: $tused s")
   }
 
 }
