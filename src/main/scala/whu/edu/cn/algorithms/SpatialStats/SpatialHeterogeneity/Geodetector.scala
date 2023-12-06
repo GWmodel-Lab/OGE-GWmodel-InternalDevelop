@@ -37,19 +37,16 @@ object Geodetector {
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
    * @param is_print   是否打印，默认为true
-   * @return （变量名、q值和p值）各自以List形式储存
+   * @return           String
    */
   def factorDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
-                     y_title: String, x_titles: String, is_print: Boolean = true)
-  : (List[String], List[Double], List[Double]) = {
+                     y_title: String, x_titles: String): String = {
     setX(featureRDD, x_titles)
     setY(featureRDD, y_title)
     val QandP = _X.map(t => FD_single(_Y, t))
     val res = (_nameX, QandP.map(t => t._1), QandP.map(t => t._2))
-    if (is_print) {
-      FD_print(res)
-    }
-    res
+    val str = FD_print(res)
+    str
   }
 
   /**
@@ -74,14 +71,14 @@ object Geodetector {
     (q, p)
   }
 
-  protected def FD_print(res: (List[String], List[Double], List[Double])): Unit = {
+  protected def FD_print(res: (List[String], List[Double], List[Double])): String = {
     var str = "********************Results of Factor Detector********************\n"
     val len = res._1.length
     for (i <- 0 until len) {
       str += f"variable ${i + 1}: ${res._1(i)}%-10s, q: ${res._2(i)}%-1.5f, p: ${res._3(i)}%-5g\n"
     }
     str += "******************************************************************\n"
-    println(str)
+    str
   }
 
   /**
@@ -91,11 +88,11 @@ object Geodetector {
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
    * @param is_print   是否打印，默认为true
-   * @return 自变量名、q值（矩阵）、增强类型（矩阵）
+   * @return           String
    */
   def interactionDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
-                          y_title: String, x_titles: String, is_print: Boolean = true)
-  : (List[String], linalg.Matrix[Double], linalg.Matrix[String]) = {
+                          y_title: String, x_titles: String)
+  : String = {
     setX(featureRDD, x_titles)
     setY(featureRDD, y_title)
     val interactions = linalg.Matrix.zeros[Double](_nameX.length, _nameX.length)
@@ -129,10 +126,10 @@ object Geodetector {
       }
     }
     val res = (_nameX, interactions, enhancement)
-    if (is_print) {
-      ID_print(res)
-    }
-    res
+    //if (is_print) {
+    val str = ID_print(res)
+    //}
+    str
   }
 
   /**
@@ -152,7 +149,7 @@ object Geodetector {
     q
   }
 
-  protected def ID_print(res: (List[String], linalg.Matrix[Double], linalg.Matrix[String])): Unit = {
+  protected def ID_print(res: (List[String], linalg.Matrix[Double], linalg.Matrix[String])): String = {
     var str = "*****************************Results of Interaction Detector*****************************\n"
     //printMatrixWithTitles_Double((res._1,res._2))
     //printMatrixWithTitles_String((res._1,res._3))
@@ -165,7 +162,7 @@ object Geodetector {
       }
     }
     str += "*****************************************************************************************\n"
-    println(str)
+    str
   }
 
   /**
@@ -175,11 +172,11 @@ object Geodetector {
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
    * @param is_print   是否打印，默认为true
-   * @return 变量名、是否显著（矩阵）
+   * @return           String
    */
   def ecologicalDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
-                         y_title: String, x_titles: String, is_print: Boolean = true)
-  : (List[String], linalg.Matrix[Boolean]) = {
+                         y_title: String, x_titles: String) :String = {
+  //(List[String], linalg.Matrix[Boolean])
     setX(featureRDD, x_titles)
     setY(featureRDD, y_title)
     //val F_mat = linalg.Matrix.zeros[Double](x_titles.length, x_titles.length) // Matrix of Statistic F
@@ -196,10 +193,10 @@ object Geodetector {
       }
     }
     val res = (_nameX, SigMat)
-    if (is_print) {
-      ED_print(res)
-    }
-    res
+    //if (is_print) {
+    val str = ED_print(res)
+    //}
+    str
   }
 
   /**
@@ -217,7 +214,7 @@ object Geodetector {
     breeze.linalg.max(res, 1 / res)
   }
 
-  protected def ED_print(res: (List[String], linalg.Matrix[Boolean])): Unit = {
+  protected def ED_print(res: (List[String], linalg.Matrix[Boolean])): String = {
     var str = "*****************************Results of Ecological Detector*****************************\n"
     var no = 1
     //println("*****************************Results of Ecological Detector*****************************")
@@ -229,7 +226,7 @@ object Geodetector {
     }
     // printMatrixWithTitles_Boolean(res)
     str += "****************************************************************************************\n"
-    println(str)
+    str
   }
 
   /**
@@ -239,11 +236,11 @@ object Geodetector {
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
    * @param is_print   是否打印，默认为true
-   * @return 变量名、各变量的子区域、各变量子区域对应的y均值，各变量不同子区域之间的显著性
+   * @return           String
    */
   def riskDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
-                   y_title: String, x_titles: String, is_print: Boolean = true):
-  (List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]]) = {
+                   y_title: String, x_titles: String): String= {
+  //(List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]])
     setX(featureRDD, x_titles)
     setY(featureRDD, y_title)
     val lst1 = ListBuffer("")
@@ -258,10 +255,10 @@ object Geodetector {
       lst4.append(res._3)
     }
     val res = (lst1.drop(1).toList, lst2.drop(1).toList, lst3.drop(1).toList, lst4.drop(1).toList)
-    if (is_print) {
-      RD_print(res)
-    }
-    res
+    //if (is_print) {
+    val str = RD_print(res)
+    //}
+    str
   }
 
   /**
@@ -314,7 +311,7 @@ object Geodetector {
   }
 
   protected def RD_print(res: (List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]])):
-  Unit = {
+  String = {
     var str = "******************************Result of Risk Detector******************************\n"
     val str_split = "***********************************************************************************\n"
     //print(str0)
@@ -336,7 +333,7 @@ object Geodetector {
       // printMatrixWithTitles_Boolean((res._2(no), res._4(no)))
       //print(str_split)
     }
-    print(str)
+    str
   }
 
   //***********************************************************************************************

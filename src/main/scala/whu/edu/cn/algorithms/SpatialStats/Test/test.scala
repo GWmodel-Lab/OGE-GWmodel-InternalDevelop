@@ -71,7 +71,6 @@ object test {
     Geodetector.ecologicalDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW")
     Geodetector.riskDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW")
     SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
-
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
@@ -138,10 +137,10 @@ object test {
     var t1 = System.currentTimeMillis()
     val y_title = "PURCHASE"
     val x_titles = "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"
-    val FD = Geodetector.factorDetector(shpfile, y_title, x_titles)
-    val ID = Geodetector.interactionDetector(shpfile, y_title, x_titles)
-    val ED = Geodetector.ecologicalDetector(shpfile, y_title, x_titles)
-    val RD = Geodetector.riskDetector(shpfile, y_title, x_titles)
+    val FD = Geodetector.factorDetector(shpfile3, y_title, x_titles)
+    val ID = Geodetector.interactionDetector(shpfile3, y_title, x_titles)
+    val ED = Geodetector.ecologicalDetector(shpfile3, y_title, x_titles)
+    val RD = Geodetector.riskDetector(shpfile3, y_title, x_titles)
     var tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is: $tused s")
   }
