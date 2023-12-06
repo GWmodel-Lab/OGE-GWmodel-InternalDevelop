@@ -15,14 +15,15 @@ import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
-import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector._
+import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
+import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-  //    .set("spark.testing.memory", "512000000")
+      .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -32,8 +33,8 @@ object test {
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
-  //  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
-  //  val shpfile3 = readShp(sc, shpPath3, encode)
+  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpfile3 = readShp(sc, shpPath3, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
@@ -64,6 +65,12 @@ object test {
 
     //    val r=readcsv2(sc,csvpath)
     //    linearRegression(r,"aqi","temperature,precipitation")
+
+    Geodetector.factorDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW")
+    Geodetector.interactionDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW")
+    Geodetector.ecologicalDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW")
+    Geodetector.riskDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW")
+    SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
 
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
@@ -130,11 +137,11 @@ object test {
   def geodetector_test():Unit ={
     var t1 = System.currentTimeMillis()
     val y_title = "PURCHASE"
-    val x_titles = List("FLOORSZ","TYPEDETCH", "TPSEMIDTCH", "TYPETRRD", "TYPEBNGLW", "TYPEFLAT", "BLDPWW1", "BLDPOSTW")
-    val FD = factorDetector(shpfile, y_title, x_titles)
-    val ID = interactionDetector(shpfile, y_title, x_titles)
-    val ED = ecologicalDetector(shpfile, y_title, x_titles)
-    val RD = riskDetector(shpfile, y_title, x_titles)
+    val x_titles = "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"
+    val FD = Geodetector.factorDetector(shpfile, y_title, x_titles)
+    val ID = Geodetector.interactionDetector(shpfile, y_title, x_titles)
+    val ED = Geodetector.ecologicalDetector(shpfile, y_title, x_titles)
+    val RD = Geodetector.riskDetector(shpfile, y_title, x_titles)
     var tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is: $tused s")
   }

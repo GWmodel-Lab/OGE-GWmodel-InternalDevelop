@@ -21,6 +21,10 @@ import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 
 object SandwichSampling {
 
+  private var _Y: List[Double] = _
+  private var _knowledge: List[String] = _
+  private var _reporting: List[String] = _
+
   /**
    *三明治随机抽样
    *
@@ -39,27 +43,29 @@ object SandwichSampling {
       throw new IllegalArgumentException("The accuracy must be in (0,1].")
     }
 
-    val oriVals = getNumber(featureRDD, y_title)
+    //val oriVals = getNumber(featureRDD, y_title)
     //val oriVals = get(featureRDD, y_title).map(t => t.toString.toDouble)
-    //val oriVals = shpToList(featureRDD,y_title)
-    val oriOrderNum = (0 until oriVals.length).toList // 序号
-    val oriKnowledge = Feature.getString(featureRDD, knowledge_title)
-    val oriReport = Feature.getString(featureRDD, reporting_title)
+    _Y = shpToList(featureRDD,y_title)
+    val oriOrderNum = (0 until _Y.length).toList // 序号
+    //val oriKnowledge = Feature.getString(featureRDD, knowledge_title)
+    //val oriReport = Feature.getString(featureRDD, reporting_title)
+    _knowledge = shpToList(featureRDD, knowledge_title).map(t=>t.toString)
+    _reporting = shpToList(featureRDD, reporting_title).map(t=>t.toString)
 
     // 根据Cochran的方法计算样本数
     val t_alpha = 2.5758 // 置信度0.99下的标准正态偏差
-    val std = stats.stddev(oriVals)
-    val d = stats.mean(oriVals) * accuracy
+    val std = stats.stddev(_Y)
+    val d = stats.mean(_Y) * accuracy
     val sampleSizeTotal = math.pow((t_alpha * std) / d, 2).toInt
     val df: ListBuffer[(Int, Double, String, String)] = ListBuffer.empty[(Int, Double, String, String)]
-    for (i <- 0 until oriVals.length) {
-      df.append((i, oriVals(i), oriKnowledge(i), oriReport(i)))
+    for (i <- 0 until _Y.length) {
+      df.append((i, _Y(i), _knowledge(i), _reporting(i)))
     }
 
     // 根据知识层进行分类
-    val df_groupedByKnowledge = Grouping(df.toList, oriKnowledge) // 根据知识层对df进行分层
-    val orderNum_groupedByKnowledge = GroupingInt(oriOrderNum, oriKnowledge)
-    var sampleSizeKnowledge = df_groupedByKnowledge.map(t => math.round(t.length.toDouble * sampleSizeTotal / oriVals.length).toInt)
+    val df_groupedByKnowledge = Grouping(df.toList, _knowledge) // 根据知识层对df进行分层
+    val orderNum_groupedByKnowledge = GroupingInt(oriOrderNum, _knowledge)
+    var sampleSizeKnowledge = df_groupedByKnowledge.map(t => math.round(t.length.toDouble * sampleSizeTotal / _Y.length).toInt)
     sampleSizeKnowledge = sampleSizeKnowledge.map(t => {
       if (t == 0) {
         1 // 确保每层至少一个样本
@@ -107,7 +113,7 @@ object SandwichSampling {
 
     val sampleKnowledge = sampleOrderNumKnowledge.map(t => t.map(t => df(t)._3))
     val namesKnowledge = sampleKnowledge.map(t => t.distinct(0)) //知识层各层名称
-    val namesReport = oriReport.distinct //报告层各层名称
+    val namesReport = _reporting.distinct //报告层各层名称
 
     //计算各报告层样本量
     val sampleReport = sampleOrderNumKnowledge.map(t => t.map(t => df(t)._4))
@@ -161,7 +167,7 @@ object SandwichSampling {
     str += f"Variable: $y_title\n" +
       f"Knowledge layer: ${knowledge_title}%-10s, number of strata: ${namesKnowledge.length}\n" +
       f"Reporting layer: ${reporting_title}%-10s, number of strata: ${namesReport.length}\n"+
-      f"Total size: ${oriVals.length}\nAccuracy: ${accuracy}\n"+
+      f"Total size: ${_Y.length}\nAccuracy: ${accuracy}\n"+
       f"Expected sample size: ${sampleSizeTotal}\nActual sample size: ${res1.length}\n"+
       f"************************Parameters of Knowledge Layer***********************\n"+
       f"Mean-variance: ${stats.variance(meansKnowledge)}%-2.3f\n"+
@@ -181,23 +187,23 @@ object SandwichSampling {
     sc.makeRDD(res1)
   }
 
-  ///**
-  // * 从RDD中得到对应属性p的数据
-  // *
-  // * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
-  // * @param p       String的形式
-  // * @return        List[Double]
-  // */
-  //protected def shpToList(testshp: RDD[(String, (Geometry, Map[String, Any]))], p: String): List[Double] = {
-  //  val list: List[Any] = Feature.get(testshp, p)
-  //  val typeOfElement = list(0).getClass.getSimpleName
-  //  var lst: List[Double] = List.empty
-  //  typeOfElement match {
-  //    case "String" => lst = list.collect({ case (i: String) => (i.toDouble) })//shp原始数据
-  //    case "Double" => lst = list.collect({ case (i: Double) => (i.toDouble) })//后期写入shp的属性
-  //  }
-  //  lst
-  //}
+  /**
+   * 从RDD中得到对应属性p的数据
+   *
+   * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
+   * @param p       String的形式
+   * @return        List[Double]
+   */
+  protected def shpToList(testshp: RDD[(String, (Geometry, Map[String, Any]))], p: String): List[Double] = {
+    val list: List[Any] = Feature.get(testshp, p)
+    val typeOfElement = list(0).getClass.getSimpleName
+    var lst: List[Double] = List.empty
+    typeOfElement match {
+      case "String" => lst = list.collect({ case (i: String) => (i.toDouble) })//shp原始数据
+      case "Double" => lst = list.collect({ case (i: Double) => (i.toDouble) })//后期写入shp的属性
+    }
+    lst
+  }
 
   /**
    * 以X为依据对Y分层
