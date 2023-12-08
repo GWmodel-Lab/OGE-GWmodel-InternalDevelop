@@ -45,7 +45,7 @@ object test {
     //    acf_test()
     //    linear_test()
     //    pca_test()
-        geodetector_test()
+//        geodetector_test()
 //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
 //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
 
@@ -59,6 +59,7 @@ object test {
 //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 10, adaptive = true)
 //    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "CV", adaptive = true)
 //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
+//    SpatialDurbinModel.fit(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI,Avg_Green_")
 //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
 //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
 
