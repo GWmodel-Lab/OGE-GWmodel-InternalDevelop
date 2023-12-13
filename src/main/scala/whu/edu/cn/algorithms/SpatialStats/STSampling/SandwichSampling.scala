@@ -36,8 +36,8 @@ object SandwichSampling {
    * @return                String
    */
   def sampling(sc: SparkContext, featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
-               y_title: String, knowledge_title: String, reporting_title: String, accuracy: Double = 0.05): String= {
-  //RDD[(String, (Geometry, Map[String, Any]))]
+               y_title: String, knowledge_title: String, reporting_title: String, accuracy: Double = 0.05): //String
+  RDD[(String, (Geometry, Map[String, Any]))]= {
     // test error
     if (accuracy > 1.0 || accuracy <= 0.0) {
       throw new IllegalArgumentException("The accuracy must be in (0,1].")
@@ -182,10 +182,10 @@ object SandwichSampling {
       str += f"stratum ${i + 1}: ${namesReport(i)}, mean: ${meansReport(i)}%-5f, variance: ${varsReport(i)}%-5f, sample size: ${sampleSizeReport(namesReport(i))}\n"
     }
     str += f"****************************************************************************\n"
-    //print(str)
+    print(str)
     //最终选择的样本
     val resRDD = sc.makeRDD(res1)
-    str
+    resRDD
   }
 
   /**
