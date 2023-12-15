@@ -34,6 +34,7 @@ object Trigger {
 
   var cubeRDDList: mutable.Map[String, mutable.Map[String, Any]] = mutable.Map.empty[String, mutable.Map[String, Any]]
   var cubeLoad: mutable.Map[String, (String, String, String)] = mutable.Map.empty[String, (String, String, String)]
+  var stringList: mutable.Map[String, String] = mutable.Map.empty[String, String]
 
 
   var level: Int = _
@@ -385,9 +386,9 @@ object Trigger {
           featureRddList += (UUID -> Feature.multiPolygon(sc, args("coors"), args("properties")))
       case "Feature.geometry" =>
         if (isOptionalArg(args, "crs") != null)
-          featureRddList += (UUID -> Feature.geometry(sc, args("coors"), args("properties"), args("crs")))
+          featureRddList += (UUID -> Feature.geometry(sc, args("coors"), args("crs")))
         else
-          featureRddList += (UUID -> Feature.geometry(sc, args("coors"), args("properties")))
+          featureRddList += (UUID -> Feature.geometry(sc, args("coors")))
       case "Feature.area" =>
         if (isOptionalArg(args, "crs") != null)
           featureRddList += (UUID -> Feature.area(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("crs")))
@@ -425,11 +426,11 @@ object Trigger {
         featureRddList += (UUID -> Feature.projection(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]]))
       case "Feature.toGeoJSONString" =>
         featureRddList += (UUID -> Feature.toGeoJSONString(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]]))
-      case "Feature.getLength" =>
+      case "Feature.length" =>
         if (isOptionalArg(args, "crs") != null)
-          featureRddList += (UUID -> Feature.getLength(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("crs")))
+          stringList += (UUID -> Feature.length(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("crs")))
         else
-          featureRddList += (UUID -> Feature.getLength(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]]))
+          stringList += (UUID -> Feature.length(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]]))
       case "Feature.geometries" =>
         featureRddList += (UUID -> Feature.geometries(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]]))
       case "Feature.dissolve" =>
