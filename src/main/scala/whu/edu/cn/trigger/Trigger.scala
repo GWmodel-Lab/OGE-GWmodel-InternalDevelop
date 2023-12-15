@@ -36,6 +36,7 @@ object Trigger {
   var cubeLoad: mutable.Map[String, (String, String, String)] = mutable.Map.empty[String, (String, String, String)]
   var stringList: mutable.Map[String, String] = mutable.Map.empty[String, String]
 
+  var outputInformationList:mutable.ListBuffer[JSONObject] = mutable.ListBuffer.empty[JSONObject]
 
   var level: Int = _
   var layerName: String = _
@@ -77,8 +78,8 @@ object Trigger {
       case "Service.getCoverageCollection" =>
         lazyFunc += (UUID -> (funcName, args))
         coverageCollectionMetadata += (UUID -> Service.getCoverageCollection(args("productID"), dateTime = isOptionalArg(args, "datetime"), extent = isOptionalArg(args, "bbox")))
-      case "Service.getCoverage" =>
-        coverageRddList += (UUID -> Service.getCoverage(sc, isOptionalArg(args, "coverageID"), level = level))
+//      case "Service.getCoverage" =>
+//        coverageRddList += (UUID -> Service.getCoverage(sc, isOptionalArg(args, "coverageID"), level = level))
       case "Service.getTable" =>
         tableRddList += (UUID -> isOptionalArg(args, "productID"))
       case "Service.getFeatureCollection" =>
