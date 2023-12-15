@@ -47,22 +47,24 @@ object Service {
 //  }
 
   def print(res:String,name:String,valueType:String):Unit={
-    val j = new JSONObject()
-    j.put("name",name)
-    j.put("value",res)
-    j.put("type",valueType)
-    Trigger.outputInformationList.append(j)
-
-
-    val jsonObject: JSONObject = new JSONObject
-
-    jsonObject.put("info",Trigger.outputInformationList.toArray)
-
-    val outJsonObject: JSONObject = new JSONObject
-    outJsonObject.put("workID", Trigger.dagId)
-    outJsonObject.put("json", jsonObject)
-    println(outJsonObject)
-    PostSender.shelvePost("info",Trigger.outputInformationList.toArray)
+//    val j = new JSONObject()
+//    j.put("name",name)
+//    j.put("value",res)
+//    j.put("type",valueType)
+//    Trigger.outputInformationList.append(j)
+//
+//
+//    val jsonObject: JSONObject = new JSONObject
+//
+//    jsonObject.put("info",Trigger.outputInformationList.toArray)
+//
+//    val outJsonObject: JSONObject = new JSONObject
+//    outJsonObject.put("workID", Trigger.dagId)
+//    outJsonObject.put("json", jsonObject)
+//    println(outJsonObject)
+//    PostSender.shelvePost("info",Trigger.outputInformationList.toArray)
+    println(name)
+    println(res)
   }
 
 
