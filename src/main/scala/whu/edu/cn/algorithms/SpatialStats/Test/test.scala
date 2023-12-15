@@ -7,7 +7,7 @@ import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbo
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
-import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression.linearRegression
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
@@ -49,7 +49,7 @@ object test {
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-
+    //    LinearRegression.LinearReg(shpfile,"aging", "GDP,pop")
     //    AverageNearestNeighbor.result(shpfile)
     //    DescriptiveStatistics.describe(shpfile)
     //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
@@ -63,14 +63,11 @@ object test {
     //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
 
-    //    val r=readcsv2(sc,csvpath)
-    //    linearRegression(r,"aqi","temperature,precipitation")
-
     //    println(Geodetector.factorDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
     //    println(Geodetector.interactionDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
     //    println(Geodetector.ecologicalDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
     //    println(Geodetector.riskDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
-//    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
+    //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
     //    rddSample.foreach(println)
 
     val tused = (System.currentTimeMillis() - t1) / 1000.0
