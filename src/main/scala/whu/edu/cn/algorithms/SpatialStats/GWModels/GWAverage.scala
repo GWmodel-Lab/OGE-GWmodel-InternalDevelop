@@ -5,6 +5,7 @@ import breeze.stats.median
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
+import whu.edu.cn.oge.Service
 
 import scala.math._
 import scala.collection.mutable
@@ -73,7 +74,7 @@ class GWAverage extends GWRbase {
     if (adaptive) {
       bw_type = "Adaptive"
     }
-    var str = "*********************************************************************************\n" +
+    var str = "\n*********************************************************************************\n" +
       "*                Results of Geographically Weighted Average                     *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
@@ -90,7 +91,7 @@ class GWAverage extends GWRbase {
       }
     })
     str += "*********************************************************************************\n"
-        print(str)
+//    print(str)
     (shpRDDidx.map(t => t._1), str)
   }
 
@@ -170,28 +171,29 @@ class GWAverage extends GWRbase {
 
 object GWAverage {
 
-  /** *
+  /** Geographically weighted Statistic Summary: Average
    *
    * @param sc          SparkContext
    * @param featureRDD  shapefile RDD
    * @param propertyY   dependant property
    * @param propertiesX independant properties
-   * @param bw          bandwidth value
+   * @param bandwidth          bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
    * @param quantile    true for quantile value calculation
    * @return featureRDD and diagnostic String
    */
   def cal(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-          bw: Double = 10, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false)
-  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+          bandwidth: Double = 10, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false)
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     val model = new GWAverage
     model.init(featureRDD)
     model.setX(propertiesX)
     model.setY(propertyY)
-    val r = model.calAverage(bw, kernel, adaptive, quantile)
+    val r = model.calAverage(bandwidth, kernel, adaptive, quantile)
     //    print(r._2)
-    (sc.makeRDD(r._1), r._2)
+    Service.print(r._2, "Geographically weighted Statistic Summary: Average", "String")
+    sc.makeRDD(r._1)
   }
 
 }

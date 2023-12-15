@@ -10,7 +10,7 @@ import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
 import whu.edu.cn.util.ShapeFileUtil.{builderFeatureType, readShp}
-
+import whu.edu.cn.oge.Service
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import scala.collection.mutable
@@ -63,8 +63,8 @@ class GWRbasic extends GWRbase {
     var printString = "Auto bandwidth selection\n"
     //    println("auto bandwidth selection")
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
-    opt_iters.foreach(t => {
-      val i = (t - 1).toInt
+    opt_iters.foreach(t=>{
+      val i= (t-1).toInt
       printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.2f, $approach: ${opt_result(i)}%.3f\n")
     })
     printString += f"Best bandwidth is $bwselect%.2f\n"
@@ -123,8 +123,6 @@ class GWRbasic extends GWRbase {
       } else {
         minVal = valArrIdx(0)._1
       }
-      //      println(_nameY + "~" + getNameBuf.mkString("+"))
-      //      println(i,select_idx)
       remainNameBuf.remove(valArrIdx(0)._2)
     }
 //    val f = Figure()
@@ -155,7 +153,6 @@ class GWRbasic extends GWRbase {
     } else {
       throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
     }
-    //    printweight()
     val results = fitFunction(_dX, _Y, spweight_dvec)
     //    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
     val betas = DenseMatrix.create(_xcols + 1, _xrows, data = results._1.flatMap(t => t.toArray))
@@ -175,29 +172,17 @@ class GWRbasic extends GWRbase {
         t._1._2._2 += (name(i) -> a)
       })
     }
-    //    val a=shpRDDidx.map(t=>t._1._2._2)
-    //    a.foreach(println)
-    //    sc.makeRDD(shpRDDidx.map(t => t._1))
-    //    println(betas)
-    //    results._1.foreach(println)
     var bw_type = "Fixed"
     if (adaptive) {
       bw_type = "Adaptive"
     }
     val fitFormula = _nameY + " ~ " + _nameUsed.mkString(" + ")
-    var fitString = "*********************************************************************************\n" +
+    var fitString = "\n*********************************************************************************\n" +
       "*               Results of Geographically Weighted Regression                   *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
       s"Formula: $fitFormula" +
       s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n"
-    //    println("*********************************************************************************")
-    //    println("*               Results of Geographically Weighted Regression                   *")
-    //    println("*********************************************************************************")
-    //    println("**************************Model calibration information**************************")
-    //    print(s"Kernel function: $kernel\n$bw_type bandwidth: ")
-    //    print(f"$bw%.2f\n")
-    //    println("Distance metric: Euclidean distance metric is used.")
     fitString += calDiagnostic(_dX, _Y, results._3, results._4)
     (shpRDDidx.map(t => t._1), fitString)
   }
@@ -373,7 +358,7 @@ class GWRbasic extends GWRbase {
 
 object GWRbasic {
 
-  /** Basic GWR calculation with bandwidth auto selection
+  /** Basic GWR calculation with bandwidth and variables auto selection
    *
    * @param sc          SparkContext
    * @param featureRDD  shapefile RDD
@@ -387,7 +372,7 @@ object GWRbasic {
    */
   def auto(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
            kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, varSelTh: Double = 3.0)
-  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     val model = new GWRbasic
     model.init(featureRDD)
     model.setY(propertyY)
@@ -396,8 +381,8 @@ object GWRbasic {
     val r = vars._1.take(vars._2)
     model.resetX(r)
     val re = model.auto(kernel = kernel, approach = approach, adaptive = adaptive)
-    print(re._2)
-    (sc.makeRDD(re._1), re._2)
+    Service.print(re._2, "Basic GWR calculation with bandwidth and variables auto selection", "String")
+    sc.makeRDD(re._1)
   }
 
   /** Basic GWR calculation with bandwidth auto selection
@@ -413,14 +398,15 @@ object GWRbasic {
    */
   def autoFit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
               kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false)
-  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))]= {
     val model = new GWRbasic
     model.init(featureRDD)
     model.setY(propertyY)
     model.setX(propertiesX)
     val re = model.auto(kernel = kernel, approach = approach, adaptive = adaptive)
-    print(re._2)
-    (sc.makeRDD(re._1), re._2)
+    //    print(re._2)
+    Service.print(re._2, "Basic GWR calculation with bandwidth auto selection", "String")
+    sc.makeRDD(re._1)
   }
 
   /** Basic GWR calculation with specific bandwidth
@@ -436,14 +422,15 @@ object GWRbasic {
    */
   def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
           bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false)
-  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     val model = new GWRbasic
     model.init(featureRDD)
     model.setY(propertyY)
     model.setX(propertiesX)
     val re = model.fit(bw = bandwidth, kernel = kernel, adaptive = adaptive)
-    print(re._2)
-    (sc.makeRDD(re._1), re._2)
+    //    print(re._2)
+    Service.print(re._2,"Basic GWR calculation with specific bandwidth","String")
+    sc.makeRDD(re._1)
   }
 
 }

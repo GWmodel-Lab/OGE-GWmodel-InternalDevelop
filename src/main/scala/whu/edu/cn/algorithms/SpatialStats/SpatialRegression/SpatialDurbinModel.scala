@@ -8,6 +8,7 @@ import org.locationtech.jts.geom.Geometry
 
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
+import whu.edu.cn.oge.Service
 
 import scala.collection.mutable
 
@@ -63,7 +64,6 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
    */
   def fit(): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     val arr = firstvalue()
-
     val optresult = nelderMead(arr, paras4optimize)
     //    println("----------optimize result----------")
     //    optresult.foreach(println)
@@ -80,14 +80,10 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
     val lly = get_logLik(get_res(X = _1X))
 
     fitvalue = (_Y - res).toArray
-    var printStr = "-----------------------------Spatial Durbin Model-----------------------------\n" +
+    var printStr = "\n-----------------------------Spatial Durbin Model-----------------------------\n" +
       f"rho is $rho%.6f\nlambda is $lambda%.6f\n"
     printStr += try_LRtest(-llopt, lly, chi_pama = 2)
-//    printStr += f"coeffients:\n$betas_map\n"
-    printStr += f"     coeffients:\n"
-    for ((key, value) <- betas_map) {
-      printStr += (s"*$key :$value\n")
-    }
+    printStr += f"coeffients:\n$betas_map\n"
     printStr += calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
     printStr += "------------------------------------------------------------------------------"
     //    println("---------------------------------spatial durbin model---------------------------------")
@@ -96,7 +92,7 @@ class SpatialDurbinModel  extends SpatialAutoRegressionBase {
     //    println(s"coeffients:\n$betas_map")
     //    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = -llopt, df = _df + 2)
     //    println("--------------------------------------------------------------------------------------")
-    println(printStr)
+//    println(printStr)
     val shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1._2._2 += ("fitValue" -> fitvalue(t._2))
@@ -197,13 +193,14 @@ object SpatialDurbinModel {
    * @return featureRDD and diagnostic String
    */
   def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String)
-  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))]= {
     val mdl = new SpatialDurbinModel
     mdl.init(featureRDD)
     mdl.setX(propertiesX)
     mdl.setY(propertyY)
     val re = mdl.fit()
-    (sc.makeRDD(re._1), re._2)
+    Service.print(re._2,"Spatial Durbin Model","String")
+    sc.makeRDD(re._1)
   }
 
 }

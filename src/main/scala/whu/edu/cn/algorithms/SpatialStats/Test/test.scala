@@ -57,9 +57,9 @@ object test {
 //    CorrelationAnalysis.corrMat(shpfile, "aging,GDP,pop,GI,sci_tech,education,revenue", method = "spearman")
 //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
 //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 10, adaptive = true)
-//    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "CV", adaptive = true)
+    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "CV", adaptive = true)
 //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
-//    SpatialDurbinModel.fit(sc, shpfile, "Avg_HP_avg", "Avg_Pop,Avg_AQI,Avg_Green_")
+//    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
 //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
 //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
 
