@@ -17,8 +17,6 @@ import scala.collection.mutable
 
 class GWRbasic extends GWRbase {
 
-  var _xrows = 0
-  var _xcols = 0
   val select_eps = 1e-2
   var _nameUsed: Array[String] = _
   var _outString: String = _
@@ -26,8 +24,6 @@ class GWRbasic extends GWRbase {
   var opt_value: Array[Double] = _
   var opt_result: Array[Double] = _
   var opt_iters: Array[Double] = _
-
-  private var _dX: DenseMatrix[Double] = _
 
   override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
