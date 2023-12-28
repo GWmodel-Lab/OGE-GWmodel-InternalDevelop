@@ -21,9 +21,9 @@ class GWRbasic extends GWRbase {
   var _nameUsed: Array[String] = _
   var _outString: String = _
 
-  var opt_value: Array[Double] = _
-  var opt_result: Array[Double] = _
-  var opt_iters: Array[Double] = _
+  private var opt_value: Array[Double] = _
+  private var opt_result: Array[Double] = _
+  private var opt_iters: Array[Double] = _
 
   override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
