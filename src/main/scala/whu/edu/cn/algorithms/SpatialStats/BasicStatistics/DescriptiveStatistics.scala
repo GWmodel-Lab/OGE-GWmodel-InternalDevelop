@@ -15,24 +15,23 @@ import whu.edu.cn.oge.Feature
 
 object DescriptiveStatistics {
 
-  /** descriptive_statistics:for the given shapefile,get the result for all properties of the feature,containing:
-   * the count,mean,standard deviation,maximum,minimum,sum,and variance
-   * if the type of the property is String,print out "string"
+  /** Descriptive statistics for specific property of feature
    *
-   * @param m_shp: RDD[(String, (Geometry, Map[String, Any]))]
+   * @param featureRDD shapefile
+   * @return pic and count, sum, stdev .etc
    */
-  def describe(m_shp: RDD[(String, (Geometry, mutable.Map[String, Any]))]): String = {
-    val name = Feature.propertyNames(m_shp).head
+  def result(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): String = {
+    val name = featureRDD.map(t => t._2._2.keySet.toList).collect().toList.head
     val n = name.length
 
-    var str=f"\n**********descriptive statistics result**********\n"
+    var str = f"\n**********descriptive statistics result**********\n"
     //println(str)
-    for (m <- 0.to(n-1)) {
-      val list=m_shp.map(t => t._2._2(name(m)).asInstanceOf[String])
-      val b=list.first().toCharArray
+    for (m <- 0.to(n - 1)) {
+      val list = featureRDD.map(t => t._2._2(name(m)).asInstanceOf[String])
+      val b = list.first().toCharArray
 
-      if(b(0)<=57&&b(0)>=48){
-        val list=m_shp.map(t => t._2._2(name(m)).asInstanceOf[String].toDouble)
+      if (b(0) <= 57 && b(0) >= 48) {
+        val list = featureRDD.map(t => t._2._2(name(m)).asInstanceOf[String].toDouble)
         val stats = list.stats()
 
         str += f"property : ${name(m)}\n"

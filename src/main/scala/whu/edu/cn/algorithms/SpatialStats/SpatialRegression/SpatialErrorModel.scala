@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 
-import breeze.linalg.{DenseMatrix, DenseVector, diag, eig, inv, qr, sum}
+import breeze.linalg.{DenseMatrix, DenseVector, eig, inv, qr, sum}
 import breeze.numerics.{NaN, sqrt}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -8,6 +8,7 @@ import org.locationtech.jts.geom.Geometry
 
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
+import whu.edu.cn.oge.Service
 
 import scala.collection.mutable
 
@@ -30,7 +31,6 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
   private var _wy: DenseVector[Double] = _
   private var _wx: DenseMatrix[Double] = _
   private var _eigen: eig.DenseEig = _
-//  private var _eigValue: DenseVector[Double] = _
 
   /** set x
    *
@@ -65,7 +65,12 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
    * @return 返回拟合值（Array）形式
    */
   def fit(): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
-    val interval = get_interval()
+    var interval = (0.0, 1.0)
+    try {
+      interval = get_interval()
+    } catch {
+      case e: IllegalArgumentException => throw new IllegalArgumentException("spatial weight error to calculate eigen matrix")
+    }
     val lambda = goldenSelection(interval._1, interval._2, function = lambda4optimize)._1
     //    println(s"lambda is $lambda")
     _errorX = _1X - lambda * _wx
@@ -80,14 +85,10 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
 
     fitvalue = (_Y - res).toArray
 
-    var printStr = "-----------------------------Spatial Error Model-----------------------------\n" +
+    var printStr = "\n-----------------------------Spatial Error Model-----------------------------\n" +
       f"lambda is $lambda%.6f\n"
     printStr += try_LRtest(-lllambda, lly)
-//    printStr += f"coeffients:\n$betas_map\n"
-    printStr += f"     coeffients:\n"
-    for ((key, value) <- betas_map) {
-      printStr += (s"*$key :$value\n")
-    }
+    printStr += f"coeffients:\n$betas_map\n"
     printStr += calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
     printStr += "------------------------------------------------------------------------------"
     //    println("------------------------------spatial error model------------------------------")
@@ -96,7 +97,7 @@ class SpatialErrorModel extends SpatialAutoRegressionBase {
     //    println(s"coeffients:\n$betas_map")
     //    calDiagnostic(X = _dX, Y = _Y, residuals = res, loglikelihood = lllambda, df = _df)
     //    println("--------------------------------------------------------------------------------")
-    println(printStr)
+//    println(printStr)
     val shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1._2._2 += ("fitValue" -> fitvalue(t._2))
@@ -266,13 +267,14 @@ object SpatialErrorModel {
    * @return featureRDD and diagnostic String
    */
   def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String)
-  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))]= {
     val mdl = new SpatialErrorModel
     mdl.init(featureRDD)
     mdl.setX(propertiesX)
     mdl.setY(propertyY)
     val re = mdl.fit()
-    (sc.makeRDD(re._1), re._2)
+    Service.print(re._2,"Spatial Error Model","String")
+    sc.makeRDD(re._1)
   }
 
 }

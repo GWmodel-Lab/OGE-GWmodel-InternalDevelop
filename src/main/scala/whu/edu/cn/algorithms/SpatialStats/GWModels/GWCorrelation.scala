@@ -10,6 +10,7 @@ import scala.util.control.Breaks
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize._
+import whu.edu.cn.oge.Service
 
 import scala.collection.mutable
 
@@ -42,7 +43,7 @@ class GWCorrelation extends GWRbase {
     if (adaptive) {
       bw_type = "Adaptive"
     }
-    var str = "*********************************************************************************\n" +
+    var str = "\n*********************************************************************************\n" +
       "*               Results of Geographically Weighted Correlation                  *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
@@ -63,7 +64,7 @@ class GWCorrelation extends GWRbase {
       }
     })
     str += "*********************************************************************************\n"
-        print(str)
+//    print(str)
     (shpRDDidx.map(t => t._1), str)
   }
 
@@ -114,9 +115,9 @@ class GWCorrelation extends GWRbase {
       t._1._2._2 += ("corr_" + _nameX(ix1) + "_" + _nameX(ix2) -> corrmat(t._2))
       t._1._2._2 += ("scorr_" + _nameX(ix1) + "_" + _nameX(ix2) -> scorrmat(t._2))
     })
-//    println("cov_" + _nameX(ix1) + "_" + _nameX(ix2), covmat.toVector)
-//    println("corr_" + _nameX(ix1) + "_" + _nameX(ix2), corrmat.toVector)
-//    println("scorr_" + _nameX(ix1) + "_" + _nameX(ix2), scorrmat.toVector)
+    //    println("cov_" + _nameX(ix1) + "_" + _nameX(ix2), covmat.toVector)
+    //    println("corr_" + _nameX(ix1) + "_" + _nameX(ix2), corrmat.toVector)
+    //    println("scorr_" + _nameX(ix1) + "_" + _nameX(ix2), scorrmat.toVector)
     val mmmStr = new Array[(String, Double, Double, Double)](3)
     mmmStr(0) = findmmm("cov_" + _nameX(ix1) + "_" + _nameX(ix2), covmat)
     mmmStr(1) = findmmm("corr_" + _nameX(ix1) + "_" + _nameX(ix2), corrmat)
@@ -145,27 +146,28 @@ class GWCorrelation extends GWRbase {
 
 object GWCorrelation {
 
-  /** *
+  /** Geographically weighted Statistic Summary: Correlation
    *
    * @param sc          SparkContext
    * @param featureRDD  shapefile RDD
    * @param propertyY   dependant property
    * @param propertiesX independant properties
-   * @param bw          bandwidth value
+   * @param bandwidth          bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
    * @return featureRDD and diagnostic String
    */
   def cal(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-          bw: Double = 10, kernel: String = "gaussian", adaptive: Boolean = true)
-  : (RDD[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+          bandwidth: Double = 10, kernel: String = "gaussian", adaptive: Boolean = true)
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     val model = new GWCorrelation
     model.init(featureRDD)
     model.setX(propertiesX)
     model.setY(propertyY)
-    val r = model.calCorrelation(bw, kernel, adaptive)
+    val r = model.calCorrelation(bandwidth, kernel, adaptive)
     //    print(r._2)
-    (sc.makeRDD(r._1), r._2)
+    Service.print(r._2, "Geographically weighted Statistic Summary: Correlation", "String")
+    sc.makeRDD(r._1)
   }
 
 }
