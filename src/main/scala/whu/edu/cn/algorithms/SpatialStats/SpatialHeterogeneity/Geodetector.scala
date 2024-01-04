@@ -12,6 +12,8 @@ import org.apache.commons.math3.special.Beta
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.distribution.FDistribution
 
+import scala.util.control.ControlThrowable
+
 
 object Geodetector {
 
@@ -274,6 +276,9 @@ object Geodetector {
     val groupY = groupXY.map(t => t._2)
     val groupX = groupXY.map(t => t._1)
     val N_strata = groupY.length
+    if(N_strata>50){
+      print(s"Warning: The number of strata in Y is $N_strata. It is recommended to simplify the stratification.\n")
+    }
     val means_variable = groupY.map(t => stats.mean(t))
     val T_Mat = linalg.Matrix.zeros[Boolean](N_strata, N_strata)
     // val T_Mat1 = linalg.Matrix.zeros[Int](N_strata, N_strata)
@@ -312,30 +317,39 @@ object Geodetector {
 
   protected def RD_print(res: (List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]])):
   String = {
-    var str = "******************************Result of Risk Detector******************************\n"
+    val builderFinal = new StringBuilder
+    val str_start = "******************************Result of Risk Detector******************************\n"
+    // var str = "******************************Result of Risk Detector******************************\n"
     val str_split = "***********************************************************************************\n"
+
+    builderFinal.append(str_start)
+
     //print(str0)
     val N_var = res._1.length
     for (no <- 0 until N_var) {
-      str += f"Variable ${no + 1}: ${res._1(no)}\n" + "\n" + "Means of Strata: \n"
+      val builder = new StringBuilder
+      builder.append(f"Variable ${no + 1}: ${res._1(no)}\n" + "\n" + "Means of Strata: \n")
       for (i <- 0 until res._2(no).length) {
-        str += f"stratum ${i + 1}: ${res._2(no)(i)}, mean: ${res._3(no)(i)}%10f\n"
+        builder.append(f"stratum ${i + 1}: ${res._2(no)(i)}, mean: ${res._3(no)(i)}%10f\n")
       }
-      str += "\nSignificance: \n"
-      val strSig = ListBuffer.empty[String]
+      builder.append("\nSignificance: \n")
+      //val strSig = ListBuffer.empty[String]
       var no_MatElem = 1
       for (i <- 0 until res._2(no).length) {
         for (j <- 0 until res._2(no).length) {
-          strSig.append(f"${no_MatElem} stratum1: ${res._2(no)(i)}, stratum2: ${res._2(no)(j)}, significance: ${res._4(no)(i, j)}\n")
+          //println(s"(${no+1},${i+1}, ${j+1})")
+          builder.append(f"${no_MatElem} stratum1: ${res._2(no)(i)}, stratum2: ${res._2(no)(j)}, significance: ${res._4(no)(i, j)}\n")
           no_MatElem += 1
         }
       }
-      str += strSig.mkString("")
-      str += str_split
+      //str += strSig.mkString("")
+      //str += str_split
+      builder.append(str_split)
+      builderFinal.append(builder.toString())
       // printMatrixWithTitles_Boolean((res._2(no), res._4(no)))
       //print(str_split)
     }
-    str
+    builderFinal.toString()
   }
 
   //***********************************************************************************************
