@@ -322,13 +322,15 @@ object Geodetector {
         str += f"stratum ${i + 1}: ${res._2(no)(i)}, mean: ${res._3(no)(i)}%10f\n"
       }
       str += "\nSignificance: \n"
+      val strSig = ListBuffer.empty[String]
       var no_MatElem = 1
       for (i <- 0 until res._2(no).length) {
         for (j <- 0 until res._2(no).length) {
-          str += f"${no_MatElem} stratum1: ${res._2(no)(i)}, stratum2: ${res._2(no)(j)}, significance: ${res._4(no)(i, j)}\n"
+          strSig.append(f"${no_MatElem} stratum1: ${res._2(no)(i)}, stratum2: ${res._2(no)(j)}, significance: ${res._4(no)(i, j)}\n")
           no_MatElem += 1
         }
       }
+      str += strSig.mkString("")
       str += str_split
       // printMatrixWithTitles_Boolean((res._2(no), res._4(no)))
       //print(str_split)
