@@ -143,9 +143,11 @@ object Geometry {
    * @param crs the crs of the geometry
    * @return
    */
-  def geometry(gjson:String,crs:String="EPSG:4326"):Geometry={
-    val geom=getGeomFromCoors(gjson,"")
-    val srid=crs.split(":")(1).toInt
+  def geometry(gjson: com.alibaba.fastjson.JSONObject, crs: String = "EPSG:4326"): Geometry = {
+    val coors = gjson.getJSONObject("geometry").getJSONArray("coordinates")
+    val geomtype = gjson.getJSONObject("geometry").get("type")
+    val geom = getGeomFromCoors(coors.toString, geomtype.toString, isGeoJson = false)
+    val srid = crs.split(":")(1).toInt
     geom.setSRID(srid)
     geom
   }

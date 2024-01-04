@@ -147,7 +147,7 @@
       },
       {
         "name": "filter",
-        "type": "String",
+        "type": "Filter",
         "description": "The filter to apply to the collection. "
       }
     ]
@@ -239,7 +239,7 @@
       }
     ]
   },
-  "CoverageCollection.map": {
+  "Collection.map": {
     "description": "Maps an algorithm over a collection.",
     "returns": "Collection",
     "args": [
@@ -252,36 +252,13 @@
         "name": "baseAlgorithm",
         "type": "Algorithm",
         "description": "The algorithm being applied to each element"
-      }
-    ]
-  },
-  "Service.getCube": {
-    "description": "Getting resource Cube of certain Name",
-    "returns": "Cube",
-    "args": [
-      {
-        "name": "baseUrl",
-        "type": "String",
-        "description": "The base url of service."
       },
       {
-        "name": "CubeName",
-        "type": "String",
-        "description": "The Name of target collection."
-      },
-      {
-        "name": "extent",
-        "type": "String",
-        "description": "The extent used for deleting.",
-        "default": "null",
-        "optional": "True"
-      },
-      {
-        "name": "dateTime",
-        "type": "String",
-        "description": "The range of time used for deleting.",
-        "default": "null",
-        "optional": "True"
+        "name": "dropNulls",
+        "type": "Boolean",
+        "description": "If true, the mapped algorithm is allowed to return nulls, and the elements for which it returns nulls will be dropped.",
+        "optional": "True",
+        "default": "False"
       }
     ]
   },
@@ -394,7 +371,7 @@
         "description": "The base url of service."
       },
       {
-        "name": "productId",
+        "name": "productID",
         "type": "String",
         "description": "The id of target collection."
       },
@@ -409,24 +386,36 @@
         "description": "The range of time used for deleting.",
         "default": "null",
         "optional": "True"
-      },
-      {
-        "name": "crs",
-        "type": "String",
-        "description": "The crs of feature.",
-        "default": "null",
-        "optional": "True"
       }
     ]
   },
-  "Coverage.export":{
-    "description": "",
-    "returns": "",
+  "Service.getCube": {
+    "description": "Getting resource Cube of certain Name",
+    "returns": "Cube",
     "args": [
       {
-        "name": "coverage",
-        "type": "Coverage",
-        "description": ""
+        "name": "baseUrl",
+        "type": "String",
+        "description": "The base url of service."
+      },
+      {
+        "name": "CubeName",
+        "type": "String",
+        "description": "The Name of target collection."
+      },
+      {
+        "name": "extent",
+        "type": "String",
+        "description": "The extent used for deleting.",
+        "default": "null",
+        "optional": "True"
+      },
+      {
+        "name": "dateTime",
+        "type": "String",
+        "description": "The range of time used for deleting.",
+        "default": "null",
+        "optional": "True"
       }
     ]
   },
@@ -857,28 +846,6 @@
       }
     ]
   },
-  "Feature.getItemType": {
-    "description": "Get type of item.",
-    "returns": "String",
-    "args": [
-      {
-        "name": "input",
-        "type": "Feature",
-        "description": "The feature as the input data "
-      }
-    ]
-  },
-  "Coverage.getItemType": {
-    "description": "Get type of item.",
-    "returns": "String",
-    "args": [
-      {
-        "name": "input",
-        "type": "Coverage",
-        "description": "The feature as the input data "
-      }
-    ]
-  },
   "Coverage.domainSet": {
     "description": "Get the domain set of a coverage.",
     "returns": "Dictionary",
@@ -1016,6 +983,22 @@
   },
   "Coverage.add": {
     "description": "Adds the first value to the second for each matched pair of bands in image1 and image2. If either image1 or image2 has only 1 band, then it is used against all the bands in the other image. If the images have the same number of bands, but not the same names, they're used pairwise in the natural order. The output bands are named for the longer of the two inputs, or if they're equal in length, in image1's order. The type of the output pixels is the union of the input types. ",
+    "returns": "Coverage",
+    "args": [
+      {
+        "name": "coverage1",
+        "type": "Coverage",
+        "description": "The image from which the left operand bands are taken."
+      },
+      {
+        "name": "coverage2",
+        "type": "Coverage",
+        "description": "The image from which the right operand bands are taken."
+      }
+    ]
+  },
+  "Coverage.multiply": {
+    "description": "Multiplies the first value by the second. If either image1 or image2 has only 1 band, then it is used against all the bands in the other image. If the images have the same number of bands, but not the same names, they're used pairwise in the natural order. The output bands are named for the longer of the two inputs, or if they're equal in length, in image1's order. The type of the output pixels is the union of the input types.",
     "returns": "Coverage",
     "args": [
       {
@@ -1190,22 +1173,6 @@
       }
     ]
   },
-  "Coverage.multiply": {
-    "description": "Multiplies the first value by the second. If either image1 or image2 has only 1 band, then it is used against all the bands in the other image. If the images have the same number of bands, but not the same names, they're used pairwise in the natural order. The output bands are named for the longer of the two inputs, or if they're equal in length, in image1's order. The type of the output pixels is the union of the input types.",
-    "returns": "Coverage",
-    "args": [
-      {
-        "name": "coverage1",
-        "type": "Coverage",
-        "description": "The image from which the left operand bands are taken."
-      },
-      {
-        "name": "coverage2",
-        "type": "Coverage",
-        "description": "The image from which the right operand bands are taken."
-      }
-    ]
-  },
   "Coverage.and": {
     "description": "Returns 1 iff both values are non-zero for each matched pair of bands in coverage1 and coverage2. If both have only 1 band, the 2 band will match.",
     "returns": "Coverage",
@@ -1358,17 +1325,6 @@
       }
     ]
   },
-  "Coverage.bandNum": {
-    "description": "Get the count of the coverage.",
-    "returns": "Integer",
-    "args": [
-      {
-        "name": "coverage",
-        "type": "Coverage",
-        "description": "The coverage."
-      }
-    ]
-  },
   "Coverage.selectBands": {
     "description": "",
     "returns": "Coverage",
@@ -1382,6 +1338,17 @@
         "name": "bands",
         "type": "List<String>",
         "description": "The image from which the right operand bands are taken."
+      }
+    ]
+  },
+  "Coverage.bandNum": {
+    "description": "Get the count of the coverage.",
+    "returns": "Integer",
+    "args": [
+      {
+        "name": "coverage",
+        "type": "Coverage",
+        "description": "The coverage."
       }
     ]
   },
@@ -2786,6 +2753,7 @@
         "optional": "True",
         "default": ""
       }
+
     ]
   },
   "Coverage.contourByGDAL": {
@@ -3905,6 +3873,7 @@
         "description": "Set the coordinate reference to use for the mask layer.",
         "optional": "True",
         "default": ""
+
       },
       {
         "name": "keepResolution",
@@ -3940,6 +3909,7 @@
         "description": "Defines the format of the output raster file.",
         "optional": "True",
         "default": "0"
+
       },
       {
         "name": "sourceCrs",
@@ -4799,47 +4769,47 @@
     ]
   },
   "Coverage.resampFilterByGrass": {
-  "description": "Resamples raster map layers using an analytic kernel.",
-  "returns": "Coverage",
-  "args": [
-    {
-      "name": "input",
-      "type": "Coverage",
-      "description": "Name of input raster map"
-    },
-    {
-      "name": "res",
-      "type": "String",
-      "description": "New resolution ratio after resampling"
-    },
-    {
-      "name": "filter",
-      "type": "String",
-      "description": "Filter kernel(s) Options: box, bartlett, gauss, normal, hermite, sinc, lanczos1, lanczos2, lanczos3, hann, hamming, blackman"
-    },
-    {
-      "name": "radius",
-      "type": "String",
-      "description": "Filter radius"
-    }
-  ]
-},
+    "description": "Resamples raster map layers using an analytic kernel.",
+    "returns": "Coverage",
+    "args": [
+      {
+        "name": "input",
+        "type": "Coverage",
+        "description": "Name of input raster map"
+      },
+      {
+        "name": "res",
+        "type": "String",
+        "description": "New resolution ratio after resampling"
+      },
+      {
+        "name": "filter",
+        "type": "String",
+        "description": "Filter kernel(s) Options: box, bartlett, gauss, normal, hermite, sinc, lanczos1, lanczos2, lanczos3, hann, hamming, blackman"
+      },
+      {
+        "name": "radius",
+        "type": "String",
+        "description": "Filter radius"
+      }
+    ]
+  },
   "Coverage.resampleByGrass": {
-  "description": "GRASS raster map layer data resampling capability. ",
-  "returns": "Coverage",
-  "args": [
-    {
-      "name": "input",
-      "type": "Coverage",
-      "description": "Name of input raster map"
-    },
-    {
-      "name": "res",
-      "type": "String",
-      "description": "New resolution ratio after resampling"
-    }
-  ]
-},
+    "description": "GRASS raster map layer data resampling capability. ",
+    "returns": "Coverage",
+    "args": [
+      {
+        "name": "input",
+        "type": "Coverage",
+        "description": "Name of input raster map"
+      },
+      {
+        "name": "res",
+        "type": "String",
+        "description": "New resolution ratio after resampling"
+      }
+    ]
+  },
   "Coverage.textureByGrass": {
     "description": " Generate images with textural features from a raster map.",
     "returns": "Coverage",
@@ -4937,6 +4907,7 @@
       }
     ]
   },
+
   "Coverage.surfIdwByGrass": {
     "description": "Provides surface interpolation from raster point data by Inverse Distance Squared Weighting.",
     "returns": "Coverage",
@@ -5185,55 +5156,6 @@
         "name": "location",
         "type": "String",
         "description": "Name for new location to create "
-      }
-    ]
-  },
-  "Coverage.gorwByGrass": {
-    "description": " Generates a raster map layer with contiguous areas grown by one cell.  ",
-    "returns": "Coverage",
-    "args": [
-      {
-        "name": "input",
-        "type": "Coverage",
-        "description": "Name of input raster map. "
-      }
-    ]
-  },
-  "Coverage.fillnullByGrass": {
-    "description": " Fills no-data areas in raster maps using spline interpolation. ",
-    "returns": "Coverage",
-    "args": [
-      {
-        "name": "input",
-        "type": "Coverage",
-        "description": "Name of input raster map. "
-      }
-    ]
-  },
-  "Coverage.randomByGrass": {
-    "description": "Creates randomly placed raster cells or vector points.",
-    "returns": "Coverage",
-    "args": [
-      {
-        "name": "input",
-        "type": "Coverage",
-        "description": "Name of input raster map "
-      },
-      {
-        "name": "npoints",
-        "type": "String",
-        "description": "The number(%) of points/cells to generate."
-      }
-    ]
-  },
-  "Coverage.univarByGrass": {
-    "description": "Calculate univariate statistics from the non-null cells of a raster map.",
-    "returns": "Coverage",
-    "args": [
-      {
-        "name": "input",
-        "type": "Coverage",
-        "description": "Name of input raster map "
       }
     ]
   },
@@ -6616,44 +6538,6 @@
       }
     ]
   },
-  "CoverageCollection.cat": {
-    "description": "cat the coverages",
-    "returns": "Coverage",
-    "args": [
-      {
-        "name": "coverageCollection",
-        "type": "CoverageCollection",
-        "description": "The coverage from which the left operand bands are taken"
-      }
-    ]
-  },
-  "CoverageCollection.visualizeOnTheFly": {
-    "description": "",
-    "returns": "Unit",
-    "args": [
-      {
-        "name": "coverageCollection",
-        "type": "collection",
-        "description": ""
-      },
-      {
-        "name": "visParam",
-        "type": "VisualizationParam",
-        "description": ""
-      }
-    ]
-  },
-  "Feature.addStyles": {
-    "description": "Add the feature to the coverage",
-    "returns": "Feature",
-    "args": [
-      {
-        "name": "feature",
-        "type": "Feature",
-        "description": "The feature to add styles"
-      }
-    ]
-  },
   "Coverage.addStyles": {
     "description": "Add the styles to the coverage.",
     "returns": "Coverage",
@@ -6728,6 +6612,53 @@
       }
     ]
   },
+  "Coverage.export": {
+    "description": "Export a coverage.",
+    "returns": "Coverage",
+    "args": [
+      {
+        "name": "coverage",
+        "type": "Coverage",
+        "description": "The coverage to be exported"
+      },
+      {
+        "name": "description",
+        "type": "String",
+        "description": "The description of the Coverage",
+        "optional": "True"
+      },
+      {
+        "name": "crs",
+        "type": "String",
+        "description": "The crs of the exported Coverage",
+        "optional": "True"
+      },
+      {
+        "name": "scale",
+        "type": "Double",
+        "description": "The scale of the exported Coverage",
+        "optional": "True"
+      },
+      {
+        "name": "folder",
+        "type": "String",
+        "description": "The folder path of the exported Coverage",
+        "optional": "True"
+      },
+      {
+        "name": "fileName",
+        "type": "String",
+        "description": "The file name of the exported Coverage",
+        "optional": "True"
+      },
+      {
+        "name": "fileFormat",
+        "type": "String",
+        "description": "The format of the exported Coverage",
+        "optional": "True"
+      }
+    ]
+  },
   "Cube.addStyles": {
     "description": "Add the styles to the coverage.",
     "returns": "Cube",
@@ -6735,11 +6666,16 @@
       {
         "name": "cube",
         "type": "Cube",
-        "description": "The coverage to be added styles"
+        "description": "The cube to visualize"
+      },
+      {
+        "name": "products",
+        "type": "Object",
+        "description": "The products in cube to visualize"
       },
       {
         "name": "bands",
-        "type": "List<String>",
+        "type": "Object",
         "description": "",
         "default": "None",
         "optional": "True"
@@ -6788,7 +6724,7 @@
       },
       {
         "name": "palette",
-        "type": "List<List<String>>",
+        "type": "Object",
         "description": "",
         "default": "None",
         "optional": "True"
@@ -6796,8 +6732,8 @@
       {
         "name": "format",
         "type": "String",
-        "description": "",
-        "default": "png",
+        "description": "png",
+        "default": "False",
         "optional": "True"
       }
     ]
@@ -6905,13 +6841,13 @@
     "args": [
       {
         "name": "coors",
-        "type": "String",
+        "type": "List[Double]",
         "description": "Coordinates"
       },
       {
         "name": "properties",
         "type": "String",
-        "description": "Properties"
+        "description": "键值对，通过:隔开"
       },
       {
         "name": "crs",
@@ -6926,13 +6862,13 @@
     "args": [
       {
         "name": "coors",
-        "type": "String",
+        "type": "List[List[Double]]",
         "description": "Coordinates"
       },
       {
         "name": "properties",
         "type": "String",
-        "description": "Properties"
+        "description": "键值对，通过:隔开"
       },
       {
         "name": "crs",
@@ -6947,7 +6883,7 @@
     "args": [
       {
         "name": "coors",
-        "type": "String",
+        "type": "List[List[Double]]",
         "description": "Coordinates"
       },
       {
@@ -6968,13 +6904,13 @@
     "args": [
       {
         "name": "coors",
-        "type": "String",
+        "type": "List[List[Double]]",
         "description": "Coordinates"
       },
       {
         "name": "properties",
         "type": "String",
-        "description": "Properties"
+        "description": "键值对，通过:隔开"
       },
       {
         "name": "crs",
@@ -6989,7 +6925,7 @@
     "args": [
       {
         "name": "coors",
-        "type": "String",
+        "type": "List[List[Double]]",
         "description": "Coordinates"
       },
       {
@@ -7010,7 +6946,7 @@
     "args": [
       {
         "name": "coors",
-        "type": "String",
+        "type": "List[List[List[Double]]]",
         "description": "Coordinates"
       },
       {
@@ -7031,7 +6967,7 @@
     "args": [
       {
         "name": "coors",
-        "type": "String",
+        "type": "List[List[List[List[Double]]]]",
         "description": "Coordinates"
       },
       {
@@ -7873,11 +7809,9 @@
         "description": "the input coverage"
       },
       {
-        "name": "Z_factor",
-        "type": "Float",
-        "description": "Vertical exaggeration",
-        "optional": "True",
-        "default": "1"
+        "name": "radius",
+        "type": "Int",
+        "description": "The radius"
       }
     ]
   },
@@ -8427,34 +8361,114 @@
     ]
   },
   "Cube.load": {
-    "description": "Load a cube by some params",
+    "description": "Create a cube by some params",
     "returns": "Cube",
     "args": [
       {
-        "name": "cubeID",
-        "type": "String",
-        "description": "The id of the cube."
+        "name": "productIds",
+        "type": "List<String>",
+        "description": "The product id list for cube creation."
       },
       {
-        "name": "dateTime",
+        "name": "StartTime",
+        "type": "String",
+        "description": "The start time of the product.",
+        "optional": "True",
+        "default": "null"
+      },
+      {
+        "name": "EndTime",
+        "type": "String",
+        "description": "The end time of the product.",
+        "optional": "True",
+        "default": "null"
+      },
+      {
+        "name": "geom",
+        "type": "List<Float>",
+        "description": "The geom of the product.",
+        "optional": "True",
+        "default": "null"
+      },
+      {
+        "name": "bands",
         "type": "List<String>",
-        "description": "The Coverage as the input data ",
+        "description": "The bands of the product.",
+        "optional": "True",
+        "default": "null"
+      }
+    ]
+  },
+  "Cube.build": {
+    "description": "Building Cube from coverage id",
+    "returns": "Cube",
+    "args": [
+      {
+        "name": "productIDList",
+        "type": "String",
+        "description": "The id of target collection."
+      },
+      {
+        "name": "coverageIDList",
+        "type": "String",
+        "description": "The id of target coverage."
+      },
+      {
+        "name": "gridDimX",
+        "type": "String",
+        "description": "The grid column counts of the cube."
+      },
+      {
+        "name": "gridDimY",
+        "type": "String",
+        "description": "The grid row counts of the cube."
+      },
+      {
+        "name": "extent",
+        "type": "String",
+        "description": "The extent of the cube."
+      },
+      {
+        "name": "startTime",
+        "type": "String",
+        "description": "The start time of the cube."
+      },
+      {
+        "name": "endTime",
+        "type": "String",
+        "description": "The end time of the cube."
+      },
+      {
+        "name": "subset",
+        "type": "List<Float>",
+        "description": "The subset of target coverage.",
         "default": "null",
         "optional": "True"
       },
       {
-        "name": "bbox",
-        "type": "List<Float>",
-        "description": "The bounding box of the product.",
-        "optional": "True",
-        "default": "null"
+        "name": "properties",
+        "type": "List<String>",
+        "description": "Get the bands.",
+        "default": "null",
+        "optional": "True"
+      }
+    ]
+  },
+  "Cube.NDVI": {
+    "description": "Compute NDWI of the Cube.",
+    "returns": "Cube",
+    "args": [
+      {
+        "name": "input",
+        "type": "Cube",
+        "description": "The cube to compute NDVI."
       },
       {
-        "name": "measurements",
+        "name": "bandNames",
         "type": "List<String>",
-        "description": "The measurements of the product.",
+        "description": "A list of names specifying the bands to use. If not specified, the first and second bands are used",
         "optional": "True",
-        "default": "null"
+        "default": "None"
       }
     ]
   },
@@ -8549,6 +8563,53 @@
         "type": "String",
         "description": "png",
         "default": "False",
+        "optional": "True"
+      }
+    ]
+  },
+  "Cube.export": {
+    "description": "Export a Cube.",
+    "returns": "Cube",
+    "args": [
+      {
+        "name": "cube",
+        "type": "Cube",
+        "description": "The cube to be exported"
+      },
+      {
+        "name": "description",
+        "type": "String",
+        "description": "The description of the Cube",
+        "optional": "True"
+      },
+      {
+        "name": "crs",
+        "type": "String",
+        "description": "The crs of the exported Cube",
+        "optional": "True"
+      },
+      {
+        "name": "scale",
+        "type": "Double",
+        "description": "The scale of the exported Cube",
+        "optional": "True"
+      },
+      {
+        "name": "folder",
+        "type": "String",
+        "description": "The folder path of the exported Cube",
+        "optional": "True"
+      },
+      {
+        "name": "fileName",
+        "type": "String",
+        "description": "The file name of the exported Cube",
+        "optional": "True"
+      },
+      {
+        "name": "fileFormat",
+        "type": "String",
+        "description": "The format of the exported Cube",
         "optional": "True"
       }
     ]
@@ -8830,168 +8891,6 @@
       }
     ]
   },
-  "Cube.normalize": {
-    "description": "Calculate the normalize index from the cube",
-    "returns": "Cube",
-    "args": [
-      {
-        "name": "input",
-        "type": "Cube",
-        "description": "The input Cube."
-      },
-      {
-        "name": "dimensionName",
-        "type": "String",
-        "description": "The dimension name to calculate the normalize index."
-      },
-      {
-        "name": "dimensionMembers",
-        "type": "List<String>",
-        "description": "The dimension members of to calculate the normalize index"
-      }
-    ]
-  },
-  "Cube.export": {
-    "description": "Export a Cube.",
-    "returns": "Cube",
-    "args": [
-      {
-        "name": "cube",
-        "type": "Cube",
-        "description": "The cube to be exported"
-      },
-      {
-        "name": "description",
-        "type": "String",
-        "description": "The description of the Cube",
-        "optional": "True"
-      },
-      {
-        "name": "crs",
-        "type": "String",
-        "description": "The crs of the exported Cube",
-        "optional": "True"
-      },
-      {
-        "name": "scale",
-        "type": "Double",
-        "description": "The scale of the exported Cube",
-        "optional": "True"
-      },
-      {
-        "name": "folder",
-        "type": "String",
-        "description": "The folder path of the exported Cube",
-        "optional": "True"
-      },
-      {
-        "name": "fileName",
-        "type": "String",
-        "description": "The file name of the exported Cube",
-        "optional": "True"
-      },
-      {
-        "name": "fileFormat",
-        "type": "String",
-        "description": "The format of the exported Cube",
-        "optional": "True"
-      }
-    ]
-  },
-  "Cube.NDVI": {
-    "description": "Compute NDWI of the Cube.",
-    "returns": "Cube",
-    "args": [
-      {
-        "name": "input",
-        "type": "Cube",
-        "description": "The cube to compute NDVI."
-      },
-      {
-        "name": "bandNames",
-        "type": "List<String>",
-        "description": "A list of names specifying the bands to use. If not specified, the first and second bands are used",
-        "optional": "True",
-        "default": "None"
-      }
-    ]
-  },
-  "Cube.build": {
-    "description": "Building Cube from coverage id",
-    "returns": "Cube",
-    "args": [
-      {
-        "name": "productIDList",
-        "type": "String",
-        "description": "The id of target collection."
-      },
-      {
-        "name": "coverageIDList",
-        "type": "String",
-        "description": "The id of target coverage."
-      },
-      {
-        "name": "gridDimX",
-        "type": "String",
-        "description": "The grid column counts of the cube."
-      },
-      {
-        "name": "gridDimY",
-        "type": "String",
-        "description": "The grid row counts of the cube."
-      },
-      {
-        "name": "extent",
-        "type": "String",
-        "description": "The extent of the cube."
-      },
-      {
-        "name": "startTime",
-        "type": "String",
-        "description": "The start time of the cube."
-      },
-      {
-        "name": "endTime",
-        "type": "String",
-        "description": "The end time of the cube."
-      },
-      {
-        "name": "subset",
-        "type": "List<Float>",
-        "description": "The subset of target coverage.",
-        "default": "null",
-        "optional": "True"
-      },
-      {
-        "name": "properties",
-        "type": "List<String>",
-        "description": "Get the bands.",
-        "default": "null",
-        "optional": "True"
-      }
-    ]
-  },
-  "Cube.aggregate": {
-    "description": "Aggregate along a dimension",
-    "returns": "Cube",
-    "args": [
-      {
-        "name": "input",
-        "type": "Cube",
-        "description": "The input Cube."
-      },
-      {
-        "name": "dimensionName",
-        "type": "String",
-        "description": "The dimension name to calculate the normalize index."
-      },
-      {
-        "name": "method",
-        "type": "String",
-        "description": "The method name to perform aggregation"
-      }
-    ]
-  },
   "Coverage.linearTransformation": {
     "description": "Gray-level linear transformations",
     "returns": "Coverage",
@@ -9235,7 +9134,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       },
       {
         "name": "kernel",
@@ -9274,7 +9173,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       },
       {
         "name": "bandwidth",
@@ -9312,7 +9211,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       },
       {
         "name": "kernel",
@@ -9375,7 +9274,7 @@
       {
         "name": "properties",
         "type": "String",
-        "description": "The properties to calculate, seperated by \",\" "
+        "description": "The properties to calculate."
       },
       {
         "name": "method",
@@ -9417,7 +9316,7 @@
         "name": "weightstyle",
         "type": "String",
         "description": "neighbor weight type, including: W, B, C, U, default: W",
-        "default": "\"W\"",
+          "default": "\"W\"",
         "optional": "True"
       }
     ]
@@ -9483,7 +9382,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       }
     ]
   },
@@ -9504,7 +9403,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       }
     ]
   },
@@ -9525,7 +9424,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       }
     ]
   },
@@ -9546,7 +9445,7 @@
       {
         "name": "x",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       },
       {
         "name": "Intercept",
@@ -9573,7 +9472,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       },
       {
         "name": "bandwidth",
@@ -9617,7 +9516,7 @@
       {
         "name": "propertiesX",
         "type": "String",
-        "description": "independent variable properties, seperated by \",\" "
+        "description": "independent variable properties"
       },
       {
         "name": "bandwidth",
@@ -9880,4 +9779,5 @@
       }
     ]
   }
+
 }
