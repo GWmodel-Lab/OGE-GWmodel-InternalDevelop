@@ -328,9 +328,9 @@ object Geodetector {
     val N_var = res._1.length
     for (no <- 0 until N_var) {
       val builder = new StringBuilder
-      builder.append(f"Variable ${no + 1}: ${res._1(no)}\n" + "\n" + "Means of Strata: \n")
+      builder.append(f"Var ${no + 1}: ${res._1(no)}\n" + "\n" + "Strata Means: \n")
       for (i <- 0 until res._2(no).length) {
-        builder.append(f"stratum ${i + 1}: ${res._2(no)(i)}, mean: ${res._3(no)(i)}%10f\n")
+        builder.append(f"${i + 1} ${res._2(no)(i)}: ${res._3(no)(i)}%10f\n")
       }
       builder.append("\nSignificance: \n")
       //val strSig = ListBuffer.empty[String]
@@ -338,7 +338,7 @@ object Geodetector {
       for (i <- 0 until res._2(no).length) {
         for (j <- 0 until res._2(no).length) {
           //println(s"(${no+1},${i+1}, ${j+1})")
-          builder.append(f"${no_MatElem} stratum1: ${res._2(no)(i)}, stratum2: ${res._2(no)(j)}, significance: ${res._4(no)(i, j)}\n")
+          builder.append(f"stra (${i},${j}) ${res._4(no)(i, j)}\n")
           no_MatElem += 1
         }
       }

@@ -71,6 +71,7 @@ object test {
     //    println(Geodetector.ecologicalDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
     //    println(Geodetector.riskDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
         println(Geodetector.riskDetector(shpfile, "aging", "PCGDP,GI,FD,education"))
+    //    println(Geodetector.riskDetector(shpfile, "aging", "province"))
     //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
     //    rddSample.foreach(println)
 
