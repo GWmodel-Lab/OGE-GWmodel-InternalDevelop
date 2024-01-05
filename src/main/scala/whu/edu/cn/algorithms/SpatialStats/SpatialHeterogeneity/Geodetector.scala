@@ -39,7 +39,7 @@ object Geodetector {
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
    * @param is_print   是否打印，默认为true
-   * @return           String
+   * @return String
    */
   def factorDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                      y_title: String, x_titles: String): String = {
@@ -90,7 +90,7 @@ object Geodetector {
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
    * @param is_print   是否打印，默认为true
-   * @return           String
+   * @return String
    */
   def interactionDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
                           y_title: String, x_titles: String)
@@ -174,11 +174,11 @@ object Geodetector {
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
    * @param is_print   是否打印，默认为true
-   * @return           String
+   * @return String
    */
   def ecologicalDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
-                         y_title: String, x_titles: String) :String = {
-  //(List[String], linalg.Matrix[Boolean])
+                         y_title: String, x_titles: String): String = {
+    //(List[String], linalg.Matrix[Boolean])
     setX(featureRDD, x_titles)
     setY(featureRDD, y_title)
     //val F_mat = linalg.Matrix.zeros[Double](x_titles.length, x_titles.length) // Matrix of Statistic F
@@ -237,12 +237,12 @@ object Geodetector {
    * @param featureRDD RDD
    * @param y_title    因变量名称
    * @param x_titles   自变量名称
-   * @param is_print   是否打印，默认为true
-   * @return           String
+   * @param is_omit    分层较多时是否省略部分输出，默认为true
+   * @return String
    */
   def riskDetector(featureRDD: RDD[(String, (Geometry, Map[String, Any]))],
-                   y_title: String, x_titles: String): String= {
-  //(List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]])
+                   y_title: String, x_titles: String): String = {
+    //(List[String], List[List[String]], List[List[Double]], List[linalg.Matrix[Boolean]])
     setX(featureRDD, x_titles)
     setY(featureRDD, y_title)
     val lst1 = ListBuffer("")
@@ -250,7 +250,7 @@ object Geodetector {
     val lst3 = ListBuffer(List(0.0))
     val lst4 = ListBuffer(linalg.Matrix.zeros[Boolean](1, 1))
     for (i <- 0 until _X.length) {
-      val res = RD_single(_Y, _X(i))
+      val res = RD_single(_Y, _X(i),_nameX(i))
       lst1.append(_nameX(i))
       lst2.append(res._1)
       lst3.append(res._2)
@@ -270,14 +270,15 @@ object Geodetector {
    * @param X
    * @return
    */
-  protected def RD_single(Y: List[Double], X: List[Any]):
+  protected def RD_single(Y: List[Double], X: List[Any], X_name: String):
   (List[String], List[Double], linalg.Matrix[Boolean]) = {
     val groupXY = GroupingXAndY(Y, X)
     val groupY = groupXY.map(t => t._2)
     val groupX = groupXY.map(t => t._1)
     val N_strata = groupY.length
-    if(N_strata>50){
-      print(s"Warning: The number of strata in Y is $N_strata. It is recommended to simplify the stratification.\n")
+    if (N_strata > 100) {
+      throw new Exception(s"The number of strata in ${X_name} is $N_strata. The data should be dispersed.\n")
+      //print(s"Warning: The number of strata in X is $N_strata. It is recommended to simplify the stratification or the output.\n")
     }
     val means_variable = groupY.map(t => stats.mean(t))
     val T_Mat = linalg.Matrix.zeros[Boolean](N_strata, N_strata)
@@ -321,24 +322,22 @@ object Geodetector {
     val str_start = "******************************Result of Risk Detector******************************\n"
     // var str = "******************************Result of Risk Detector******************************\n"
     val str_split = "***********************************************************************************\n"
-
     builderFinal.append(str_start)
-
     //print(str0)
     val N_var = res._1.length
     for (no <- 0 until N_var) {
       val builder = new StringBuilder
-      builder.append(f"Var ${no + 1}: ${res._1(no)}\n" + "\n" + "Strata Means: \n")
+      builder.append(f"Var ${no + 1}: ${res._1(no)}\n" + "\n" + "Means of Strata: \n")
       for (i <- 0 until res._2(no).length) {
-        builder.append(f"${i + 1} ${res._2(no)(i)}: ${res._3(no)(i)}%10f\n")
+        builder.append(f"stratum ${i + 1}: ${res._2(no)(i)}, mean: ${res._3(no)(i)}%.3f\n")
       }
       builder.append("\nSignificance: \n")
       //val strSig = ListBuffer.empty[String]
-      var no_MatElem = 1
+      var no_MatElem = 0
       for (i <- 0 until res._2(no).length) {
         for (j <- 0 until res._2(no).length) {
           //println(s"(${no+1},${i+1}, ${j+1})")
-          builder.append(f"stra (${i},${j}) ${res._4(no)(i, j)}\n")
+          builder.append(f"${no_MatElem + 1}: stratum ${i + 1}: ${res._2(no)(i)}, stratum ${j + 1}: ${res._2(no)(j)}; sig: ${res._4(no)(i, j)}\n")
           no_MatElem += 1
         }
       }
