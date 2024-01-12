@@ -27,6 +27,10 @@ class GWRbase {
   var _kernel:String=_
   var _adaptive:Boolean=_
 
+  var _xrows = 0
+  var _xcols = 0
+  protected var _dX: DenseMatrix[Double] = _
+
   protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): String = {
     val shat0 = trace(shat)
     //    val shat1 = trace(shat * shat.t)
@@ -45,11 +49,6 @@ class GWRbase {
       f"Effective degrees of freedom (n-2trace(S) + trace(S'S)): $edf%.4f\nAICc (GWR book, Fotheringham, et al. 2002, p. 61, eq 2.33): $AICc%.3f\n" +
       f"AIC (GWR book, Fotheringham, et al. 2002,GWR p. 96, eq. 4.22): $AIC%.3f\nResidual sum of squares: $rss%.2f\nR-square value: $r2%.7f\nAdjusted R-square value: $r2_adj%.7f\n" +
       "*********************************************************************************\n"
-    //    println("*****************************Diagnostic information******************************")
-    //    println(f"Number of data points: $n \nEffective number of parameters (2trace(S) - trace(S'S)): $enp%.4f")
-    //    println(f"Effective degrees of freedom (n-2trace(S) + trace(S'S)): $edf%.4f\nAICc (GWR book, Fotheringham, et al. 2002, p. 61, eq 2.33): $AICc%.3f")
-    //    println(f"AIC (GWR book, Fotheringham, et al. 2002,GWR p. 96, eq. 4.22): $AIC%.3f\nResidual sum of squares: $rss%.2f\nR-square value: $r2%.7f\nAdjusted R-square value: $r2_adj%.7f")
-    //    println("*********************************************************************************")
     diaString
   }
 
@@ -62,18 +61,21 @@ class GWRbase {
     }
   }
 
-  protected def setX(properties: String, split:String=","): Unit = {
-    _nameX=properties.split(split)
-    val x=_nameX.map(s=>{
+  protected def setX(properties: String, split: String = ","): Unit = {
+    _nameX = properties.split(split)
+    val x = _nameX.map(s => {
       DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
     })
     _X = x
+    _xcols = x.length
+    _xrows = _X(0).length
+    val ones_x = Array(DenseVector.ones[Double](_xrows).toArray, x.flatMap(t => t.toArray))
+    _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
   }
 
   protected def setY(property: String): Unit = {
     _nameY = property
-    val y = shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
-    _Y = DenseVector(y)
+    _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
   def setcoords(lat: Array[Double], lon: Array[Double]): Unit = {
