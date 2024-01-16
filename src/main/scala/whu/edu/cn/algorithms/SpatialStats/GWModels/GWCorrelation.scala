@@ -19,7 +19,7 @@ class GWCorrelation extends GWRbase {
   private var shpRDDidx: Array[((String, (Geometry, mutable.Map[String, Any])), Int)] = _
 
   def calCorrelation(bw: Double = 100, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
-    setweight(bw = bw, kernel = kernel, adaptive = adaptive)
+    setWeight(bw = bw, kernel = kernel, adaptive = adaptive)
     var bw_type = "Fixed"
     if (adaptive) {
       bw_type = "Adaptive"

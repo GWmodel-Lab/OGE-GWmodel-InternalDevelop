@@ -47,7 +47,7 @@ class GWAverage extends GWRbase {
   }
 
   def calAverage(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true, quantile: Boolean = false): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
-    setweight(bw = bw, kernel = kernel, adaptive = adaptive)
+    setWeight(bw = bw, kernel = kernel, adaptive = adaptive)
     shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.foreach(t => t._1._2._2.clear())
     var bw_type = "Fixed"
