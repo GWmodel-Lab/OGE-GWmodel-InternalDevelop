@@ -183,7 +183,7 @@ class GWRbasic extends GWRbase {
     (shpRDDidx.map(t => t._1), fitString)
   }
 
-  protected def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
+  private def fitFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     //    val xtw = weight.map(w => eachColProduct(X, w).t)
     val xtw = weight.map(w => {
