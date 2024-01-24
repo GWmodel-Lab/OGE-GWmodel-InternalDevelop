@@ -57,21 +57,26 @@ object test {
     val tmp=DenseVector(shpfile3.map(t => t._2._2("TYPEDETCH")).collect())
     m.getLevels(tmp.toArray)
     m.valSplit()
+//    m.test()
 
-    val arr=Array(DenseVector(1.0,2,3),DenseVector(4.0,5,6))
-    arr.foreach(println(_))
-    val arr2 =arr.flatMap(t => t.toArray)
-    val mat=DenseMatrix.create(2,3,arr2)
-    println(mat)
-    println(arr2.toVector)
-    val mat2=mat.t
-    println(mat2)
-    val arr3=arr2.zipWithIndex
-    val arr4=arr3.groupBy(t=>{t._2 % 2}).toArray
-    val arr5=arr4.map(t=>t._2.map(_._1))
-    arr5.foreach(t=>println(t.toVector))
-    val mat3=DenseMatrix.create(3,2,arr5.flatten)
-    println(mat3)
+//    val arr=Array(DenseVector(1.0,2,3),DenseVector(4.0,5,6),DenseVector(7.0,8,9))
+//    arr.foreach(println(_))
+//    val arr2 =arr.flatMap(t => t.toArray)
+////    val mat=DenseMatrix.create(2,3,arr2)
+////    println(mat)
+////    println(arr2.toVector)
+////    val mat2=mat.t
+////    println(mat2)
+//    val arr3=arr2.zipWithIndex
+//    val n=arr.length
+//    val arr4=arr3.groupBy(t=>{t._2 % n}).toArray
+//    val arr5=arr4.map(t=>t._2.map(_._1))
+//    arr5.foreach(t=>println(t.toVector))
+////    val mat3=DenseMatrix.create(3,2,arr5.flatten)
+////    println(mat3)
+//
+//    val arrt=m.tranShape(arr)
+//    arrt.foreach(println)
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)

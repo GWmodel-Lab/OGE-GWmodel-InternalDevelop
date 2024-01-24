@@ -61,7 +61,7 @@ class GWRbase {
     }
   }
 
-  protected def setX(properties: String, split: String = ","): Unit = {
+  def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
     val x = _nameX.map(s => {
       DenseVector(shpRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
@@ -73,7 +73,7 @@ class GWRbase {
     _dX = DenseMatrix.create(rows = _xrows, cols = x.length + 1, data = ones_x.flatten)
   }
 
-  protected def setY(property: String): Unit = {
+  def setY(property: String): Unit = {
     _nameY = property
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
