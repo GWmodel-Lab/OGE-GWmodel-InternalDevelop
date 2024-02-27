@@ -8,9 +8,10 @@ import scala.collection.mutable.ArrayBuffer
 class GWDA extends GWRbase {
 
   var _distinctLevels: Array[_ <: (Any, Int)]= _
-  var _levels: Array[Int] = _
+  var _levelArr: Array[Int] = _
   var _dataLevels: Array[(String,Int,Int)] = _ //Array是 键，键对应的int值（从0开始计数），对应的索引位置
   var _dataGroups: Map[String, Array[(String, Int, Int)]] = _
+  var _groups : Int = 0
   var _groupX:ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
   var spweight_groups: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
 
@@ -38,10 +39,12 @@ class GWDA extends GWRbase {
     })
 //    println(levels.toVector)
     _distinctLevels=distin_idx
-    _levels=levels
+    _levelArr=levels
     _dataLevels=dlevel.zipWithIndex.map(t=>((getSomeStr(t._1),getSomeInt(t._1),t._2)))
 //    println(_dataLevels.toVector)
     _dataGroups=_dataLevels.groupBy(_._1)
+    _groups=_dataGroups.size
+//    println(_groups)
 //    _dataGroups.foreach(println(_))
 //    for(i<-_dataGroups.values){
 //      println(i.toVector)
@@ -134,17 +137,19 @@ class GWDA extends GWRbase {
   }
 
   def test()={
-    val x1= tranShape(_groupX(1))
-    val w1= tranShape(spweight_groups(1))
-    wldaSerial(x1,w1)
-
-    val sumWeight = spweight_dvec.map(sum(_)).sum
-    println(sumWeight)
-    val aLocalPrior=w1.map(t=>{
-      sum(t) / sumWeight
-    })
-    println(aLocalPrior.toVector)
-
+    val sigma1_i=0
+    for(i<-0 until _groups) {
+      val x1 = tranShape(_groupX(i))
+      val w1 = tranShape(spweight_groups(i))
+      wldaSerial(x1, w1)
+      println(_groupX(i).length)
+      val sumWeight = spweight_dvec.map(sum(_)).sum
+      println(sumWeight)
+      val aLocalPrior = w1.map(t => {
+        sum(t) / sumWeight
+      })
+      println(aLocalPrior.toVector)
+    }
   }
 
   def wldaSerial(x:Array[DenseVector[Double]], w: Array[DenseVector[Double]])= {
@@ -165,6 +170,8 @@ class GWDA extends GWRbase {
       }
     }
   }
+
+
 
   private def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
     val sqrtw = w.map(t => sqrt(t))
