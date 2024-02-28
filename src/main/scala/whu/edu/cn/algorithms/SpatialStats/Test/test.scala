@@ -20,6 +20,8 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
+import breeze.linalg.{norm, normalize}
+import breeze.numerics._
 
 object test {
   //global variables
@@ -58,6 +60,13 @@ object test {
     m.getLevels(tmp.toArray)
     m.valSplit()
     m.test()
+
+//    println("========")
+//    val a=DenseVector(1.37942984198612E11, 9.004055022233693E7, 1926260.9417264587, 9.004055022233693E7, 68150.40821476714, 2038.5591051096094, 1926260.9417264587, 2038.5591051096094, 823.7534907059759)
+//    val b=(0.01 * a)
+//    println(b)
+//    val c=DenseMatrix.create(3,3,b.toArray)
+//    println(norm(b),log(norm(b)),normalize(b))
 
 //    val arr=Array(DenseVector(1.0,2,3,4),DenseVector(4.0,5,6,7),DenseVector(7.0,8,9,10))
 //    arr.foreach(println(_))

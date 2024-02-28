@@ -1,5 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
+import breeze.linalg
 import breeze.linalg.{DenseMatrix, DenseVector, sum}
 import breeze.numerics.sqrt
 
@@ -14,6 +15,10 @@ class GWDA extends GWRbase {
   var _groups : Int = 0
   var _groupX:ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
   var spweight_groups: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
+  var SigmaGw: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
+//  var groupSigmaGw: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
+  var Sigma1: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
+
 
   def wqdaCr(bw:Double, kernel: String = "gaussian", adaptive: Boolean = true)={
     setweight(bw, kernel, adaptive)
@@ -148,8 +153,20 @@ class GWDA extends GWRbase {
       val aLocalPrior = w1.map(t => {
         sum(t) / sumWeight
       })
+      println("=-=-=-=-=--=-======")
       println(aLocalPrior.toVector)
+
+//      for(j<-0 until _xrows*_xrows){
+//        groupSigmaGw += Array(SigmaGw((i+1)*j))
+//      }
+
     }
+    println("-------------------------")
+    SigmaGw.foreach(t=>println(t.toVector))
+//    val arrSigmaGw=SigmaGw.toArray.splitAt(_xrows*_xrows)
+
+    println("++++++++++++++++++++++")
+    getSigmai()
   }
 
   def wldaSerial(x:Array[DenseVector[Double]], w: Array[DenseVector[Double]])= {
@@ -167,11 +184,24 @@ class GWDA extends GWRbase {
           covwt(x(i), x(j), t)
         })
         println("---", aSigmaGw.toVector)
+        SigmaGw += aSigmaGw
       }
     }
   }
 
-
+  def getSigmai()={
+    for(i<-0 until _xrows){
+      var sigmaii= DenseVector.zeros[Double](_xcols*_xcols)
+      for(j<-0 until _groups){
+        val groupCounts = _groupX(j).length
+        val group_sigmai = SigmaGw.map(_(i)).slice(j*_xcols*_xcols,(j+1)*_xcols*_xcols)
+        sigmaii = sigmaii + groupCounts.toDouble * DenseVector(group_sigmai.toArray)
+      }
+      Sigma1 += (sigmaii / _xrows.toDouble)
+      println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+      println(sigmaii / _xrows.toDouble)
+    }
+  }
 
   private def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
     val sqrtw = w.map(t => sqrt(t))
