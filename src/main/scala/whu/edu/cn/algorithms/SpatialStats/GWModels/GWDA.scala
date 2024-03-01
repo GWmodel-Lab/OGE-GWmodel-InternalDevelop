@@ -152,17 +152,18 @@ class GWDA extends GWRbase {
       wldaSerial(x1, w1)
       println(_groupX(i).length)
       val sumWeight = spweight_dvec.map(sum(_)).sum
-      println(sumWeight)
+//      println(sumWeight)
       val aLocalPrior = w1.map(t => {
         sum(t) / sumWeight
       })
-      println("======================")
-      println(aLocalPrior.toVector)
       localPrior += DenseVector(aLocalPrior)
     }
-    println("-------------------------")
+    println("------------SigmaGw-------------")
     SigmaGw.foreach(t=>println(t.toVector))
-    println("++++++++++++++++++++++")
+    println("++++++++++local mean++++++++++++")
+    localMean.foreach(t=>println(t.toList))
+    println("------------prior-------------")
+    localPrior.foreach(t=>println(t.toVector))
     getSigmai()
 
     val xt = _X.map(_.toArray).transpose.map(DenseVector(_))//x转置
@@ -184,7 +185,7 @@ class GWDA extends GWRbase {
       groupPf += arrPf.toArray
       arrPf.clear()
     }
-    println("result")
+    println("------------log p result(different)---------")
     groupPf.foreach(t=>println(t.toVector))
     val groupPf_t = groupPf.toArray.transpose
     val maxProbIdx = groupPf_t.map(t => {
@@ -195,16 +196,12 @@ class GWDA extends GWRbase {
     val lev=maxProbIdx.map(t=>{
       figLevelString(t)
     })
-    println("predict",lev.toList)
+    println("------------group predicted---------")
+    println(lev.toList)
     validation(lev)
-    println(_levelArr.toVector)
-//    val cl=_distinctLevels.head._1.getClass.getSimpleName match{
-//      case "Double" => lev.asInstanceOf[Double]
-//      case "String" => lev.asInstanceOf[String]
-//      case "_" => lev
-//    }
+//    println(_levelArr.toVector)
 
-    val np_ent=DenseVector.ones[Double](_xcols-1) / (_xcols-1.0)
+    val np_ent=DenseVector.ones[Double](_xcols) / _xcols.toDouble
     val entMax = shannonEntropy(np_ent.toArray)
     val groupPf_t_exp=groupPf_t.map(t=>t.map(x=>Math.exp(-x)))
     val probs=groupPf_t_exp.map(t=>{
@@ -212,8 +209,14 @@ class GWDA extends GWRbase {
     })
     val pmax=probs.map(t=>t.max)
     val probs_shannon=probs.map(t=>shannonEntropy(t))
-    val entropy=DenseVector(probs_shannon) / DenseVector(pmax)
+    val entropy=DenseVector(probs_shannon) / entMax
+    println(entMax)
+    println("------------entropy---------")
     println(entropy)
+    println("------------probs---------")
+    probs.transpose.foreach(t=>println(t.toList))
+    println("------------pmax---------")
+    println(pmax.toVector)
   }
 
   def wldaSerial(x:Array[DenseVector[Double]], w: Array[DenseVector[Double]])= {
@@ -224,13 +227,11 @@ class GWDA extends GWRbase {
         t * tmp
       })
       val aLocalMean = w_i.map(w => w.t * x(i))
-      println("****", aLocalMean.toVector)
       //      for (j <- i until x.length) {
       for (j <- x.indices) {
         val aSigmaGw = w_i.map(t => {
           covwt(x(i), x(j), t)
         })
-        println("---", aSigmaGw.toVector)
         SigmaGw += aSigmaGw
       }
       localMean += aLocalMean
@@ -246,8 +247,8 @@ class GWDA extends GWRbase {
         sigmaii = sigmaii + groupCounts.toDouble * DenseVector(group_sigmai.toArray)
       }
       Sigma1 += (sigmaii / _xrows.toDouble)
-      println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
-      println(sigmaii / _xrows.toDouble)
+//      println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+//      println(sigmaii / _xrows.toDouble)
     }
   }
 
@@ -308,7 +309,7 @@ class GWDA extends GWRbase {
         nCorrect += 1
       }
     }
-    println(s"ratio: ${nCorrect / _xrows}")
+    println(s"correct ratio: ${nCorrect / _xrows}")
     nCorrect / _xrows
   }
 
