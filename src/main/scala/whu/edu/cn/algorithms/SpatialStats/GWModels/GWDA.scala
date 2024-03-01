@@ -1,8 +1,9 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg
-import breeze.linalg.{DenseMatrix, DenseVector, sum}
-import breeze.numerics.sqrt
+import breeze.linalg.{DenseMatrix, DenseVector, inv, linspace, norm, sum}
+import breeze.numerics.{NaN, log, sqrt}
+import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -10,15 +11,17 @@ class GWDA extends GWRbase {
 
   var _distinctLevels: Array[_ <: (Any, Int)]= _
   var _levelArr: Array[Int] = _
-  var _dataLevels: Array[(String,Int,Int)] = _ //Array是 键，键对应的int值（从0开始计数），对应的索引位置
+  var _dataLevels: Array[(String,Int,Int)] = _ //Array是 (键，键对应的int值（从0开始计数），对应的索引位置)
   var _dataGroups: Map[String, Array[(String, Int, Int)]] = _
   var _groups : Int = 0
   var _groupX:ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
   var spweight_groups: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
   var SigmaGw: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
-//  var groupSigmaGw: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
   var Sigma1: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
+  var localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
+  var localMean: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
 
+  var groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
 
   def wqdaCr(bw:Double, kernel: String = "gaussian", adaptive: Boolean = true)={
     setweight(bw, kernel, adaptive)
@@ -141,7 +144,7 @@ class GWDA extends GWRbase {
 
   }
 
-  def test()={
+  def wlda()={
     val sigma1_i=0
     for(i<-0 until _groups) {
       val x1 = tranShape(_groupX(i))
@@ -153,20 +156,64 @@ class GWDA extends GWRbase {
       val aLocalPrior = w1.map(t => {
         sum(t) / sumWeight
       })
-      println("=-=-=-=-=--=-======")
+      println("======================")
       println(aLocalPrior.toVector)
-
-//      for(j<-0 until _xrows*_xrows){
-//        groupSigmaGw += Array(SigmaGw((i+1)*j))
-//      }
-
+      localPrior += DenseVector(aLocalPrior)
     }
     println("-------------------------")
     SigmaGw.foreach(t=>println(t.toVector))
-//    val arrSigmaGw=SigmaGw.toArray.splitAt(_xrows*_xrows)
-
     println("++++++++++++++++++++++")
     getSigmai()
+
+    val xt = _X.map(_.toArray).transpose.map(DenseVector(_))//x转置
+//    xt.map(println(_))
+
+    for(i<-0 until _groups) {
+      val arrPf = ArrayBuffer.empty[Double]
+      for(j<-0 until _xrows){
+        val lognorm = _groups / 2.0 * log(norm(Sigma1(j)))
+        val logprior= log(localPrior(i)(j))
+        val meani=DenseVector(localMean.slice(i*_xcols,(i+1)*_xcols).map(t=>t(j)).toArray)
+        val covmatj=DenseMatrix.create(_xcols,_xcols,Sigma1(j).toArray)
+//        println(inv(covmatj))
+        val pf=0.5 * (xt(j) - meani).t * inv(covmatj) * (xt(j) - meani)
+        val logpf=lognorm + pf(0) - logprior
+//        println(logpf)
+        arrPf += logpf
+      }
+      groupPf += arrPf.toArray
+      arrPf.clear()
+    }
+    println("result")
+    groupPf.foreach(t=>println(t.toVector))
+    val groupPf_t = groupPf.toArray.transpose
+    val maxProbIdx = groupPf_t.map(t => {
+      t.indexWhere(_ == t.min)
+    })
+    println("maxProbIdx",maxProbIdx.toList)
+    println(_distinctLevels.toList)
+    val lev=maxProbIdx.map(t=>{
+      figLevelString(t)
+    })
+    println("predict",lev.toList)
+    validation(lev)
+    println(_levelArr.toVector)
+//    val cl=_distinctLevels.head._1.getClass.getSimpleName match{
+//      case "Double" => lev.asInstanceOf[Double]
+//      case "String" => lev.asInstanceOf[String]
+//      case "_" => lev
+//    }
+
+    val np_ent=DenseVector.ones[Double](_xcols-1) / (_xcols-1.0)
+    val entMax = shannonEntropy(np_ent.toArray)
+    val groupPf_t_exp=groupPf_t.map(t=>t.map(x=>Math.exp(-x)))
+    val probs=groupPf_t_exp.map(t=>{
+      t.map(x=> x / t.sum)
+    })
+    val pmax=probs.map(t=>t.max)
+    val probs_shannon=probs.map(t=>shannonEntropy(t))
+    val entropy=DenseVector(probs_shannon) / DenseVector(pmax)
+    println(entropy)
   }
 
   def wldaSerial(x:Array[DenseVector[Double]], w: Array[DenseVector[Double]])= {
@@ -186,6 +233,7 @@ class GWDA extends GWRbase {
         println("---", aSigmaGw.toVector)
         SigmaGw += aSigmaGw
       }
+      localMean += aLocalMean
     }
   }
 
@@ -203,6 +251,26 @@ class GWDA extends GWRbase {
     }
   }
 
+  def figLevelString(rowi:Int): String= {
+    var re = "NA"
+    for (i <- _distinctLevels.indices) {
+      if (rowi == _distinctLevels(i)._2) {
+        re = _distinctLevels(i)._1.asInstanceOf[String]
+      }
+    }
+    re
+  }
+
+  def figLevelInt(rowi: Int): Int = {
+    var re = -1
+    for (i <- _distinctLevels.indices) {
+      if (rowi == _distinctLevels(i)._2) {
+        re = _distinctLevels(i)._2
+      }
+    }
+    re
+  }
+
   private def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
     val sqrtw = w.map(t => sqrt(t))
     val re1 = sqrtw * (x1 - sum(x1 * w))
@@ -211,5 +279,37 @@ class GWDA extends GWRbase {
     sum(re1 * re2 * (1 / sumww))
   }
 
+  def shannonEntropy(data:Array[Double]):Double= {
+    if (data.min < 0 || data.sum <= 0) {
+      NaN
+    }
+    else {
+      val pnorm = data.filter(_ > 0).map(_ / data.sum)
+      pnorm.map { x =>
+        -x * (Math.log(x) / Math.log(2))
+      }.sum
+    }
+  }
+
+//  def entropy(data: RDD[String]) = {
+//    val size = data.count()
+//    val p = data.map(x => (x, 1)).reduceByKey(_ + _).map {
+//      case (value, num) => num.toDouble / size
+//    }
+//    p.map { x =>
+//      -x * (Math.log(x) / Math.log(2))
+//    }.sum
+//  }
+
+  def validation(predLev:Array[String]):Double={
+    var nCorrect=0.0
+    for(i<-predLev.indices){
+      if(predLev(i)==_dataLevels(i)._1){
+        nCorrect += 1
+      }
+    }
+    println(s"ratio: ${nCorrect / _xrows}")
+    nCorrect / _xrows
+  }
 
 }

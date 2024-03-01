@@ -36,8 +36,8 @@ object test {
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
-  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
-//  val shpPath3="D:\\Java\\testdata\\USelect2004.shp"
+//  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath3="D:\\Java\\testdata\\USelect2004part.shp"
   val shpfile3 = readShp(sc, shpPath3, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
@@ -53,13 +53,13 @@ object test {
 
     val m=new GWDA
     m.init(shpfile3)
-    m.setX("PURCHASE,FLOORSZ,PROF")
-    m.setY("TYPEDETCH")
-    m.setweight(50,"bisquare",true)
-    val tmp=DenseVector(shpfile3.map(t => t._2._2("TYPEDETCH")).collect())
+    m.setX("unemploy,pctcoled,PEROVER65,pcturban,WHITE")
+//    m.setY("winner")
+    m.setweight(80,"bisquare",true)
+    val tmp=DenseVector(shpfile3.map(t => t._2._2("winner")).collect())
     m.getLevels(tmp.toArray)
     m.valSplit()
-    m.test()
+    m.wlda()
 
 //    println("========")
 //    val a=DenseVector(1.37942984198612E11, 9.004055022233693E7, 1926260.9417264587, 9.004055022233693E7, 68150.40821476714, 2038.5591051096094, 1926260.9417264587, 2038.5591051096094, 823.7534907059759)
@@ -67,20 +67,6 @@ object test {
 //    println(b)
 //    val c=DenseMatrix.create(3,3,b.toArray)
 //    println(norm(b),log(norm(b)),normalize(b))
-
-//    val arr=Array(DenseVector(1.0,2,3,4),DenseVector(4.0,5,6,7),DenseVector(7.0,8,9,10))
-//    arr.foreach(println(_))
-//    val arr2 =arr.flatMap(t => t.toArray)
-//    val arr3=arr2.zipWithIndex
-//    val n=arr.length
-//    val arr4=arr3.groupBy(t=>{t._2 % n}).toArray
-//    val arr5=arr4.map(t=>t._2.map(_._1))
-//    arr5.foreach(t=>println(t.toVector))
-////    val mat3=DenseMatrix.create(3,2,arr5.flatten)
-////    println(mat3)
-////
-//    val arrt=m.tranShape(arr)
-//    arrt.foreach(println)
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
