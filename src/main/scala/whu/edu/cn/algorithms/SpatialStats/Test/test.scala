@@ -61,7 +61,7 @@ object test {
     m.setweight(50,"bisquare",true)
     m.getYLevels()
     m.getXGroups()
-    m.wqda()
+    m.wlda()
 //    m.wqdaCr(50)
 
 //    println("========")
