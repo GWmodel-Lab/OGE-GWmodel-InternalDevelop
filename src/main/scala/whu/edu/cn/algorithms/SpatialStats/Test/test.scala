@@ -59,9 +59,10 @@ object test {
     m.setX("FLOORSZ,UNEMPLOY,PROF")
     m.setY("CLASS")
     m.setweight(50,"bisquare",true)
-    m.getLevels()
-    m.valSplit()
-    m.wlda()
+    m.getYLevels()
+    m.getXGroups()
+    m.wqda()
+//    m.wqdaCr(50)
 
 //    println("========")
 //    val a=DenseVector(1.37942984198612E11, 9.004055022233693E7, 1926260.9417264587, 9.004055022233693E7, 68150.40821476714, 2038.5591051096094, 1926260.9417264587, 2038.5591051096094, 823.7534907059759)
