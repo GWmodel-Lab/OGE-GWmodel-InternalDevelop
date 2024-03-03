@@ -37,6 +37,7 @@ object test {
   val shpfile2 = readShp(sc, shpPath2, encode)
 
 //  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+//  val shpPath3="D:\\Java\\testdata\\USelect2004part.shp"
   val shpPath3="D:\\Java\\testdata\\LNHP100.shp"
   val shpfile3 = readShp(sc, shpPath3, encode)
 
@@ -53,11 +54,12 @@ object test {
 
     val m=new GWDA
     m.init(shpfile3)
-    m.setX("FLOORSZ,UNEMPLOY,PROF")
+//    m.setX("unemploy,pctcoled,PEROVER65,pcturban,WHITE")
 //    m.setY("winner")
+    m.setX("FLOORSZ,UNEMPLOY,PROF")
+    m.setY("CLASS")
     m.setweight(50,"bisquare",true)
-    val tmp=DenseVector(shpfile3.map(t => t._2._2("CLASS")).collect())
-    m.getLevels(tmp.toArray)
+    m.getLevels()
     m.valSplit()
     m.wlda()
 
