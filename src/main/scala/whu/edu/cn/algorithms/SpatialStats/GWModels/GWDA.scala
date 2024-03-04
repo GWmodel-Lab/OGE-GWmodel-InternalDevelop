@@ -23,8 +23,8 @@ class GWDA extends GWRbase {
 //Arraybuffer的都有重复累加的风险
   var sigma_wlda: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]] //wlda和wqda的sigma数据维度不同，不能通用
   var sigma_wqda: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]] //wlda是nrows*xcols*xcols,wqda是_nGroups个个nrows*xcols*xcols,而且存储是混杂的
-  var SigmaGw: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
-  var localMean: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
+//  var SigmaGw: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
+//  var localMean: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
 //  var localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
 
   var groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
@@ -38,20 +38,20 @@ class GWDA extends GWRbase {
 
   }
 
-  def bwSelectCriteria(bw: Double, kernel: String = "gaussian", adaptive: Boolean = true, method:String="wqda"): Double = {
-    setweight(bw, kernel, adaptive)
-    val diag_weight0 = spweight_dvec.clone()
-    for (i <- 0 until _xrows) {
-      diag_weight0(i)(i) = 0
-    }
-    //    diagWeight0.foreach(t=>println(t))
-    val group_weight = getWeightGroups(diag_weight0)
-    method match {
-      case "wqda" => wqda()
-      case "wlda" => wlda()
-      case _ => throw new IllegalArgumentException("method should be wqda or wlda")
-    }
-  }
+//  def bwSelectCriteria(bw: Double, kernel: String = "gaussian", adaptive: Boolean = true, method:String="wqda"): Double = {
+//    setweight(bw, kernel, adaptive)
+//    val diag_weight0 = spweight_dvec.clone()
+//    for (i <- 0 until _xrows) {
+//      diag_weight0(i)(i) = 0
+//    }
+//    //    diagWeight0.foreach(t=>println(t))
+//    val group_weight = getWeightGroups(diag_weight0)
+//    method match {
+//      case "wqda" => wqda()
+////      case "wlda" => wlda()
+//      case _ => throw new IllegalArgumentException("method should be wqda or wlda")
+//    }
+//  }
 
   def getYLevels(data: Array[_ <: Any] = _inputY) = {
     val data_idx = data.zipWithIndex
@@ -161,64 +161,70 @@ class GWDA extends GWRbase {
     tmp.map(t => DenseVector(t))
   }
 
-  def wqda():Double = {
-    localMean.clear()
-    SigmaGw.clear()
-    val localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
-    val spweight_groups = getWeightGroups(spweight_dvec)
-    for (i <- 0 until _nGroups) {
-      val x1 = tranShape(_groupX(i))
-      val w1 = tranShape(spweight_groups(i))
-      getLocalMeanSigma(x1, w1)
-      println(_groupX(i).length)
-      val sumWeight = spweight_dvec.map(sum(_)).sum
-      val aLocalPrior = w1.map(t => {
-        sum(t) / sumWeight
-      })
-      localPrior += DenseVector(aLocalPrior)
-    }
-
-    getSigmai()
-
-    val xt = _X.map(_.toArray).transpose.map(DenseVector(_)) //x转置
-    for (i <- 0 until _nGroups) {
-      val arrPf = ArrayBuffer.empty[Double]
-      for (j <- 0 until _xrows) {
-        val lognorm = _nGroups / 2.0 * log(norm(sigma_wqda(i + j * _nGroups))) //wqda 单纯把sigma1换成SigmaGw
-        val logprior = log(localPrior(i)(j))
-        val meani = DenseVector(localMean.slice(i * _xcols, (i + 1) * _xcols).map(t => t(j)).toArray)
-        val covmatj = DenseMatrix.create(_xcols, _xcols, sigma_wqda(i + j * _nGroups).toArray)
-        val pf = 0.5 * (xt(j) - meani).t * inv(covmatj) * (xt(j) - meani)
-        val logpf = lognorm + pf(0) - logprior
-        arrPf += logpf
-      }
-      groupPf += arrPf.toArray
-      arrPf.clear()
-    }
-    println("------------log p result---------")
-    groupPf.foreach(t => println(t.toVector))
-    val groupPf_t = groupPf.toArray.transpose
-    val minProbIdx = groupPf_t.map(t => {
-      t.indexWhere(_ == t.min)
-    })
-    println("minProbIdx", minProbIdx.toList)
-    println(_distinctLevels.toList)
-    val lev = minProbIdx.map(t => {
-      figLevelString(t)
-    })
-    println("------------group predicted---------")
-    println(lev.toList)
-    validation(lev)
-//    summary()
-  }
+//  def wqda():Double = {
+//    localMean.clear()
+//    SigmaGw.clear()
+//    val localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
+//    val spweight_groups = getWeightGroups(spweight_dvec)
+//    for (i <- 0 until _nGroups) {
+//      val x1 = tranShape(_groupX(i))
+//      val w1 = tranShape(spweight_groups(i))
+//      getLocalMeanSigma(x1, w1)
+//      println(_groupX(i).length)
+//      val sumWeight = spweight_dvec.map(sum(_)).sum
+//      val aLocalPrior = w1.map(t => {
+//        sum(t) / sumWeight
+//      })
+//      localPrior += DenseVector(aLocalPrior)
+//    }
+//
+//    getSigmai()
+//
+//    val xt = _X.map(_.toArray).transpose.map(DenseVector(_)) //x转置
+//    for (i <- 0 until _nGroups) {
+//      val arrPf = ArrayBuffer.empty[Double]
+//      for (j <- 0 until _xrows) {
+//        val lognorm = _nGroups / 2.0 * log(norm(sigma_wqda(i + j * _nGroups))) //wqda 单纯把sigma1换成SigmaGw
+//        val logprior = log(localPrior(i)(j))
+//        val meani = DenseVector(localMean.slice(i * _xcols, (i + 1) * _xcols).map(t => t(j)).toArray)
+//        val covmatj = DenseMatrix.create(_xcols, _xcols, sigma_wqda(i + j * _nGroups).toArray)
+//        val pf = 0.5 * (xt(j) - meani).t * inv(covmatj) * (xt(j) - meani)
+//        val logpf = lognorm + pf(0) - logprior
+//        arrPf += logpf
+//      }
+//      groupPf += arrPf.toArray
+//      arrPf.clear()
+//    }
+//    println("------------log p result---------")
+//    groupPf.foreach(t => println(t.toVector))
+//    val groupPf_t = groupPf.toArray.transpose
+//    val minProbIdx = groupPf_t.map(t => {
+//      t.indexWhere(_ == t.min)
+//    })
+//    println("minProbIdx", minProbIdx.toList)
+//    println(_distinctLevels.toList)
+//    val lev = minProbIdx.map(t => {
+//      figLevelString(t)
+//    })
+//    println("------------group predicted---------")
+//    println(lev.toList)
+//    validation(lev)
+////    summary()
+//  }
 
   def wlda() = {
+
+    println("wlda")
+    val sigmaGw: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
+    val localMean: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
     val spweight_groups = getWeightGroups(spweight_dvec)
     for (i <- 0 until _nGroups) {
       val x1 = tranShape(_groupX(i))
       val w1 = tranShape(spweight_groups(i))
-      getLocalMeanSigma(x1, w1)
+      val re=getLocalMeanSigma(x1, w1)
+      localMean+=re._1
+      sigmaGw+=re._2
       println(_groupX(i).length)
       val sumWeight = spweight_dvec.map(sum(_)).sum
       val aLocalPrior = w1.map(t => {
@@ -227,26 +233,27 @@ class GWDA extends GWRbase {
       localPrior += DenseVector(aLocalPrior)
     }
 
-    //    println("------------SigmaGw-------------")
-    //    SigmaGw.foreach(t=>println(t.toVector))
-    //    println("++++++++++local mean++++++++++++")
-    //    localMean.foreach(t=>println(t.toList))
-    //    println("------------prior-------------")
-    //    localPrior.foreach(t=>println(t.toVector))
-    //    println("========sigma used(sigma1)=========")
-    //    sigma_wlda.foreach(println)
-    //    println("-------------localmean----------")
-    //    localMean.foreach(t => println(t.toList))
-
-    getSigmai()
+//        println("------------SigmaGw-------------")
+//        SigmaGw.foreach(t=>println(t.toVector))
+//        println("++++++++++local mean++++++++++++")
+//        localMean.foreach(t=>println(t.toList))
+//        println("------------prior-------------")
+//        localPrior.foreach(t=>println(t.toVector))
+//        println("========sigma used(sigma1)=========")
+//        sigma_wlda.foreach(println)
+//        println("-------------localmean----------")
+//        localMean.foreach(t => println(t.toList))
+    sigma_wlda.clear()
+    sigma_wqda.clear()
+    sigmaGw.foreach(t=>getSigmai(t))
 
     val xt = _X.map(_.toArray).transpose.map(DenseVector(_)) //x转置
     for (i <- 0 until _nGroups) {
       val arrPf = ArrayBuffer.empty[Double]
       for (j <- 0 until _xrows) {
-        val lognorm = _nGroups / 2.0 * log(norm(sigma_wlda(j))) //wqda 单纯把sigma1换成SigmaGw
+        val lognorm = _nGroups / 2.0 * log(norm(sigma_wlda(j)))
         val logprior = log(localPrior(i)(j))
-        val meani = DenseVector(localMean.slice(i * _xcols, (i + 1) * _xcols).map(t => t(j)).toArray)
+        val meani = DenseVector(localMean(i)(j))
         val covmatj = DenseMatrix.create(_xcols, _xcols, sigma_wlda(j).toArray)
         val pf = 0.5 * (xt(j) - meani).t * inv(covmatj) * (xt(j) - meani)
         val logpf = lognorm + pf(0) - logprior
@@ -269,7 +276,7 @@ class GWDA extends GWRbase {
     println("------------group predicted---------")
     println(lev.toList)
     validation(lev)
-//    summary()
+    summary()
 
   }
 
@@ -295,9 +302,9 @@ class GWDA extends GWRbase {
 
   }
 
-  def getLocalMeanSigma(x: Array[DenseVector[Double]], w: Array[DenseVector[Double]]) = {
-//    val sigmaGw: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
-//    val localMean: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
+  def getLocalMeanSigma(x: Array[DenseVector[Double]], w: Array[DenseVector[Double]]): (Array[Array[Double]], Array[Array[Double]]) = {
+    val sigmaGw: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
+    val localMean: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
     val nlevel = _distinctLevels.length
     for (i <- x.indices) {
       val w_i = w.map(t => {
@@ -305,43 +312,29 @@ class GWDA extends GWRbase {
         t * tmp
       })
       val aLocalMean = w_i.map(w => w.t * x(i))
-      //      for (j <- i until x.length) {
       for (j <- x.indices) {
         val aSigmaGw = w_i.map(t => {
           covwt(x(i), x(j), t)
         })
-        SigmaGw += aSigmaGw
+        sigmaGw += aSigmaGw
       }
       localMean += aLocalMean
     }
+    (localMean.toArray, sigmaGw.toArray)
   }
 
-  def getSigmai() = {
+  def getSigmai(SigmaGw: Array[Array[Double]]) = {
     for (i <- 0 until _xrows) {
       var sigmaii = DenseVector.zeros[Double](_xcols * _xcols)
       for (j <- 0 until _nGroups) {
         val groupCounts = _groupX(j).length
-        val group_sigmai = SigmaGw.map(_(i)).slice(j * _xcols * _xcols, (j + 1) * _xcols * _xcols)
-        sigma_wqda += DenseVector(group_sigmai.toArray)
-        sigmaii = sigmaii + groupCounts.toDouble * DenseVector(group_sigmai.toArray)
+        val group_sigmai = SigmaGw.transpose
+        sigma_wqda += DenseVector(group_sigmai(i))
+        sigmaii = sigmaii + groupCounts.toDouble * DenseVector(group_sigmai(i))
       }
       sigma_wlda += (sigmaii / _xrows.toDouble)
-      //      println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
-      //      println(sigmaii / _xrows.toDouble)
     }
   }
-
-//  def getSigmai(sigmaGW: Array[Array[Double]]) = {
-//    for (i <- 0 until _xrows) {
-//      var sigmaii = DenseVector.zeros[Double](_xcols * _xcols)
-//      for (j <- 0 until _nGroups) {
-//        val groupCounts = _groupX(j).length
-//        sigma_wqda += DenseVector(sigmaGW(i)(j))
-//        sigmaii = sigmaii + groupCounts.toDouble * DenseVector(sigmaGW(i)(j))
-//      }
-//      sigma_wlda += (sigmaii / _xrows.toDouble)
-//    }
-//  }
 
   def figLevelString(rowi: Int): String = {
     var re = "NA"
