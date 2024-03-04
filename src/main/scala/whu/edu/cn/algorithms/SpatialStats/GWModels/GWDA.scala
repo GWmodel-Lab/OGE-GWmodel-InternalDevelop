@@ -243,19 +243,20 @@ class GWDA extends GWRbase {
 //        sigma_wlda.foreach(println)
 //        println("-------------localmean----------")
 //        localMean.foreach(t => println(t.toList))
-    sigma_wlda.clear()
+//    sigma_wlda.clear()
     sigma_wqda.clear()
-    sigmaGw.foreach(t=>getSigmai(t))
+    val sigmaWlda=getSigmai(sigmaGw.toArray)
+    val sigma_wlda=sigmaWlda.map(t=>DenseVector(t))
 
     val xt = _X.map(_.toArray).transpose.map(DenseVector(_)) //x转置
     for (i <- 0 until _nGroups) {
       val arrPf = ArrayBuffer.empty[Double]
+      val meani = localMean(i).transpose.map(DenseVector(_))
       for (j <- 0 until _xrows) {
         val lognorm = _nGroups / 2.0 * log(norm(sigma_wlda(j)))
         val logprior = log(localPrior(i)(j))
-        val meani = DenseVector(localMean(i)(j))
         val covmatj = DenseMatrix.create(_xcols, _xcols, sigma_wlda(j).toArray)
-        val pf = 0.5 * (xt(j) - meani).t * inv(covmatj) * (xt(j) - meani)
+        val pf = 0.5 * (xt(j) - meani(j)).t * inv(covmatj) * (xt(j) - meani(j))
         val logpf = lognorm + pf(0) - logprior
         arrPf += logpf
       }
@@ -323,17 +324,18 @@ class GWDA extends GWRbase {
     (localMean.toArray, sigmaGw.toArray)
   }
 
-  def getSigmai(SigmaGw: Array[Array[Double]]) = {
+  def getSigmai(SigmaGw: Array[Array[Array[Double]]]): Array[Array[Double]] = {
+    val sigmaWlda: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
     for (i <- 0 until _xrows) {
       var sigmaii = DenseVector.zeros[Double](_xcols * _xcols)
       for (j <- 0 until _nGroups) {
         val groupCounts = _groupX(j).length
-        val group_sigmai = SigmaGw.transpose
-        sigma_wqda += DenseVector(group_sigmai(i))
+        val group_sigmai = SigmaGw(j).transpose
         sigmaii = sigmaii + groupCounts.toDouble * DenseVector(group_sigmai(i))
       }
-      sigma_wlda += (sigmaii / _xrows.toDouble)
+      sigmaWlda += (sigmaii / _xrows.toDouble)
     }
+    sigmaWlda.map(t=>t.toArray).toArray
   }
 
   def figLevelString(rowi: Int): String = {
