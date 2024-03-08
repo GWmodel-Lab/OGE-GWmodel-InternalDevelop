@@ -62,9 +62,8 @@ object test {
     m.getYLevels()
     m.getXGroups()
 //    m.wlda()
-    m.wqda()
-//    m.wqdaCr(50)
-
+//    m.wqda()
+    m.bandwidthSelection(kernel="bisquare",adaptive = true)
 //    println("========")
 //    val a=DenseVector(1.37942984198612E11, 9.004055022233693E7, 1926260.9417264587, 9.004055022233693E7, 68150.40821476714, 2038.5591051096094, 1926260.9417264587, 2038.5591051096094, 823.7534907059759)
 //    val b=(0.01 * a)

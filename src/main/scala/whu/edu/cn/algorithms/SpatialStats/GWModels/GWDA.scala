@@ -1,14 +1,21 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg
-import breeze.linalg.{DenseMatrix, DenseVector, inv, linspace, norm, sum}
+import breeze.linalg.{DenseMatrix, DenseVector, MatrixSingularException, inv, linspace, norm, sum}
 import breeze.numerics.{NaN, log, sqrt}
 import org.apache.spark.rdd.RDD
+import org.locationtech.jts.geom.Geometry
+import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize.goldenSelection
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 class GWDA extends GWRbase {
 
+  //todo: fix bw selection
+
+  val select_eps = 1e-4
+  var _method: String = "wlda"
   var _inputY: Array[Any] = _
   var _distinctLevels: Array[_ <: (Any, Int)] = _
   var _levelArr: Array[Int] = _
@@ -17,32 +24,97 @@ class GWDA extends GWRbase {
   var _nGroups: Int = 0
   var _groupX: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
   //  var spweight_groups: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]  ////因为要反复用，所以不定义为全局变量
+//  var groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
 
-  var groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
+  private var opt_value: Array[Double] = _
+  private var opt_result: Array[Double] = _
+  private var opt_iters: Array[Double] = _
 
   override def setY(property: String): Unit = {
     _nameY = property
     _inputY = shpRDD.map(t => t._2._2(property)).collect()
   }
 
-  def calculate()={
+  def calculate(bw: Double = 0, kernel: String = "bisquare", adaptive: Boolean = true)={
+    if (bw > 0) {
+      setweight(bw, kernel, adaptive)
+    } else if (spweight_dvec != null) {
+
+    } else {
+      throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
+    }
+
 
   }
 
-//  def bwSelectCriteria(bw: Double, kernel: String = "gaussian", adaptive: Boolean = true, method:String="wqda"): Double = {
-//    setweight(bw, kernel, adaptive)
-//    val diag_weight0 = spweight_dvec.clone()
-//    for (i <- 0 until _xrows) {
-//      diag_weight0(i)(i) = 0
-//    }
-//    //    diagWeight0.foreach(t=>println(t))
-//    val group_weight = getWeightGroups(diag_weight0)
-//    method match {
-//      case "wqda" => wqda()
-////      case "wlda" => wlda()
-//      case _ => throw new IllegalArgumentException("method should be wqda or wlda")
-//    }
-//  }
+  def bandwidthSelection(kernel: String = "bisquare", adaptive: Boolean = true, method :String = "wlda")= {
+    _method = method
+    var printString = "Auto bandwidth selection\n"
+    if (adaptive) {
+      adaptiveBandwidthSelection(kernel = kernel)
+    } else {
+      fixedBandwidthSelection(kernel = kernel)
+    }
+    opt_iters.foreach(t => {
+      val i = (t - 1).toInt
+      printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.2f, correct ratio: ${opt_result(i)}%.3f\n")
+    })
+    println(printString)
+  }
+
+  def bwSelectCriteria(bw: Double): Double = {
+    setweight(bw, _kernel, _adaptive)
+    val diag_weight0 = spweight_dvec.clone()
+    for (i <- 0 until _xrows) {
+      diag_weight0(i)(i) = 0
+    }
+    //    diagWeight0.foreach(t=>println(t))
+    val group_weight = getWeightGroups(diag_weight0)
+    _method match {
+      case "wqda" => wqda()
+      case "wlda" => wlda()
+      case _ => throw new IllegalArgumentException("method should be wqda or wlda")
+    }
+  }
+
+  private def fixedBandwidthSelection(kernel: String = "bisquare", upper: Double = max_dist, lower: Double = max_dist / 5000.0): Double = {
+    _kernel = kernel
+    _adaptive = false
+    var bw: Double = lower
+    try {
+      val re = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = bwSelectCriteria)
+      bw = re._1
+      opt_iters = re._2
+      opt_value = re._3
+      opt_result = re._4
+    } catch {
+      case e: MatrixSingularException => {
+        val low = lower * 2
+        bw = fixedBandwidthSelection(kernel, upper, low)
+      }
+    }
+    bw
+  }
+
+  private def adaptiveBandwidthSelection(kernel: String = "bisquare", upper: Int = _xrows - 1, lower: Int = 20): Int = {
+    _kernel = kernel
+    _adaptive = true
+    var bw: Int = lower
+    try {
+      val re = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = bwSelectCriteria)
+      bw = re._1.toInt
+      opt_iters = re._2
+      opt_value = re._3
+      opt_result = re._4
+    } catch {
+      case e: MatrixSingularException => {
+        println("error")
+        val low = lower + 1
+        bw = adaptiveBandwidthSelection(kernel, upper, low)
+      }
+    }
+    bw
+  }
 
   def getYLevels(data: Array[_ <: Any] = _inputY) = {
     val data_idx = data.zipWithIndex
@@ -153,7 +225,7 @@ class GWDA extends GWRbase {
   }
 
   def wqda():Double = {
-    println("wlda")
+    println("wqda")
     val sigmaGw: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localMean: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
@@ -171,8 +243,8 @@ class GWDA extends GWRbase {
       localPrior += DenseVector(aLocalPrior)
     }
 
+    val groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
     val sigma_wqda=sigmaGw.toArray.map(t=>t.transpose.map(DenseVector(_)))
-
     val xt = _X.map(_.toArray).transpose.map(DenseVector(_)) //x转置
     for (i <- 0 until _nGroups) {
       val meani = localMean(i).transpose.map(DenseVector(_))
@@ -201,13 +273,13 @@ class GWDA extends GWRbase {
     })
     println("------------group predicted---------")
     println(lev.toList)
+//    summary(groupPf_t)
     validation(lev)
-//    summary()
   }
 
   def wlda() = {
 
-    println("wlda")
+//    println("wlda")
     val sigmaGw: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localMean: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
@@ -237,9 +309,9 @@ class GWDA extends GWRbase {
 //        println("-------------localmean----------")
 //        localMean.foreach(t => println(t.toList))
 
+    val groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
     val sigmaWlda=getSigmai(sigmaGw.toArray)
     val sigma_wlda=sigmaWlda.map(t=>DenseVector(t))
-
     val xt = _X.map(_.toArray).transpose.map(DenseVector(_)) //x转置
     for (i <- 0 until _nGroups) {
       val arrPf = ArrayBuffer.empty[Double]
@@ -255,8 +327,8 @@ class GWDA extends GWRbase {
       groupPf += arrPf.toArray
       arrPf.clear()
     }
-    println("------------log p result---------")
-    groupPf.foreach(t => println(t.toVector))
+//    println("------------log p result---------")
+//    groupPf.foreach(t => println(t.toVector))
     val groupPf_t = groupPf.toArray.transpose
     val minProbIdx = groupPf_t.map(t => {
       t.indexWhere(_ == t.min)
@@ -266,16 +338,13 @@ class GWDA extends GWRbase {
     val lev = minProbIdx.map(t => {
       figLevelString(t)
     })
-    println("------------group predicted---------")
-    println(lev.toList)
+//    println("------------group predicted---------")
+//    println(lev.toList)
+//    summary(groupPf_t)
     validation(lev)
-    summary()
-
   }
 
-  def summary()={
-
-    val groupPf_t = groupPf.toArray.transpose
+  def summary(groupPf_t: Array[Array[Double]])={
     val np_ent = DenseVector.ones[Double](_xcols) / _xcols.toDouble
     val entMax = shannonEntropy(np_ent.toArray)
     val groupPf_t_exp = groupPf_t.map(t => t.map(x => Math.exp(-x)))
