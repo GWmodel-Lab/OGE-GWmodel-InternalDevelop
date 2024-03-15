@@ -12,9 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class GWDA extends GWRbase {
 
-  //todo: fix bw selection
-
-  val select_eps = 1e-4
+  val select_eps = 1e-6
   var _method: String = "wlda"
   var _inputY: Array[Any] = _
   var _distinctLevels: Array[_ <: (Any, Int)] = _
@@ -49,17 +47,20 @@ class GWDA extends GWRbase {
 
   def bandwidthSelection(kernel: String = "bisquare", adaptive: Boolean = true, method :String = "wlda")= {
     _method = method
+    var bwselect=0.0
     var printString = "Auto bandwidth selection\n"
     if (adaptive) {
-      adaptiveBandwidthSelection(kernel = kernel)
+      bwselect=adaptiveBandwidthSelection(kernel = kernel)
     } else {
-      fixedBandwidthSelection(kernel = kernel)
+      bwselect=fixedBandwidthSelection(kernel = kernel)
     }
     opt_iters.foreach(t => {
       val i = (t - 1).toInt
-      printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.2f, correct ratio: ${opt_result(i)}%.3f\n")
+      printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.5f, correct ratio: ${opt_result(i)}%.5f\n")
     })
     println(printString)
+    println(bwselect)
+    bwselect
   }
 
   def bwSelectCriteria(bw: Double): Double = {
@@ -82,7 +83,7 @@ class GWDA extends GWRbase {
     _adaptive = false
     var bw: Double = lower
     try {
-      val re = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = bwSelectCriteria)
+      val re = goldenSelection(lower, upper, eps = select_eps, function = bwSelectCriteria)
       bw = re._1
       opt_iters = re._2
       opt_value = re._3
@@ -96,12 +97,12 @@ class GWDA extends GWRbase {
     bw
   }
 
-  private def adaptiveBandwidthSelection(kernel: String = "bisquare", upper: Int = _xrows - 1, lower: Int = 20): Int = {
+  private def adaptiveBandwidthSelection(kernel: String = "bisquare", upper: Int = _xrows, lower: Int = 20): Int = {
     _kernel = kernel
     _adaptive = true
     var bw: Int = lower
     try {
-      val re = goldenSelection(lower, upper, eps = select_eps, findMax = false, function = bwSelectCriteria)
+      val re = goldenSelection(lower, upper, eps = select_eps, function = bwSelectCriteria)
       bw = re._1.toInt
       opt_iters = re._2
       opt_value = re._3
