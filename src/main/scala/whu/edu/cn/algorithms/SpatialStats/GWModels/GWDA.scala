@@ -12,6 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class GWDA extends GWRbase {
 
+  //其实应该用一个哈希表存，但是不知道有没有。现在就这样写成了算了。
   val select_eps = 1e-6
   var _method: String = "wlda"
   var _inputY: Array[Any] = _
@@ -21,8 +22,8 @@ class GWDA extends GWRbase {
   var _dataGroups: Map[String, Array[(String, Int, Int)]] = _
   var _nGroups: Int = 0
   var _groupX: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
-  //  var spweight_groups: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]  ////因为要反复用，所以不定义为全局变量
-//  var groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
+
+  var _correction: Double = 0.0
 
   private var opt_value: Array[Double] = _
   private var opt_result: Array[Double] = _
@@ -33,7 +34,7 @@ class GWDA extends GWRbase {
     _inputY = shpRDD.map(t => t._2._2(property)).collect()
   }
 
-  def calculate(bw: Double = 0, kernel: String = "bisquare", adaptive: Boolean = true)={
+  def discriminant(bw: Double = 0, kernel: String = "bisquare", adaptive: Boolean = true, method: String = "wlda"): (Array[(String, (Geometry, Map[String, Any]))], String) ={
     if (bw > 0) {
       setweight(bw, kernel, adaptive)
     } else if (spweight_dvec != null) {
@@ -41,8 +42,52 @@ class GWDA extends GWRbase {
     } else {
       throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
     }
+    _method = method
+    val result= _method match {
+      case "wqda" => wqda()
+      case "wlda" => wlda()
+      case _ => throw new IllegalArgumentException("method should be wqda or wlda")
+    }
+    val method_str= _method match {
+      case "wqda" => "weighted quadratic discriminant analysis"
+      case "wlda" => "weighted linear discriminant analysis"
+    }
+    val formula = _nameY + " ~ " + _nameX.mkString(" + ")
+    val bw_type = adaptive match {
+      case true => "Adaptive"
+      case false => "Fixed"
+    }
+    _correction=result._1
+    val shpRDDidx = shpRDD.collect().zipWithIndex
+    shpRDDidx.foreach(t => t._1._2._2.clear())
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("group_pred" -> result._2(t._2))
+      t._1._2._2 += ("entropy" -> result._4(t._2))
+      t._1._2._2 += ("pmax" -> result._6(t._2))
+    })
+    for (i <- 0 until _nameX.length) {
+      shpRDDidx.map(t => {
+        val logp = result._3(i)
+        val probs= result._5(i)
+        t._1._2._2 += (_nameX(i)+"_logp" -> logp(t._2))
+        t._1._2._2 += (_nameX(i)+"_probs" -> probs(t._2))
+      })
+    }
 
-
+    val printString = "\n*********************************************************************************\n" +
+      "*              Results of Geographically Discriminate Analysis                  *\n" +
+      "*********************************************************************************\n" +
+      "**************************Model calibration information**************************\n" +
+      s"Grouping factor:  ${_nameY}  with the following groups:\n\t"+ _nameX.mkString(" ") + "\n"+
+      s"Formula: $formula" +
+      s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
+      s"Using method: $method_str\n" +
+      s"The number of points for prediction is ${_inputY.length}\n"+
+      f"The correct ratio is validated as ${_correction}%.4f \n"+
+      "*********************************************************************************\n"
+    println(printString)
+//    shpRDDidx.foreach(t=>println(t._1._2._2))
+    (shpRDDidx.map(_._1),printString)
   }
 
   def bandwidthSelection(kernel: String = "bisquare", adaptive: Boolean = true, method :String = "wlda")= {
@@ -72,8 +117,8 @@ class GWDA extends GWRbase {
     //    diagWeight0.foreach(t=>println(t))
     val group_weight = getWeightGroups(diag_weight0)
     _method match {
-      case "wqda" => wqda()
-      case "wlda" => wlda()
+      case "wqda" => wqda()._1
+      case "wlda" => wlda()._1
       case _ => throw new IllegalArgumentException("method should be wqda or wlda")
     }
   }
@@ -225,8 +270,12 @@ class GWDA extends GWRbase {
     tmp.map(t => DenseVector(t))
   }
 
-  def wqda():Double = {
-    println("wqda")
+  /**
+   *
+   * @return correct-ratio(double), lev-prediction, logpvalue(variables), entropy, probs(variables), pmax
+   */
+  def wqda()= {
+//    println("wqda")
     val sigmaGw: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localMean: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localPrior: ArrayBuffer[DenseVector[Double]] = ArrayBuffer.empty[DenseVector[Double]]
@@ -261,25 +310,28 @@ class GWDA extends GWRbase {
       groupPf += arrPf.toArray
       arrPf.clear()
     }
-    println("------------log p result---------")
-    groupPf.foreach(t => println(t.toVector))
+//    println("------------log p result---------")
+//    groupPf.foreach(t => println(t.toVector))
     val groupPf_t = groupPf.toArray.transpose
     val minProbIdx = groupPf_t.map(t => {
       t.indexWhere(_ == t.min)
     })
-    println("minProbIdx", minProbIdx.toList)
-    println(_distinctLevels.toList)
+//    println("minProbIdx", minProbIdx.toList)
+//    println(_distinctLevels.toList)
     val lev = minProbIdx.map(t => {
       figLevelString(t)
     })
-    println("------------group predicted---------")
-    println(lev.toList)
-//    summary(groupPf_t)
-    validation(lev)
+//    println("------------group predicted---------")
+//    println(lev.toList)
+    val sumStats = summary(groupPf_t)
+    (validation(lev), lev, groupPf.toArray, sumStats._1, sumStats._2, sumStats._3)
   }
 
-  def wlda() = {
-
+  /**
+   *
+   * @return correct-ratio(double), lev-prediction, logpvalue(variables), entropy, probs(variables), pmax
+   */
+  def wlda()= {
 //    println("wlda")
     val sigmaGw: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
     val localMean: ArrayBuffer[Array[Array[Double]]] = ArrayBuffer.empty[Array[Array[Double]]]
@@ -288,10 +340,10 @@ class GWDA extends GWRbase {
     for (i <- 0 until _nGroups) {
       val x1 = tranShape(_groupX(i))
       val w1 = tranShape(spweight_groups(i))
-      val re=getLocalMeanSigma(x1, w1)
-      localMean+=re._1
-      sigmaGw+=re._2
-//      println(_groupX(i).length)
+      val re = getLocalMeanSigma(x1, w1)
+      localMean += re._1
+      sigmaGw += re._2
+      //      println(_groupX(i).length)
       val sumWeight = spweight_dvec.map(sum(_)).sum
       val aLocalPrior = w1.map(t => {
         sum(t) / sumWeight
@@ -299,20 +351,20 @@ class GWDA extends GWRbase {
       localPrior += DenseVector(aLocalPrior)
     }
 
-//        println("------------SigmaGw-------------")
-//        SigmaGw.foreach(t=>println(t.toVector))
-//        println("++++++++++local mean++++++++++++")
-//        localMean.foreach(t=>println(t.toList))
-//        println("------------prior-------------")
-//        localPrior.foreach(t=>println(t.toVector))
-//        println("========sigma used(sigma1)=========")
-//        sigma_wlda.foreach(println)
-//        println("-------------localmean----------")
-//        localMean.foreach(t => println(t.toList))
+    //        println("------------SigmaGw-------------")
+    //        SigmaGw.foreach(t=>println(t.toVector))
+    //        println("++++++++++local mean++++++++++++")
+    //        localMean.foreach(t=>println(t.toList))
+    //        println("------------prior-------------")
+    //        localPrior.foreach(t=>println(t.toVector))
+    //        println("========sigma used(sigma1)=========")
+    //        sigma_wlda.foreach(println)
+    //        println("-------------localmean----------")
+    //        localMean.foreach(t => println(t.toList))
 
     val groupPf: ArrayBuffer[Array[Double]] = ArrayBuffer.empty[Array[Double]]
-    val sigmaWlda=getSigmai(sigmaGw.toArray)
-    val sigma_wlda=sigmaWlda.map(t=>DenseVector(t))
+    val sigmaWlda = getSigmai(sigmaGw.toArray)
+    val sigma_wlda = sigmaWlda.map(t => DenseVector(t))
     val xt = _X.map(_.toArray).transpose.map(DenseVector(_)) //x转置
     for (i <- 0 until _nGroups) {
       val arrPf = ArrayBuffer.empty[Double]
@@ -328,23 +380,27 @@ class GWDA extends GWRbase {
       groupPf += arrPf.toArray
       arrPf.clear()
     }
-//    println("------------log p result---------")
-//    groupPf.foreach(t => println(t.toVector))
+    //    println("------------log p result---------")
+    //    groupPf.foreach(t => println(t.toVector))
     val groupPf_t = groupPf.toArray.transpose
     val minProbIdx = groupPf_t.map(t => {
       t.indexWhere(_ == t.min)
     })
-//    println("minProbIdx", minProbIdx.toList)
-//    println(_distinctLevels.toList)
+    //    println("minProbIdx", minProbIdx.toList)
     val lev = minProbIdx.map(t => {
       figLevelString(t)
     })
-//    println("------------group predicted---------")
-//    println(lev.toList)
-//    summary(groupPf_t)
-    validation(lev)
+    //    println("------------group predicted---------")
+    //    println(lev.toList)
+    val sumStats=summary(groupPf_t)
+    (validation(lev),lev,groupPf.toArray,sumStats._1,sumStats._2,sumStats._3)
   }
 
+  /**
+   *
+   * @param groupPf_t
+   * @return entropy,probs(variables),pmax
+   */
   def summary(groupPf_t: Array[Array[Double]])={
     val np_ent = DenseVector.ones[Double](_xcols) / _xcols.toDouble
     val entMax = shannonEntropy(np_ent.toArray)
@@ -355,14 +411,14 @@ class GWDA extends GWRbase {
     val pmax = probs.map(t => t.max)
     val probs_shannon = probs.map(t => shannonEntropy(t))
     val entropy = DenseVector(probs_shannon) / entMax
-    println(s"entmax:$entMax")
-    println("------------entropy---------")
-    println(entropy)
-    println("------------probs---------")
-    probs.transpose.foreach(t => println(t.toList))
-    println("------------pmax---------")
-    println(pmax.toVector)
-
+//    println(s"entmax:$entMax")
+//    println("------------entropy---------")
+//    println(entropy)
+//    println("------------probs---------")
+//    probs.transpose.foreach(t => println(t.toList))
+//    println("------------pmax---------")
+//    println(pmax.toVector)
+    (entropy,probs.transpose,pmax)
   }
 
   def getLocalMeanSigma(x: Array[DenseVector[Double]], w: Array[DenseVector[Double]]): (Array[Array[Double]], Array[Array[Double]]) = {
@@ -457,8 +513,18 @@ class GWDA extends GWRbase {
         nCorrect += 1
       }
     }
-    println(s"correct ratio: ${nCorrect / _xrows}")
+//    println(s"correct ratio: ${nCorrect / _xrows}")
+    _correction = nCorrect / _xrows
     nCorrect / _xrows
+  }
+
+}
+
+object GWDA{
+
+  def calculate(): Unit = {
+
+
   }
 
 }
