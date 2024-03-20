@@ -36,9 +36,7 @@ object test {
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
-//  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
-//  val shpPath3="D:\\Java\\testdata\\USelect2004part.shp"
-  val shpPath3="D:\\Java\\testdata\\LNHP100.shp"
+  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
   val shpfile3 = readShp(sc, shpPath3, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
@@ -52,19 +50,8 @@ object test {
     //    linear_test()
     //    pca_test()
 
-    val m=new GWDA
-    m.init(shpfile3)
-//    m.setX("unemploy,pctcoled,PEROVER65,pcturban,WHITE")
-//    m.setY("winner")
-    m.setX("FLOORSZ,UNEMPLOY,PROF")
-    m.setY("CLASS")
-    m.setweight(50,"bisquare",true)
-    m.getYLevels()
-    m.getXGroups()
-    m.discriminant(bw=60,kernel = "gaussian",adaptive = true)
-//    m.wqda()
-//    println(m.bwSelectCriteria(69))
-//    m.bandwidthSelection(kernel="gaussian",adaptive = false,method = "wlda")
+
+    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
@@ -98,23 +85,6 @@ object test {
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
-  }
-
-  def gwrbasic_test(): Unit = {
-    val t1 = System.currentTimeMillis()
-    val mdl = new GWRbasic
-    mdl.init(shpfile)
-    mdl.setX("FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH")
-    mdl.setY("PURCHASE")
-    //    val re=mdl.fit(bw = 10000,kernel="bisquare",adaptive = false)
-    //    val bw=mdl.bandwidthSelection(adaptive = false)
-    //    mdl.fit(bw = bw,kernel="gaussian",adaptive = false)
-    mdl.variableSelect()
-    //    mdl.auto(kernel="gaussian",approach = "CV", adaptive = false)
-    //    val re_rdd=sc.makeRDD(re)
-    //    writeshpfile(re_rdd,"D:\\Java\\testdata\\re_gwr.shp")
-    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is $tused s")
   }
 
   def pca_test():Unit= {

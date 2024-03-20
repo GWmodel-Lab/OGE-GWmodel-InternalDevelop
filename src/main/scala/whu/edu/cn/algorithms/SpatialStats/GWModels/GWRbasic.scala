@@ -287,7 +287,7 @@ class GWRbasic extends GWRbase {
       bw = re._1.toInt
     } catch {
       case e: MatrixSingularException => {
-        println("error")
+        println("meet matrix singular error")
         val low = lower + 1
         bw = adaptiveBandwidthSelection(kernel, approach, upper, low)
       }
