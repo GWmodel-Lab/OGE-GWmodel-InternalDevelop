@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.Test
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics}
@@ -12,6 +12,7 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel,
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWDA
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
@@ -19,11 +20,13 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
+import breeze.linalg.{norm, normalize}
+import breeze.numerics._
 
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-      .set("spark.testing.memory", "512000000")
+//      .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -46,6 +49,9 @@ object test {
     //    acf_test()
     //    linear_test()
     //    pca_test()
+
+
+    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
@@ -70,7 +76,7 @@ object test {
     //    println(Geodetector.factorDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
     //    println(Geodetector.interactionDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
     //    println(Geodetector.ecologicalDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
-        println(Geodetector.riskDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
+//        println(Geodetector.riskDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
     //    println(Geodetector.riskDetector(shpfile, "GDP", "province"))
     //    println(Geodetector.interactionDetector(shpfile2, "HR60", "PO60,DV60,STATE_NAME"))
     //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
@@ -79,23 +85,6 @@ object test {
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
-  }
-
-  def gwrbasic_test(): Unit = {
-    val t1 = System.currentTimeMillis()
-    val mdl = new GWRbasic
-    mdl.init(shpfile)
-    mdl.setX("FLOORSZ,PROF,UNEMPLOY,CENTHEAT,BLD90S,TYPEDETCH")
-    mdl.setY("PURCHASE")
-    //    val re=mdl.fit(bw = 10000,kernel="bisquare",adaptive = false)
-    //    val bw=mdl.bandwidthSelection(adaptive = false)
-    //    mdl.fit(bw = bw,kernel="gaussian",adaptive = false)
-    mdl.variableSelect()
-    //    mdl.auto(kernel="gaussian",approach = "CV", adaptive = false)
-    //    val re_rdd=sc.makeRDD(re)
-    //    writeshpfile(re_rdd,"D:\\Java\\testdata\\re_gwr.shp")
-    val tused = (System.currentTimeMillis() - t1) / 1000.0
-    println(s"time used is $tused s")
   }
 
   def pca_test():Unit= {
