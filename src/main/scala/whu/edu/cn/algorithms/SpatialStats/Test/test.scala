@@ -34,7 +34,7 @@ object test {
   val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
-  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath3: String = "D:\\\\other_programs\\\\docker\\\\gtwr\\\\data\\\\gtwr-example.shp"
   val shpfile3 = readShp(sc, shpPath3, encode)
 
   val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
@@ -50,12 +50,12 @@ object test {
 
     val m=new GTWR
     m.init(shpfile3)
-    m.setX("FLOORSZ,PROF")
-    m.setY("PURCHASE")
-    m.setT("CENTHEAT")
+    m.setX("x1,x2,x3")
+    m.setY("y")
+    m.setT("t")
     m.setLambda(0.5)
-    m.setWeight(20,"gaussian",true)
-    m.fit(20)
+    m.setWeight(1000,"gaussian",false)
+    m.fit(1000,adaptive = false)
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)

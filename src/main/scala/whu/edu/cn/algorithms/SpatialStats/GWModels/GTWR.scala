@@ -59,9 +59,13 @@ class GTWR extends GWRbasic {
       _kernel = kernel
       _adaptive = adaptive
     }
-    spweight_dvec = _stdist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
+    spweight_dvec = _stdist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))//问题在这个不对，计算的时候，转化为fix的结果不对。
 //    spweight_dvec.foreach(t=>println(t))
   }
+
+  //todo：修改fix的结果。
+  //todo：修改spweight结果
+
 
   override def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     if (bw > 0) {
@@ -71,7 +75,7 @@ class GTWR extends GWRbasic {
     } else {
       throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
     }
-    val results = fitFunction(_dX, _Y, spweight_dvec)
+    val results = fitFunction(_dX, _Y, spweight_dvec)//fix的结果有问题？
     val betas = DenseMatrix.create(_xcols + 1, _xrows, data = results._1.flatMap(t => t.toArray))
     val arr_yhat = results._2.toArray
     val arr_residual = results._3.toArray
