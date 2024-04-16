@@ -1,6 +1,7 @@
 package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg.{*, DenseMatrix, DenseVector, inv, max, sum}
+import breeze.numerics.sqrt
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance.getDist
@@ -39,12 +40,20 @@ class GTWR extends GWRbasic {
     if (_tdist == null) {
       val timeIdx = _timestamps.toArray.zipWithIndex
       _tdist = timeIdx.map(t1 => {
-        _timestamps.map(t2 => scala.math.abs(t2 - t1._1))
+        _timestamps.map(t2 => {
+          var tdist=t1._1 - t2
+          if(tdist<0){
+            tdist= 1e50
+          }
+          tdist
+        })
       })
     }
     if (_stdist == null) {
       _stdist = _sdist.map(t => {
-        (1.0 - _lambda) * t._1 + _lambda * _tdist(t._2)
+        val sdist=t._1
+        val tdist=_tdist(t._2)
+        _lambda * sdist + (1 - _lambda) * tdist + 2.0 * sqrt (_lambda * (1 - _lambda) * sdist * tdist)
       })
 //      _stdist.foreach(t => println(t))
     }
@@ -64,7 +73,7 @@ class GTWR extends GWRbasic {
   }
 
   //todo：修改fix的结果。
-  //todo：修改spweight结果
+  //todo：修改spweight结果--改了tdist，现在结果依旧有问题，betas不对，但是weight是对的
 
 
   override def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {

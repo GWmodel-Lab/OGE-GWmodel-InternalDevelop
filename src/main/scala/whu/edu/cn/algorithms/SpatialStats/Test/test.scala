@@ -53,9 +53,9 @@ object test {
     m.setX("x1,x2,x3")
     m.setY("y")
     m.setT("t")
-    m.setLambda(0.5)
-    m.setWeight(1000,"gaussian",false)
-    m.fit(1000,adaptive = false)
+    m.setLambda(0.00)
+//    m.setWeight(1000,"gaussian",false)
+    m.fit(1000,kernel="gaussian",adaptive = false)
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
