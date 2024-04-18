@@ -2,14 +2,15 @@ package whu.edu.cn.algorithms.SpatialStats.BasicStatistics
 
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import scala.math.{min,max,sqrt}
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance.{arrayDist, getDist}
+
+import scala.math.{max, min, sqrt}
 import scala.collection.mutable.Map
+import scala.util.Random
 
 object RipleysK {
 
-
-  //todo: 逐个点计算，双循环
-  def ripley(featureRDD: RDD[(String, (Geometry, Map[String, Any]))], nTimes:Int=10)={
+  def ripley(featureRDD: RDD[(String, (Geometry, Map[String, Any]))], nTimes:Int=10, nTests:Int= 9)={
     val coords=featureRDD.map(t=>t._2._1.getCoordinate)
     val nCounts= featureRDD.count().toInt
     val extents = coords.map(t => {
@@ -22,27 +23,69 @@ object RipleysK {
     }).reduce((x,y) =>{
       (x._1+y._1,x._2+y._2)
     })
-    val center=(sum._1/nCounts,sum._2/nCounts)//结果还是求所有点的，不需要求质心
-    val distCenter=coords.map(t=>{
-      sqrt((t.x-center._1)*(t.x-center._1)+(t.y-center._2)*(t.y-center._2))
-    })
     println(extents)
-    println(center)
+//    val center=(sum._1/nCounts,sum._2/nCounts)//结果还是求所有点的，不需要求质心
+//    val distCenter=coords.map(t=>{
+//      sqrt((t.x-center._1)*(t.x-center._1)+(t.y-center._2)*(t.y-center._2))
+//    })
+    val dMat=getDist(featureRDD)//使用距离矩阵。因为i≠j，所以最后要减去一个nCounts
+
     val area=(extents._3-extents._1)*(extents._4-extents._2)
 //    val maxDs=sqrt((extents._3-extents._1)*(extents._3-extents._1)+(extents._4-extents._2)*(extents._4-extents._2))*0.25
     val maxDs=max((extents._3-extents._1),(extents._4-extents._2))*0.25
     val adds=maxDs/nTimes
     println(area,nCounts,adds)
-    for(i<-1 to nTimes){
-      val iDs=adds*i
-      val iK=distCenter.map(t=>{
-        if(t<iDs){1.0}else{0.0}
-      }).collect()
-//      println(iK.toList)
-      val k=sqrt(area*iK.sum/math.Pi/nCounts/(nCounts-1))
-      println(iDs,k)
+//    for(i<-1 to nTimes){
+//      val iDs=adds*i
+//      val iK=dMat.map(t=>{
+//        t.map(t2=>{
+//          if(t2<iDs){1.0}
+//          else{0.0}
+//        }).sum
+//      }).sum
+////      println(iK.toList)
+//      val k=sqrt(area*(iK-nCounts)/math.Pi/nCounts/(nCounts-1))
+//      println(iDs,k)
+//    }
+    calculate(dMat,area, nCounts, adds, nTimes)
+    //random test
+    println("**********")
+    val maxk=new Array[(Double,Double,Double)](nTimes)
+    for(i<-1 until nTests){
+      val randp=randomPoints(extents._1,extents._2,extents._3,extents._4,nCounts)
+      val dist=arrayDist(randp,randp)
+      val r=calculate(dist,area, nCounts, adds, nTimes)
+      println(r.toList)
     }
 
+
   }
+
+  def randomPoints(xmin: Double, ymin: Double, xmax: Double, ymax: Double, np: Int): Array[(Double, Double)] = {
+    Array.fill(np)(Random.nextDouble(), Random.nextDouble()).map(t => (t._1 * (xmax - xmin) + xmin, t._2 * (ymax - ymin) + ymin))
+  }
+
+  def calculate(dMat:Array[Array[Double]],area:Double,nCounts:Int, adds:Double, nTimes:Int): Array[(Double, Double)] = {
+    val rek=new Array[(Double,Double)](nTimes)
+    for (i <- 1 to nTimes) {
+      val iDs = adds * i
+      val iK = dMat.map(t => {
+        t.map(t2 => {
+          if (t2 < iDs) {
+            1.0
+          }
+          else {
+            0.0
+          }
+        }).sum
+      }).sum
+      //      println(iK.toList)
+      val k = sqrt(area * (iK - nCounts) / math.Pi / nCounts / (nCounts - 1))
+      rek(i-1)=(iDs,k)
+//      println(iDs, k)
+    }
+    rek
+  }
+
 
 }
