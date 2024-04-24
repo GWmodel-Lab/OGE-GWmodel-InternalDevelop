@@ -46,34 +46,37 @@ object Sampling {
 //    sortx.collect().foreach(t => println(t._2._2))
     val devx=(extents._3-extents._1)/x+1e-5
     println(devx)
-    val group=sortx.groupBy(t=>((t._2._1.getCoordinate.x-extents._1)/devx).toInt)
+    val group=sortx.groupBy(t=>((t._2._1.getCoordinate.x-extents._1)/devx).toInt).mapValues(t=>t.toArray)
     group.foreach(println)
+    val arrbuf=ArrayBuffer.empty[(String, (Geometry, mutable.Map[String, Any]))]
+    group.foreach(t=>{
+      arrbuf += t._2(Random.nextInt(t._2.length))
+    })
+
 
     val rand = Array.fill(x)(Random.nextDouble()).map(t => (t * nCounts).toInt)
-    val arrbuf = ArrayBuffer.empty[(String, (Geometry, mutable.Map[String, Any]))]
     for (i <- 0 until x) {
       arrbuf += feat(rand(i))
     }
-//    arrbuf.foreach(t => println(t._2._2))
+    arrbuf.foreach(t=>println(t._2._2))
     sc.makeRDD(arrbuf)
   }
 
-  def randSampling(inputRDD: RDD[(String, (Geometry, Map[String, Any]))]): RDD[(String, (Geometry, Map[String, Any]))] = {
-    val indexArray = inputRDD.zipWithIndex;
-    val len = indexArray.count();
-    val upperBound = len.toInt;
-    val randomNumber = Random.nextInt(upperBound);
+  def oneSampling(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
+    val indexArray = inputRDD.zipWithIndex
+    val upperBound = inputRDD.count().toInt
+    val randomNumber = Random.nextInt(upperBound)
     val filteredRDD = indexArray.filter { case (_, idx) => idx == randomNumber }.map(_._1)
 
     filteredRDD
   }
 
   def continuousSampling(inputRDD: RDD[(String, (Geometry, Map[String, Any]))], gap: Double): RDD[(String, (Geometry, Map[String, Any]))] = {
-    val indexArray = inputRDD.zipWithIndex;
-    val len = indexArray.count();
-    val upperBound = len.toInt;
-    val array = Array.range(0, upperBound);
-    val multiplesOfGap = array.filter(_ % gap == 0);
+    val indexArray = inputRDD.zipWithIndex
+    val len = indexArray.count()
+    val upperBound = len.toInt
+    val array = Array.range(0, upperBound)
+    val multiplesOfGap = array.filter(_ % gap == 0)
     val filteredRDD = multiplesOfGap.map(index => indexArray.filter { case (_, idx) => idx == index }.map(_._1))
     val mergedRDD = filteredRDD.reduce((rdd1, rdd2) => rdd1.union(rdd2))
 
@@ -81,13 +84,13 @@ object Sampling {
   }
 
   def stratifiedSampling(inputRDD: RDD[(String, (Geometry, Map[String, Any]))], layer: Double): RDD[(String, (Geometry, Map[String, Any]))] = {
-    val indexArray = inputRDD.zipWithIndex;
-    val len = indexArray.count();
-    val lowerBound = layer.toInt;
-    val upperBound = len.toInt;
+    val indexArray = inputRDD.zipWithIndex
+    val len = indexArray.count()
+    val lowerBound = layer.toInt
+    val upperBound = len.toInt
     var randomNumber = Array.ofDim[Int](2)
-    randomNumber(0) = Random.nextInt(lowerBound);
-    randomNumber(1) = lowerBound + Random.nextInt(upperBound - lowerBound);
+    randomNumber(0) = Random.nextInt(lowerBound)
+    randomNumber(1) = lowerBound + Random.nextInt(upperBound - lowerBound)
     val filteredRDD = randomNumber.map(index => indexArray.filter { case (_, idx) => idx == index }.map(_._1))
     val mergedRDD = filteredRDD.reduce((rdd1, rdd2) => rdd1.union(rdd2))
 
