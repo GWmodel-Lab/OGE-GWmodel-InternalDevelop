@@ -37,28 +37,41 @@ object Sampling {
     }).reduce((coor1, coor2) => {
       (min(coor1._1, coor2._1), min(coor1._2, coor2._2), max(coor1._3, coor2._3), max(coor1._4, coor2._4))
     })
+    val dvd=max(x,y)
 
-    val sortx=featureRDD.sortBy(t=>t._2._1.getCoordinate.x)
-    val sorty=featureRDD.sortBy(t=>t._2._1.getCoordinate.y)
+//    val sortx=featureRDD.sortBy(t=>t._2._1.getCoordinate.x)
+//    val sorty=featureRDD.sortBy(t=>t._2._1.getCoordinate.y)
 //    featureRDD.collect().foreach(t => println(t._2._2))
     println(extents)
     println("*************")
 //    sortx.collect().foreach(t => println(t._2._2))
-    val devx=(extents._3-extents._1)/x+1e-5
-    println(devx)
-    val group=sortx.groupBy(t=>((t._2._1.getCoordinate.x-extents._1)/devx).toInt).mapValues(t=>t.toArray)
-    group.foreach(println)
-    val arrbuf=ArrayBuffer.empty[(String, (Geometry, mutable.Map[String, Any]))]
-    group.foreach(t=>{
-      arrbuf += t._2(Random.nextInt(t._2.length))
-    })
-
-
-    val rand = Array.fill(x)(Random.nextDouble()).map(t => (t * nCounts).toInt)
-    for (i <- 0 until x) {
-      arrbuf += feat(rand(i))
+    val dx=(extents._3-extents._1)/x+1e-5
+    val dy=(extents._4-extents._2)/y+1e-5
+    println(dx)
+    var ox=1
+    var oy=1
+    if(x>=y){
+      ox=x
+    }else{
+      oy=y
     }
-    arrbuf.foreach(t=>println(t._2._2))
+    val groups=featureRDD.groupBy(t=>{
+      ((t._2._1.getCoordinate.x-extents._1)/dx).toInt*ox +((t._2._1.getCoordinate.x-extents._2)/dy).toInt*oy
+    }).mapValues(t=>t.toArray)
+
+
+//    val group=featureRDD.groupBy(t=>((t._2._1.getCoordinate.x-extents._1)/dx).toInt).mapValues(t=>t.toArray)
+    groups.foreach(println)
+
+    val ig=groups.map(t=>{
+//      val group2=t._2.groupBy(p=>((p._2._1.getCoordinate.y-extents._2)/devy).toInt).toArray
+//      group2.map(p=>p._2(Random.nextInt(p._2.length)))
+      t._2(Random.nextInt(t._2.length))
+    })
+    ig.foreach(t=>println(t._2._2))
+
+    val arrbuf=ArrayBuffer.empty[(String, (Geometry, mutable.Map[String, Any]))]
+//    arrbuf.foreach(t=>println(t._2._2))
     sc.makeRDD(arrbuf)
   }
 

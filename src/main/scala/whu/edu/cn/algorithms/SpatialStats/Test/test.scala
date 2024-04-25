@@ -15,6 +15,7 @@ import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
+import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.oge.Feature._
@@ -47,6 +48,8 @@ object test {
     //    linear_test()
     //    pca_test()
 
+    regularSampling(sc, shpfile3,10,1)
+
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
     //    LinearRegression.LinearReg(shpfile,"aging", "GDP,pop")
@@ -70,7 +73,7 @@ object test {
     //    println(Geodetector.factorDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
     //    println(Geodetector.interactionDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
     //    println(Geodetector.ecologicalDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
-        println(Geodetector.riskDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
+    //    println(Geodetector.riskDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
     //    println(Geodetector.riskDetector(shpfile, "GDP", "province"))
     //    println(Geodetector.interactionDetector(shpfile2, "HR60", "PO60,DV60,STATE_NAME"))
     //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
