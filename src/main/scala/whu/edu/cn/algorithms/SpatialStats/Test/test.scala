@@ -48,14 +48,7 @@ object test {
     //    linear_test()
     //    pca_test()
 
-    val m=new GTWR
-    m.init(shpfile3)
-    m.setX("x1,x2,x3")
-    m.setY("y")
-    m.setT("t")
-    m.setLambda(0.00)
-//    m.setWeight(1000,"gaussian",false)
-    m.fit(1000,kernel="gaussian",adaptive = false)
+    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)

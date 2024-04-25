@@ -2,10 +2,12 @@ package whu.edu.cn.algorithms.SpatialStats.GWModels
 
 import breeze.linalg.{*, DenseMatrix, DenseVector, inv, max, sum}
 import breeze.numerics.sqrt
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance.getDist
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight.{Array2DenseVector, getGeometry, getSpatialweightSingle}
+import whu.edu.cn.oge.Service
 
 import scala.collection.mutable
 
@@ -13,11 +15,11 @@ class GTWR extends GWRbasic {
 
   private var _timestamps: DenseVector[Double] = DenseVector.ones(1)
   private var _stdist: Array[DenseVector[Double]] = _
-  protected var _sdist: Array[Tuple2[DenseVector[Double], Int]]=_
-  protected var _tdist: Array[DenseVector[Double]]=_
-//  private var stweight_dvec: Array[DenseVector[Double]] = _
+  protected var _sdist: Array[Tuple2[DenseVector[Double], Int]] = _
+  protected var _tdist: Array[DenseVector[Double]] = _
+  //  private var stweight_dvec: Array[DenseVector[Double]] = _
 
-  private var _lambda=0.05
+  private var _lambda = 0.05
 
   def setT(property: String): Unit = {
     _timestamps = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
@@ -34,16 +36,16 @@ class GTWR extends GWRbasic {
 
   def setDist(): Unit = {
     if (_sdist == null) {
-      _dist=getDist(shpRDD).map(t => Array2DenseVector(t))
+      _dist = getDist(shpRDD).map(t => Array2DenseVector(t))
       _sdist = _dist.zipWithIndex
     }
     if (_tdist == null) {
       val timeIdx = _timestamps.toArray.zipWithIndex
       _tdist = timeIdx.map(t1 => {
         _timestamps.map(t2 => {
-          var tdist=t1._1 - t2
-          if(tdist<0){
-            tdist= 1e50
+          var tdist = t1._1 - t2
+          if (tdist < 0) {
+            tdist = 1e50
           }
           tdist
         })
@@ -51,13 +53,13 @@ class GTWR extends GWRbasic {
     }
     if (_stdist == null) {
       _stdist = _sdist.map(t => {
-        val sdist=t._1
-        val tdist=_tdist(t._2)
-        _lambda * sdist + (1 - _lambda) * tdist + 2.0 * sqrt (_lambda * (1 - _lambda) * sdist * tdist)
+        val sdist = t._1
+        val tdist = _tdist(t._2)
+        _lambda * sdist + (1 - _lambda) * tdist + 2.0 * sqrt(_lambda * (1 - _lambda) * sdist * tdist)
       })
-//      _stdist.foreach(t => println(t))
+      //      _stdist.foreach(t => println(t))
     }
-    max_dist = _stdist.map(t=>max(t)).max
+    max_dist = _stdist.map(t => max(t)).max
   }
 
   override def setWeight(bw: Double, kernel: String, adaptive: Boolean): Unit = {
@@ -68,13 +70,9 @@ class GTWR extends GWRbasic {
       _kernel = kernel
       _adaptive = adaptive
     }
-    spweight_dvec = _stdist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))//问题在这个不对，计算的时候，转化为fix的结果不对。
-//    spweight_dvec.foreach(t=>println(t))
+    spweight_dvec = _stdist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive)) //问题在这个不对，计算的时候，转化为fix的结果不对。
+    //    spweight_dvec.foreach(t=>println(t))
   }
-
-  //todo：修改fix的结果。
-  //todo：修改spweight结果--改了tdist，现在结果依旧有问题，betas不对，但是weight是对的
-
 
   override def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     if (bw > 0) {
@@ -84,13 +82,13 @@ class GTWR extends GWRbasic {
     } else {
       throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
     }
-    val results = fitFunction(_dX, _Y, spweight_dvec)//fix的结果有问题？
+    val results = fitFunction(_dX, _Y, spweight_dvec) //fix的结果有问题？
     val betas = DenseMatrix.create(_xcols + 1, _xrows, data = results._1.flatMap(t => t.toArray))
     val arr_yhat = results._2.toArray
     val arr_residual = results._3.toArray
-    results._1.map(t=>println(t))
-    println(arr_yhat.toVector)
-    println(arr_residual.toVector)
+//    results._1.map(t => println(t))
+//    println(arr_yhat.toVector)
+//    println(arr_residual.toVector)
     val shpRDDidx = shpRDD.collect().zipWithIndex
     shpRDDidx.foreach(t => t._1._2._2.clear())
     shpRDDidx.map(t => {
@@ -149,4 +147,35 @@ class GTWR extends GWRbasic {
     (betas, yhat, residual, shat, sum_ci)
   }
 
+}
+
+object GTWR {
+
+  /** Basic GTWR calculation with specific bandwidth
+   *
+   * @param sc          SparkContext
+   * @param featureRDD  shapefile RDD
+   * @param propertyY   dependent property
+   * @param propertiesX independent properties
+   * @param propertiesT
+   * @param bandwidth   bandwidth value
+   * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
+   * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param lambda
+   * @return featureRDD and diagnostic String
+   */
+  def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String, propertiesT: String,
+          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false, lambda: Double=0.05)
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
+    val model = new GTWR
+    model.init(featureRDD)
+    model.setY(propertyY)
+    model.setX(propertiesX)
+    model.setT(propertiesT)
+    model.setLambda(lambda)
+    val re = model.fit(bw = bandwidth, kernel = kernel, adaptive = adaptive)
+    //    print(re._2)
+//    Service.print(re._2, "Basic GWR calculation with specific bandwidth", "String")
+    sc.makeRDD(re._1)
+  }
 }
