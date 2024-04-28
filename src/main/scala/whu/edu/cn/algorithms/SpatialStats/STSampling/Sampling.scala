@@ -56,7 +56,7 @@ object Sampling {
       oy=y
     }
     val groups=featureRDD.groupBy(t=>{
-      ((t._2._1.getCoordinate.x-extents._1)/dx).toInt*ox +((t._2._1.getCoordinate.x-extents._2)/dy).toInt*oy
+      ((t._2._1.getCoordinate.x-extents._1)/dx).toInt*ox + ((t._2._1.getCoordinate.y-extents._2)/dy).toInt*oy
     }).mapValues(t=>t.toArray)
 
 
