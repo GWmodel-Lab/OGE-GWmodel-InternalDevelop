@@ -15,7 +15,7 @@ object RipleysK {
    * @param featureRDD  输入
    * @param nTimes      间隔数
    * @param nTests      测试数
-   * @return
+   * @return string result
    */
   def ripley(featureRDD: RDD[(String, (Geometry, Map[String, Any]))], nTimes: Int = 10, nTests: Int = 9): String = {
     val coords = featureRDD.map(t => t._2._1.getCoordinate)
@@ -40,24 +40,24 @@ object RipleysK {
     val maxDs = max((extents._3 - extents._1), (extents._4 - extents._2)) * 0.25
     val adds = maxDs / nTimes
     val rek = calculate(dMat, area, nCounts, adds, nTimes)
-
     //random test
-    // TODO: max min correct, output.
-//    val maxk = rek.map(t => {
-//      (t._1, t._2, t._2)
-//    }).zipWithIndex
-//    for (i <- 1 until nTests) {
-//      val randp = randomPoints(extents._1, extents._2, extents._3, extents._4, nCounts)
-//      val dist = arrayDist(randp, randp)
-//      val r = calculate(dist, area, nCounts, adds, nTimes)
-//
-//      maxk.map(t => {
-//        (t._1._1, min(t._1._2, r(t._2)._2), max(t._1._3, r(t._2)._2))
-//      })
+    var maxk=new Array[(Double,Double)](nTimes)
+    maxk=rek.map(t=>(t._1,0.0))
+//    println(maxk.toVector)
+    for (i <- 1 to nTests) {
+      val randp = randomPoints(extents._1, extents._2, extents._3, extents._4, nCounts)
+      val dist = arrayDist(randp, randp)
+      val r = calculate(dist, area, nCounts, adds, nTimes).zipWithIndex
+      maxk=r.map(t => {
+        (min(maxk(t._2)._1, t._1._2), max(maxk(t._2)._2, t._1._2))
+      })
 //      println(r.toList)
 //      println(maxk.toVector)
-//    }
-    val reStr="dist,   k-value\n"+rek.mkString("\n")
+    }
+    val res=rek.zipWithIndex.map(t=>{
+      (t._1._1,t._1._2,maxk(t._2)._1,maxk(t._2)._2)
+    })
+    val reStr="Dist,\t\tK-value,\t\tLowConf,\t\tHighConf\n"+res.mkString("\n")
     println(reStr)
     reStr
   }
