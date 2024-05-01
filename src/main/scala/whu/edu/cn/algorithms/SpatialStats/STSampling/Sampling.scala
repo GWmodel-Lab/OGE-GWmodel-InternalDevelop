@@ -58,14 +58,8 @@ object Sampling {
     val groups=featureRDD.groupBy(t=>{
       ((t._2._1.getCoordinate.x-extents._1)/dx).toInt*ox + ((t._2._1.getCoordinate.y-extents._2)/dy).toInt*oy
     }).mapValues(t=>t.toArray)
-
-
-//    val group=featureRDD.groupBy(t=>((t._2._1.getCoordinate.x-extents._1)/dx).toInt).mapValues(t=>t.toArray)
     groups.foreach(println)
-
     val ig=groups.map(t=>{
-//      val group2=t._2.groupBy(p=>((p._2._1.getCoordinate.y-extents._2)/devy).toInt).toArray
-//      group2.map(p=>p._2(Random.nextInt(p._2.length)))
       t._2(Random.nextInt(t._2.length))
     })
     ig.foreach(t=>println(t._2._2))
@@ -73,6 +67,31 @@ object Sampling {
     val arrbuf=ArrayBuffer.empty[(String, (Geometry, mutable.Map[String, Any]))]
 //    arrbuf.foreach(t=>println(t._2._2))
     sc.makeRDD(arrbuf)
+  }
+
+  //现在问题是，有可能有一个分组抽到2次同样的点，应该也无所谓吧？
+  def stratifiedSampling(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, n:Int=10): RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
+    val groups = featureRDD.groupBy(t=>{
+      t._2._2(property).asInstanceOf[String]
+    }).mapValues(t=>t.toArray)
+
+    val reArr=ArrayBuffer.empty[RDD[(String, (Geometry, mutable.Map[String, Any]))]]
+    for(i<-1 to n){
+      val res = groups.map(t => {
+        t._2(Random.nextInt(t._2.length))
+      })
+      res.foreach(t=>println(t._2._2))
+      reArr+=res
+    }
+    val mergedRDD = reArr.reduce((rdd1, rdd2) => rdd1.union(rdd2))
+    println("**************")
+    mergedRDD.foreach(t=>println(t._2._2))
+    mergedRDD
+  }
+
+
+  def randomPoints(xmin: Double, ymin: Double, xmax: Double, ymax: Double, np: Int): Array[(Double, Double)] = {
+    Array.fill(np)(Random.nextDouble(), Random.nextDouble()).map(t => (t._1 * (xmax - xmin) + xmin, t._2 * (ymax - ymin) + ymin))
   }
 
   def oneSampling(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
@@ -95,26 +114,5 @@ object Sampling {
 
     mergedRDD
   }
-
-  def stratifiedSampling(inputRDD: RDD[(String, (Geometry, Map[String, Any]))], layer: Double): RDD[(String, (Geometry, Map[String, Any]))] = {
-    val indexArray = inputRDD.zipWithIndex
-    val len = indexArray.count()
-    val lowerBound = layer.toInt
-    val upperBound = len.toInt
-    var randomNumber = Array.ofDim[Int](2)
-    randomNumber(0) = Random.nextInt(lowerBound)
-    randomNumber(1) = lowerBound + Random.nextInt(upperBound - lowerBound)
-    val filteredRDD = randomNumber.map(index => indexArray.filter { case (_, idx) => idx == index }.map(_._1))
-    val mergedRDD = filteredRDD.reduce((rdd1, rdd2) => rdd1.union(rdd2))
-
-    mergedRDD
-  }
-
-
-  def randomPoints(xmin: Double, ymin: Double, xmax: Double, ymax: Double, np: Int): Array[(Double, Double)] = {
-    Array.fill(np)(Random.nextDouble(), Random.nextDouble()).map(t => (t._1 * (xmax - xmin) + xmin, t._2 * (ymax - ymin) + ymin))
-  }
-
-
 
 }

@@ -15,7 +15,7 @@ import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
-import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling}
+import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.oge.Feature._
@@ -48,7 +48,7 @@ object test {
     //    linear_test()
     //    pca_test()
 
-    regularSampling(sc, shpfile3,10,1)
+    stratifiedSampling(sc,shpfile3,"TYPEDETCH")
 
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
