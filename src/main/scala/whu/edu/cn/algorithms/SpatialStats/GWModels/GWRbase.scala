@@ -78,7 +78,7 @@ class GWRbase {
     _Y = DenseVector(shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
   }
 
-  def setcoords(lat: Array[Double], lon: Array[Double]): Unit = {
+  def setCoords(lat: Array[Double], lon: Array[Double]): Unit = {
     val geomcopy = _geom.zipWithIndex()
     geomcopy.map(t => {
       t._1.getCoordinate.x = lat(t._2.toInt)
@@ -87,7 +87,7 @@ class GWRbase {
     _geom = geomcopy.map(t => t._1)
   }
 
-  def setweight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
+  def setWeight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
     if (_dist == null) {
       _dist = getDist(shpRDD).map(t => Array2DenseVector(t))
       max_dist = _dist.map(t => max(t)).max

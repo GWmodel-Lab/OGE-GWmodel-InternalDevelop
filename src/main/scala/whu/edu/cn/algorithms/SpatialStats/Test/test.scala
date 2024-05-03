@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.Test
 
-import breeze.linalg.{DenseMatrix, DenseVector}
+import breeze.linalg.DenseVector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics}
@@ -15,6 +15,7 @@ import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWDA
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GTWR
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
@@ -27,7 +28,7 @@ import breeze.numerics._
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-//      .set("spark.testing.memory", "512000000")
+      .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -51,7 +52,9 @@ object test {
     //    linear_test()
     //    pca_test()
 
-    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
+
+//    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
+    //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
     //    LinearRegression.LinearReg(shpfile,"aging", "GDP,pop")

@@ -155,13 +155,13 @@ class GWRbasic extends GWRbase {
   private def variableResult(arrX: Array[String]): Double = {
     resetX(arrX)
     val bw = 10.0 * max_dist
-    setweight(bw, _kernel, adaptive = false)
+    setWeight(bw, _kernel, adaptive = false)
     bandwidthAICc(bw)
   }
 
   def fit(bw: Double = 0, kernel: String = "gaussian", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     if (bw > 0) {
-      setweight(bw, kernel, adaptive)
+      setWeight(bw, kernel, adaptive)
     } else if (spweight_dvec != null) {
 
     } else {
@@ -365,9 +365,9 @@ class GWRbasic extends GWRbase {
 
   private def bandwidthAICc(bw: Double): Double = {
     if (_adaptive) {
-      setweight(round(bw), _kernel, _adaptive)
+      setWeight(round(bw), _kernel, _adaptive)
     } else {
-      setweight(bw, _kernel, _adaptive)
+      setWeight(bw, _kernel, _adaptive)
     }
     val results = fitFunction(_dX, _Y, spweight_dvec)
     val residual = results._3
@@ -380,9 +380,9 @@ class GWRbasic extends GWRbase {
 
   private def bandwidthCV(bw: Double): Double = {
     if (_adaptive) {
-      setweight(round(bw), _kernel, _adaptive)
+      setWeight(round(bw), _kernel, _adaptive)
     } else {
-      setweight(bw, _kernel, _adaptive)
+      setWeight(bw, _kernel, _adaptive)
     }
     val spweight_idx = spweight_dvec.zipWithIndex
     spweight_idx.foreach(t => t._1(t._2) = 0)

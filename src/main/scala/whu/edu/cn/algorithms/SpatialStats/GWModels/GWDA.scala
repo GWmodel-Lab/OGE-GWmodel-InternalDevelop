@@ -37,7 +37,7 @@ class GWDA extends GWRbase {
 
   def discriminant(bw: Double = -1, kernel: String = "gaussian", adaptive: Boolean = true, method: String = "wlda"): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     if (bw > 0) {
-      setweight(bw, kernel, adaptive)
+      setWeight(bw, kernel, adaptive)
     } else if (spweight_dvec != null) {
 
     } else {
@@ -111,7 +111,7 @@ class GWDA extends GWRbase {
   }
 
   private def bwSelectCriteria(bw: Double): Double = {
-    setweight(bw, _kernel, _adaptive)
+    setWeight(bw, _kernel, _adaptive)
     val diag_weight0 = spweight_dvec.clone()
     for (i <- 0 until _xrows) {
       diag_weight0(i)(i) = 0
