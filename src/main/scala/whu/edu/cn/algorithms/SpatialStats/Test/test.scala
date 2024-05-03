@@ -53,7 +53,7 @@ object test {
     //    pca_test()
 
 
-    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
+//    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
