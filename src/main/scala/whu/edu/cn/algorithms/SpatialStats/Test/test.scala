@@ -20,10 +20,10 @@ import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, S
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
-import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
 import breeze.linalg.{norm, normalize}
 import breeze.numerics._
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging.OrdinaryKriging
 
 object test {
   //global variables
@@ -52,7 +52,7 @@ object test {
     //    linear_test()
     //    pca_test()
 
-
+    OrdinaryKriging(sc,shpfile3,"PURCHASE")
 //    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
