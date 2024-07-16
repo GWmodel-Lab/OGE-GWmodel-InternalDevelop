@@ -25,14 +25,16 @@ object PrincipalComponentAnalysis {
    * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
    * @return DenseMatrix[Double] 结果为降维处理后的数据
    */
-  def PCA(testshp: RDD[(String, (Geometry, Map[String, Any]))]): DenseMatrix[Double] = {
+  def PCA(testshp: RDD[(String, (Geometry, Map[String, Any]))],properties: String,keep: Int=2, split: String = ","): DenseMatrix[Double] = {
     //原始的数据
-    val pArr: Array[String] = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE") //属性字符串数组
+    val pArr= properties.split(split)
+    if(keep>properties.length){
+      throw new IllegalArgumentException("the principal components should be less than properties input value")
+    }
+    //    val pArr: Array[String] = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE") //属性字符串数组
     var lst = shpToList(testshp, pArr(0))
     val col = pArr.length
     val row = lst.length
-    var i = 0;
-    var j = 0;
     val matrix = new DenseMatrix[Double](row, col)
     for (i <- 0 to (col - 1)) {
       lst = shpToList(testshp, pArr(i))
@@ -41,7 +43,7 @@ object PrincipalComponentAnalysis {
       }
     }
     //选择top2的特征
-    val s = generatePCA(matrix, 2)
+    val s = generatePCA(matrix, keep)
     s
   }
 
@@ -98,9 +100,9 @@ object PrincipalComponentAnalysis {
     val C = (B.t * B).map(_ * ratio)
     val featuresInfo = eigSym(C)
     val eigenvalues = featuresInfo.eigenvalues
-//    println("特征值  " + eigenvalues)
+    //    println("特征值  " + eigenvalues)
     val eigenvectors: DenseMatrix[Double] = featuresInfo.eigenvectors
-//    println("特征向量 " + eigenvectors)
+    //    println("特征向量 " + eigenvectors)
     //降维处理
     val tuples: immutable.Seq[(Int, Double)] = for (i <- 0 to eigenvalues.toArray.length - 1) yield ((i, eigenvalues.toArray.apply(i)))
     val indexs: immutable.Seq[Int] = tuples.sortWith(((t1: (Int, Double), t2: (Int, Double)) => t1._2.compareTo(t2._2) > 0)).take(2).map(_._1)
