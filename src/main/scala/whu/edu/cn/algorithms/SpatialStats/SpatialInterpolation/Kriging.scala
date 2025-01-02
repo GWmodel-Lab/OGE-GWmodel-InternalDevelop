@@ -52,8 +52,8 @@ object Kriging {
       row <- 0 until rows
       col <- 0 until cols
     } yield {
-      val x = extent.xmin + col * cellWidth
-      val y = extent.ymax - (row + 1) * cellHeight // 反转y轴
+      val x = extent.xmin + (col + 0.5) * cellWidth
+      val y = extent.ymax - (row + 0.5) * cellHeight // y轴是从大到小的
       vector.Point(x, y)
     }).toArray
 
@@ -117,6 +117,7 @@ object Kriging {
       val data = predictions(t._2)._1
       val geom = t._1
       val feature = new vector.Feature[Geometry, Double](geom, data)
+//      println(geom,data)
       feature
     })
     //make rdd
@@ -147,8 +148,8 @@ object Kriging {
       row <- 0 until rows
       col <- 0 until cols
     } yield {
-      val x = extent.xmin + col * cellWidth
-      val y = extent.ymax - (row + 1) * cellHeight
+      val x = extent.xmin + (col + 0.5) * cellWidth
+      val y = extent.ymax - (row + 0.5) * cellHeight
       vector.Point(x, y)
     }).toArray
     val points: Array[PointFeature[Double]] = featureRDD.map(t => {

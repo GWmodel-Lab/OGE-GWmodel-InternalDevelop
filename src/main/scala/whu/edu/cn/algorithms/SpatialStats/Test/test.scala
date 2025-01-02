@@ -24,6 +24,7 @@ import whu.edu.cn.util.ShapeFileUtil._
 import breeze.linalg.{norm, normalize}
 import breeze.numerics._
 import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging.{OrdinaryKriging, selfDefinedKriging}
+import whu.edu.cn.debug.CoverageDubug
 
 object test {
   //global variables
@@ -32,16 +33,16 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\cn_aging.shp"
+  val shpPath: String = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/cn_aging.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
-  val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\points.shp"
+  val shpPath2: String = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/points.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
-  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath3: String = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/LNHP100.shp"
   val shpfile3 = readShp(sc, shpPath3, encode)
 
-  val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
+  val csvpath = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
   //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
 
@@ -52,7 +53,9 @@ object test {
     //    linear_test()
     //    pca_test()
 
-    OrdinaryKriging(sc,shpfile2,"z",10,10)
+    val ras=OrdinaryKriging(sc,shpfile2,"z",30,30)
+    CoverageDubug.makeTIFF(ras,"krig")//这个输出的时候注意需要修改位置，在CoverageDubug.makeTIFF的函数里
+
 //    selfDefinedKriging(sc,shpfile2,"z",10,10,"Sph",0.1,0.1,0.1)
 //    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
