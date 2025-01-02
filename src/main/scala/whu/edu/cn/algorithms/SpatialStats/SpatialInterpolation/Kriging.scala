@@ -11,67 +11,48 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.proj4j.UnknownAuthorityCodeException
+import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils
 import whu.edu.cn.entity
 
 import scala.math.{max, min}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.interpolationUtils._
 import whu.edu.cn.entity.SpaceTimeBandKey
 
 object Kriging {
 
-  /**
+  /** 自动拟合半变异函数的克里金插值
    *
-   * @param featureRDD
-   * @param propertyName
-   * @param modelType
-   * @return
+   * @param sc           SparkContext
+   * @param featureRDD   input RDD
+   * @param propertyName property to interpolate
+   * @param rows         output rows
+   * @param cols         output cols
+   * @param method       method for interpolation,can be "Sph","Gau","Exp"
+   * @param binMaxCount  to divide data value for EmpiricalVariogram
+   * @return raster
    */
-  //块金：nugget，基台：sill，变程：range
   def OrdinaryKriging(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyName: String, rows: Int = 20, cols: Int = 20,
-                      method : String = "Sph", binMaxCount: Int = 20) = {
-    val extents = featureRDD.map(t => {
-      val coor = t._2._1.getCoordinate
-      (coor.x, coor.y, coor.x, coor.y)
-    }).reduce((coor1, coor2) => {
-      (min(coor1._1, coor2._1), min(coor1._2, coor2._2), max(coor1._3, coor2._3), max(coor1._4, coor2._4))
-    })
-    val extent = Extent(extents._1, extents._2, extents._3, extents._4)
-//    //slow code
-//    val rasterExtent = RasterExtent(extent, cols, rows)
-//    val pointsRas = (for {
-//      row <- 0 until rows
-//      col <- 0 until cols
-//    } yield {
-//      val (x, y) = rasterExtent.gridToMap(col, row)
-//      vector.Point(x, y)
-//    }).toArray
-    val cellWidth = (extent.xmax - extent.xmin) / cols
-    val cellHeight = (extent.ymax - extent.ymin) / rows
-    val pointsRas = (for {
-      row <- 0 until rows
-      col <- 0 until cols
-    } yield {
-      val x = extent.xmin + (col + 0.5) * cellWidth
-      val y = extent.ymax - (row + 0.5) * cellHeight // y轴是从大到小的
-      vector.Point(x, y)
-    }).toArray
-
+                      method: String = "Sph", binMaxCount: Int = 20) = {
+    val extent = getExtent(featureRDD)
+    val pointsRas = createPredictionPoints(extent, rows, cols)
+    //convert points
     val points: Array[PointFeature[Double]] = featureRDD.map(t => {
       val p = vector.Point(t._2._1.getCoordinate)
       val data = t._2._2(propertyName).asInstanceOf[String].toDouble
       PointFeature(p, data)
     }).collect()
-    //    println(points.toList)
+    //find average distance
     val coors = featureRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
     val distances = for {
       i <- coors.indices
       j <- i + 1 until coors.length
     } yield coors(i).distance(coors(j))
     val averageDistance = distances.sum / distances.size
+
     val es: EmpiricalVariogram = EmpiricalVariogram.nonlinear(points, 2 * averageDistance, binMaxCount)
-    //    println(s"EmpiricalVariogram distances: ${es.distances.mkString(", ")}")
-    //    println(s"EmpiricalVariogram variances: ${es.variance.mkString(", ")}")
+    //    println(s"EmpiricalVariogram distances: ${es.distances.mkString(", ")}\nEmpiricalVariogram variances: ${es.variance.mkString(", ")}")
     val gamma = es.distances.length
     val pRange = es.distances(gamma / 2)
     val pSill = es.variance(gamma / 2)
@@ -83,6 +64,7 @@ object Kriging {
       case "Exp" => NonLinearSemivariogram(range = pRange, sill = pSill, nugget = pNugget, Exponential)
       case _ => throw new IllegalArgumentException(s"Unsupported method: $method")
     }
+
     println("************************************************************")
     println(s"Parameters load correctly, start calculation")
     println(f"Semivariogram function\n  range:$pRange%.3f, psill:$pSill%.3f, nugget:$pNugget%.3f")
@@ -92,17 +74,8 @@ object Kriging {
     //    val sv = NonLinearSemivariogram(range = effectiveRange, sill = effectiveSill, nugget = effectiveNugget, Spherical)
 
     val kriging = new OrdinaryKriging(points, averageDistance, sv)
-    //    val location = featureRDD.map(t => {vector.Point(t._2._1.getCoordinate)} ).collect()
-    //    val predictions = kriging.predict(location)
-    //    predictions.foreach(t=>println(t._1))
-    val predictions = kriging.predict(pointsRas)
-    //    predictions.foreach(println)
-
-    val crs = try {
-      geotrellis.proj4.CRS.fromEpsgCode(featureRDD.first()._2._1.getSRID)
-    } catch {
-      case e: UnknownAuthorityCodeException => geotrellis.proj4.CRS.fromEpsgCode(4326)
-    }
+    val predictions = kriging.predict(pointsRas) //(prediction,variance?)
+    val crs = OtherUtils.getCrs(featureRDD)
     //    println(crs)
 
     //output
@@ -113,13 +86,7 @@ object Kriging {
     val cellType = DoubleCellType
     val tileLayerMetadata = TileLayerMetadata(cellType, ld, extent, crs, bounds)
     //output raster value
-    val featureRaster = pointsRas.zipWithIndex.map(t => {
-      val data = predictions(t._2)._1
-      val geom = t._1
-      val feature = new vector.Feature[Geometry, Double](geom, data)
-//      println(geom,data)
-      feature
-    })
+    val featureRaster = makeRasterVarOutput(pointsRas, predictions)
     //make rdd
     val featureRDDforRaster = sc.makeRDD(featureRaster)
     val originCoverage = featureRDDforRaster.rasterize(cellType, ld)
@@ -133,31 +100,30 @@ object Kriging {
     (imageRDD, tileLayerMetadata)
   }
 
+  /** 自定义半变异函数的克里金插值
+   *
+   * @param sc           SparkContext
+   * @param featureRDD   input RDD
+   * @param propertyName property to interpolate
+   * @param rows         output rows
+   * @param cols         output cols
+   * @param method       method for interpolation,can be "Sph","Gau","Exp"
+   * @param range        self defined range 变程值 >0
+   * @param sill         self defined sill 基台值 >0
+   * @param nugget       self defined nugget 块金值 >0
+   * @return raster
+   */
   def selfDefinedKriging(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyName: String, rows: Int = 20, cols: Int = 20,
                          method: String = "Sph", range: Double = 0, sill: Double = 0, nugget: Double = 0) = {
-    val extents = featureRDD.map(t => {
-      val coor = t._2._1.getCoordinate
-      (coor.x, coor.y, coor.x, coor.y)
-    }).reduce((coor1, coor2) => {
-      (min(coor1._1, coor2._1), min(coor1._2, coor2._2), max(coor1._3, coor2._3), max(coor1._4, coor2._4))
-    })
-    val extent = Extent(extents._1, extents._2, extents._3, extents._4)
-    val cellWidth = (extent.xmax - extent.xmin) / cols
-    val cellHeight = (extent.ymax - extent.ymin) / rows
-    val pointsRas = (for {
-      row <- 0 until rows
-      col <- 0 until cols
-    } yield {
-      val x = extent.xmin + (col + 0.5) * cellWidth
-      val y = extent.ymax - (row + 0.5) * cellHeight
-      vector.Point(x, y)
-    }).toArray
+    val extent = getExtent(featureRDD)
+    val pointsRas = createPredictionPoints(extent, rows, cols)
+
     val points: Array[PointFeature[Double]] = featureRDD.map(t => {
       val p = vector.Point(t._2._1.getCoordinate)
       val data = t._2._2(propertyName).asInstanceOf[String].toDouble
       PointFeature(p, data)
     }).collect()
-    val halfDistance = max((extent.xmax - extent.xmin),(extent.ymax - extent.ymin))/2
+    val halfDistance = max(extent.xmax - extent.xmin, extent.ymax - extent.ymin) / 2
     if (range <= 0) throw new IllegalArgumentException("Range must be over 0!")
     if (sill <= 0) throw new IllegalArgumentException("Sill must be over 0!")
     if (nugget <= 0) throw new IllegalArgumentException("Nugget must be over 0!")
@@ -174,12 +140,7 @@ object Kriging {
     val kriging = new OrdinaryKriging(points, halfDistance, sv)
     val predictions = kriging.predict(pointsRas)
 
-    val crs = try {
-      geotrellis.proj4.CRS.fromEpsgCode(featureRDD.first()._2._1.getSRID)
-    } catch {
-      case e: UnknownAuthorityCodeException => geotrellis.proj4.CRS.fromEpsgCode(4326)
-    }
-
+    val crs = OtherUtils.getCrs(featureRDD)
     //output
     val tl = TileLayout(1, 1, cols, rows)
     val ld = LayoutDefinition(extent, tl)
@@ -187,12 +148,7 @@ object Kriging {
     val bounds = Bounds(SpaceTimeKey(0, 0, time), SpaceTimeKey(0, 0, time))
     val cellType = DoubleCellType
     val tileLayerMetadata = TileLayerMetadata(cellType, ld, extent, crs, bounds)
-    val featureRaster = pointsRas.zipWithIndex.map(t => {
-      val data = predictions(t._2)._1
-      val geom = t._1
-      val feature = new vector.Feature[Geometry, Double](geom, data)
-      feature
-    })
+    val featureRaster = makeRasterVarOutput(pointsRas, predictions)
     val featureRDDforRaster = sc.makeRDD(featureRaster)
     val originCoverage = featureRDDforRaster.rasterize(cellType, ld)
     val imageRDD = originCoverage.map(t => {

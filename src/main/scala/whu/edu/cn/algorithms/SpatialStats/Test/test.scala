@@ -20,11 +20,12 @@ import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, S
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging.{OrdinaryKriging, selfDefinedKriging}
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.interpolationUtils
 import whu.edu.cn.util.ShapeFileUtil._
 import breeze.linalg.{norm, normalize}
 import breeze.numerics._
-import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging.{OrdinaryKriging, selfDefinedKriging}
-import whu.edu.cn.debug.CoverageDubug
+
 
 object test {
   //global variables
@@ -53,8 +54,8 @@ object test {
     //    linear_test()
     //    pca_test()
 
-    val ras=OrdinaryKriging(sc,shpfile2,"z",30,30)
-    CoverageDubug.makeTIFF(ras,"krig")//这个输出的时候注意需要修改位置，在CoverageDubug.makeTIFF的函数里
+    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
+//    interpolationUtils.makeTIFF(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
 
 //    selfDefinedKriging(sc,shpfile2,"z",10,10,"Sph",0.1,0.1,0.1)
 //    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
