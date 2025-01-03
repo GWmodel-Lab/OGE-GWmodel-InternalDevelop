@@ -44,7 +44,7 @@ object LogisticRegression {
   def LogisticRegression(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
                        y: String, x: String, Intercept: Boolean = true,
                        maxIter: Int = 100, epsilon: Double = 1e-6,learningRate: Double = 0.01)
-  : /*(DenseVector[Double], Double)*/Unit = {
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     _data = data.map(t=>t._2._2)
     val split = ","
     setX(x, split, Intercept)
@@ -143,7 +143,15 @@ object LogisticRegression {
     str += f"Number of Iterations: ${iter}\n"
 
     str += "**********************************************************************\n"
-    print(str)
+    //print(str)
+
+    val shpRDDidx = data.collect().zipWithIndex
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("yhat" -> yhat(t._2.toInt))
+      t._1._2._2 += ("residual" -> res(t._2.toInt))
+    })
+    Service.print(str,"Logistic Regression for feature","String")
+    sc.makeRDD(shpRDDidx.map(t=>t._1))
   }
 
   // 添加预测方法
