@@ -116,7 +116,11 @@ object LogisticRegression {
 
     var formula = f"${y} ~ "
     for(i <- 1 until X.cols){
-      formula += f"+ ${_nameX(i-1)} "
+      if (i==1){
+      formula += f"${_nameX(i-1)} "
+      }else{
+        formula += f"+ ${_nameX(i-1)} "
+      }
     }
     str += "Formula:\n" + formula + f"\n"
 
