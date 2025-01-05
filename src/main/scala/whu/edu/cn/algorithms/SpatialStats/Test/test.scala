@@ -1,6 +1,6 @@
 package whu.edu.cn.algorithms.SpatialStats.Test
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseMatrix, DenseVector, norm, normalize}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics}
@@ -22,8 +22,8 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.oge.Feature._
 import whu.edu.cn.util.ShapeFileUtil._
-import breeze.linalg.{norm, normalize}
 import breeze.numerics._
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight.getSpatialweight
 
 object test {
   //global variables
@@ -84,9 +84,24 @@ object test {
     //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
     //    rddSample.foreach(println)
 
+    test()
+
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
+  }
+
+  def test()= {
+    val rd = getDistRDD(shpfile3)
+    //    rd.foreach(println)
+    val weight = getSpatialweight(rd, bw = 20, kernel = "gaussian", adaptive = true)
+    //    weight.collect().foreach(println)
+    GWRbasic.fit(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", 20, adaptive = true)
+    val model=new GWRbasic
+    model.init(shpfile3)
+    model.setX("FLOORSZ,UNEMPLOY,PROF")
+    model.setY("PURCHASE")
+    val res=model.fitRDDFunction(weight=weight)
   }
 
   def pca_test():Unit= {

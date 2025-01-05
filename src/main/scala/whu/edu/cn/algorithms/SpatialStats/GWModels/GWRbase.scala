@@ -11,7 +11,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.math._
 
-class GWRbase {
+class GWRbase extends Serializable {
 
   protected var shpRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))] = _
   protected var _X: Array[DenseVector[Double]] = _

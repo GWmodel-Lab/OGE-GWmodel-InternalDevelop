@@ -168,6 +168,7 @@ class GWRbasic extends GWRbase {
       throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
     }
     val results = fitFunction(_dX, _Y, spweight_dvec)
+    results._1.foreach(println)
     //    val results = fitRDDFunction(sc,_dX, _Y, spweight_dvec)
     val betas = DenseMatrix.create(_xcols + 1, _xrows, data = results._1.flatMap(t => t.toArray))
     val arr_yhat = results._2.toArray
@@ -279,34 +280,45 @@ class GWRbasic extends GWRbase {
     (shpRDDidx.map(t => t._1), fitString)
   }
 
-//  private def fitRDDFunction(implicit sc: SparkContext, X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight: Array[DenseVector[Double]] = spweight_dvec):
-//  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
-//    val xtw0 = weight.map(w => {
-//      val v1 = (DenseVector.ones[Double](_xrows) * w).toArray
-//      val xw = _X.flatMap(t => (t * w).toArray)
-//      DenseMatrix.create(_xrows, _xcols + 1, data = v1 ++ xw).t
-//    })
-//    val xtw = sc.makeRDD(xtw0)
-//    val xtwx = xtw.map(t => t * X)
-//    val xtwy = xtw.map(t => t * Y)
-//    val xtwx_inv = xtwx.map(t => inv(t))
-//    val xtwx_inv_idx = xtwx_inv.zipWithIndex
-//    val arr_xtwy = xtwy.collect()
-//    val betas = xtwx_inv_idx.map(t => t._1 * arr_xtwy(t._2.toInt))
+  def fitRDDFunction(X: DenseMatrix[Double] = _dX, Y: DenseVector[Double] = _Y, weight:  RDD[DenseVector[Double]]):
+  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double]) = {
+    val onesVector = DenseVector.ones[Double](_xrows)
+    val newX = onesVector +: _X
+//    newX.foreach(println)
+    val xtw = weight.map(w => {
+      val combined = newX.map(t=>t * w).flatMap(_.toArray)
+      new DenseMatrix(rows=_xrows, cols=_xcols + 1, data = combined).t
+    })
+    val betas=xtw.map(xtw=>{
+      val xtwx = xtw * X
+      val xtwy = xtw * Y
+      val xtwx_inv = inv(xtwx)
+      xtwx_inv * xtwy
+    })
+
+
+//    val xtw0=xtw.collect()
+    val betas0=betas.collect()
+    betas0.foreach(println)
 //    val arr_xtw = xtw.collect()
-//    val ci = xtwx_inv_idx.map(t => t._1 * arr_xtw(t._2.toInt))
-//    val ci_idx = ci.zipWithIndex
+    val ci = xtw.map(t =>{
+      val xtwx_inv = inv(t * X)
+      xtwx_inv * t
+    })
+    val ci_idx = ci.zipWithIndex
 //    val sum_ci = ci.map(t => t.map(t => t * t)).map(t => sum(t(*, ::)))
-//    val si = ci_idx.map(t => {
-//      val a = X(t._2.toInt, ::).inner.toDenseMatrix
-//      val b = t._1.toDenseMatrix
-//      a * b
-//    })
-//    val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(t => t.toArray))
-//    val yhat = getYhat(X, betas.collect())
-//    val residual = Y - yhat
-//    (betas.collect(), yhat, residual, shat, sum_ci.collect())
-//  }
+    val si = ci_idx.map(t => {
+      val a = X(t._2.toInt, ::).inner.toDenseMatrix
+      val b = t._1.toDenseMatrix
+      a * b
+    })
+    val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(_.toArray))
+    val yhat = getYhat(X, betas.collect())
+    val residual = Y - yhat
+    val s=calDiagnostic(_dX,_Y,residual,shat)
+    println(s)
+    (betas.collect(), yhat, residual, shat)
+  }
 
   protected def bandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
     if (adaptive) {
@@ -407,6 +419,14 @@ class GWRbasic extends GWRbase {
       sum(t._1 * X(t._2, ::).inner)
     })
     DenseVector(yhat)
+  }
+
+  def getYHatRDD(X: DenseMatrix[Double], betas: RDD[DenseVector[Double]]) = {
+    val betas_idx = betas.zipWithIndex()
+    val yhat = betas_idx.map(t => {
+      sum(t._1 * X(t._2.toInt, ::).inner)
+    })
+    yhat
   }
 
   //  def eachColProduct(Mat: DenseMatrix[Double], Vec: DenseVector[Double]): DenseMatrix[Double] = {
