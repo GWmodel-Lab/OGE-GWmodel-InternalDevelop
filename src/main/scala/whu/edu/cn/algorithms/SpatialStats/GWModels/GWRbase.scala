@@ -18,8 +18,7 @@ class GWRbase(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ext
   var _kernel:String=_
   var _adaptive:Boolean=_
 
-
-  protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): String = {
+  def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): String = {
     val shat0 = trace(shat)
     //    val shat1 = trace(shat * shat.t)
     val shat1=sum(shat.map(t=>t*t))
@@ -40,16 +39,16 @@ class GWRbase(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ext
     diagString
   }
 
-  def setCoords(lat: Array[Double], lon: Array[Double]): Unit = {
-    val geomcopy = _geom.zipWithIndex()
-    geomcopy.map(t => {
-      t._1.getCoordinate.x = lat(t._2.toInt)
-      t._1.getCoordinate.y = lon(t._2.toInt)
-    })
-    _geom = geomcopy.map(t => t._1)
-  }
+//  def setCoords(lat: Array[Double], lon: Array[Double]): Unit = {
+//    val geomcopy = _geom.zipWithIndex()
+//    geomcopy.map(t => {
+//      t._1.getCoordinate.x = lat(t._2.toInt)
+//      t._1.getCoordinate.y = lon(t._2.toInt)
+//    })
+//    _geom = geomcopy.map(t => t._1)
+//  }
 
-  def setWeight(bw:Double, kernel:String, adaptive:Boolean): Unit = {
+  def setWeight(bw:Double, kernel:String, adaptive:Boolean): RDD[DenseVector[Double]] = {
     if (_dist == null) {
       _dist = getDistRDD(_shpRDD)
       _disMax = _dist.map(t => max(t)).max
@@ -59,7 +58,10 @@ class GWRbase(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ext
       _adaptive = adaptive
     }
 //    spweight_dvec = _dist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
-    _spWeight = getSpatialweight(_dist, bw = bw, kernel = kernel, adaptive = adaptive)
+    if(_spWeight == null) {
+      _spWeight = getSpatialweight(_dist, bw = bw, kernel = kernel, adaptive = adaptive)
+    }
+    getSpatialweight(_dist, bw = bw, kernel = kernel, adaptive = adaptive)
   }
 
   def printweight(): Unit = {
@@ -67,4 +69,13 @@ class GWRbase(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ext
       _spWeight.collect().foreach(println)
     }
   }
+
+  def getX: DenseMatrix[Double] = {
+    _dmatX
+  }
+
+  def getY: DenseVector[Double] = {
+    _dvecY
+  }
+
 }
