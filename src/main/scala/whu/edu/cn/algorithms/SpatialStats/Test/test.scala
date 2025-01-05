@@ -3,6 +3,7 @@ package whu.edu.cn.algorithms.SpatialStats.Test
 import breeze.linalg.{DenseMatrix, DenseVector, norm, normalize}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import org.locationtech.jts.geom.{Coordinate, Point}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics}
 import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
@@ -12,10 +13,10 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel,
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWDA
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GTWR
+//import whu.edu.cn.algorithms.SpatialStats.GWModels.GWDA
+//import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
+//import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
+//import whu.edu.cn.algorithms.SpatialStats.GWModels.GTWR
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
@@ -92,16 +93,27 @@ object test {
   }
 
   def test()= {
-    val rd = getDistRDD(shpfile3)
-    //    rd.foreach(println)
-    val weight = getSpatialweight(rd, bw = 20, kernel = "gaussian", adaptive = true)
-    //    weight.collect().foreach(println)
-    GWRbasic.fit(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", 20, adaptive = true)
-    val model=new GWRbasic
-    model.init(shpfile3)
-    model.setX("FLOORSZ,UNEMPLOY,PROF")
+
+    val model=new GWRbasic(shpfile3)
+    model.setX("FLOORSZ")
     model.setY("PURCHASE")
-    val res=model.fitRDDFunction(weight=weight)
+    model.setWeight(bw = 98, kernel = "gaussian", adaptive = true)
+    val res=model.fitFunction()
+    val res_s=model.calDiagnostic(model.getX,model.getY,res._3,res._4)
+    println(res_s)
+    println("-------------")
+//    val res2=GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",adaptive = true)
+    val newRDD = shpfile3.map { case (id, (geometry, attributes)) =>
+      val centroid = geometry.getCentroid()
+      val newCoordinate = new Coordinate(centroid.getX + 500, centroid.getY + 500)
+      val newPoint = geometry match {
+        case Point => centroid.getFactory.createPoint(newCoordinate)
+        case _ =>
+          geometry
+      }
+      (id, (newPoint, attributes))
+    }
+    GWRbasic.predict(sc, shpfile3, newRDD, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",bandwidth = 50, kernel = "gaussian", adaptive = true)
   }
 
   def pca_test():Unit= {

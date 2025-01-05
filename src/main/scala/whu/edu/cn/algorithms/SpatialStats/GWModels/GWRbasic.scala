@@ -6,7 +6,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance.getDist
-import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight.{Array2DenseVector, getSpatialweightSingle}
+import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight.{Array2DenseVector, getSpatialweight, getSpatialweightSingle}
 
 import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.math._
@@ -45,17 +45,12 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
     _dmatX = DenseMatrix.create(rows = _rows, cols = _cols, data = _dvecX.flatMap(_.toArray))
   }
 
-  def initPredict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Array[DenseVector[Double]] = {
-    //    predRDD = pRDD
-    //dist 的求解
-    val predCoor = pRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
+  def initPredict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): RDD[Array[Double]] = {
+    val predCoor = pRDD.map(t => t._2._1.getCentroid.getCoordinate)
     val rddCoor = _shpRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
-
-    val dist = predCoor.map(p => {
+    predCoor.map(p => {
       rddCoor.map(t => t.distance(p))
     })
-    //    dist.map(t=>println(t.toList))
-    dist.map(t => DenseVector(t))
   }
 
   def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
@@ -201,8 +196,8 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double]) = {
 
     val xtw = weight.map(w => {
-      val combined = _dvecX.map(t => t * w).flatMap(_.toArray)
-      new DenseMatrix(rows = _rows, cols = _cols, data = combined).t
+      val each_col_mat = _dvecX.map(t => t * w).flatMap(_.toArray)
+      new DenseMatrix(rows = _rows, cols = _cols, data = each_col_mat).t
     })
     //    val xtw0=xtw.collect()
     val betas = xtw.map(xtw => {
@@ -259,54 +254,69 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
     (betas.collect(), yhat, residual, shat)
   }
 
-//    def predict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], bw: Double, kernel: String, adaptive: Boolean): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
-//      val pdist=initPredict(pRDD)
-//      val pn=pdist.size
-//      val pweight = pdist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
-//      val X=_dmatX
-//      val Y=_dvecY
-//      val xtw = pweight.map(w => {
-//        val v1 = (DenseVector.ones[Double](_rows) * w).toArray
-//        val xw = _dvecX.flatMap(t => (t * w).toArray)
-//        DenseMatrix.create(_rows, _cols, data = v1 ++ xw).t
-//      })
-//      val xtwx = xtw.map(t => t * X)
-//      val xtwy = xtw.map(t => t * Y)
-//      val xtwx_inv = xtwx.map(t => inv(t))
-//      val xtwx_inv_idx = xtwx_inv.zipWithIndex
-//      val betas = xtwx_inv_idx.map(t => t._1 * xtwy(t._2))
-//      val yhat = getYHat(X, betas)//predict value
-//
-//      val shpRDDidx = pRDD.collect().zipWithIndex
-//  //    shpRDDidx.foreach(t => t._1._2._2.clear())
-//      shpRDDidx.map(t => {
-//        t._1._2._2 += ("predict" -> yhat(t._2))
-//      })
-//      //    results._1.map(t=>mean(t))
-//      val name = Array("Intercept") ++ _nameUsed
+    def predict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], bw: Double, kernel: String, adaptive: Boolean): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+      val pdist=initPredict(pRDD)
+      val pn=pdist.count()
+      val pweight = getSpatialweight(pdist, bw = bw, kernel = kernel, adaptive = adaptive)
+      val X=_dmatX
+      val Y=_dvecY
+      val xtw = pweight.map(w => {
+        val each_col_mat = _dvecX.map(t => t * w).flatMap(_.toArray)
+        new DenseMatrix(rows = _rows, cols = _cols, data = each_col_mat).t
+      })
+      val betas = xtw.map(xtw => {
+        try {
+          val xtwx = xtw * X
+          val xtwy = xtw * Y
+          val xtwx_inv = inv(xtwx)
+          xtwx_inv * xtwy
+        } catch {
+          case e: breeze.linalg.MatrixSingularException =>
+            try {
+              val regularized = inv(regularizeMatrix(xtw * X))
+              regularized * xtw * Y
+            } catch {
+              case e: Exception =>
+                throw new IllegalStateException("Matrix inversion failed")
+            }
+          case e: Exception =>
+            println(s"An unexpected error occurred: ${e.getMessage}")
+            DenseVector.zeros[Double](_cols)
+        }
+      }).collect()
+      val yhat = getYHat(X, betas)//predict value
+      val residual = Y - yhat
+      val shpRDDidx = pRDD.collect().zipWithIndex
+      shpRDDidx.foreach(t => t._1._2._2.clear())
+      shpRDDidx.map(t => {
+        t._1._2._2 += ("predicted" -> yhat(t._2))
+        t._1._2._2 += ("residual" -> residual(t._2))
+      })
+      //只留下预测值
+//      val name = Array("Intercept") ++ _nameX
 //      shpRDDidx.foreach(t=>{
 //        for(i<-name.indices){
 //          t._1._2._2 += (name(i)+"_coef" -> betas(t._2)(i))
 //        }
 //      })
-//
-//      var bw_type = "Fixed"
-//      if (adaptive) {
-//        bw_type = "Adaptive"
-//      }
-//      val fitFormula = _nameY + " ~ " + _nameUsed.mkString(" + ")
-//      val fitString = "\n*********************************************************************************\n" +
-//        "*               Results of Geographically Weighted Regression                   *\n" +
-//        "*********************************************************************************\n" +
-//        "**************************Model calibration information**************************\n" +
-//        s"Formula: $fitFormula" +
-//        s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
-//        s"Prediction established for $pn points \n" +
-//        "*********************************************************************************\n"
-//      shpRDDidx.foreach(t=>println(t._1._2._2))
-//      println(fitString)
-//      (shpRDDidx.map(t => t._1), fitString)
-//    }
+      val bw_type = if (adaptive) {
+        "Adaptive"
+      }else{
+        "Fixed"
+      }
+      val fitFormula = _nameY + " ~ " + _nameX.mkString(" + ")
+      val fitString = "\n*********************************************************************************\n" +
+        "*               Results of Geographically Weighted Regression                   *\n" +
+        "*********************************************************************************\n" +
+        "**************************Model calibration information**************************\n" +
+        s"Formula: $fitFormula" +
+        s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
+        s"Prediction established for $pn points \n" +
+        "*********************************************************************************\n"
+      shpRDDidx.foreach(t=>println(t._1._2._2))
+      println(fitString)
+      (shpRDDidx.map(t => t._1), fitString)
+    }
 
   protected def bandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
     if (adaptive) {
@@ -526,16 +536,16 @@ object GWRbasic {
    * @param adaptive    true for adaptive distance, false for fixed distance
    * @return featureRDD and diagnostic String
    */
-//  def predict(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],predictRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-//          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false)
-//  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
-//    val model = new GWRbasic(featureRDD)
-//    model.setY(propertyY)
-//    model.setX(propertiesX)
-//    model.initPredict(predictRDD)
-//    val re=model.predict(predictRDD,bw = bandwidth, kernel = kernel, adaptive = adaptive)
-//    //    print(re._2)
-//    sc.makeRDD(re._1)
-//  }
+  def predict(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],predictRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
+          bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false)
+  : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
+    val model = new GWRbasic(featureRDD)
+    model.setY(propertyY)
+    model.setX(propertiesX)
+    model.initPredict(predictRDD)
+    val re=model.predict(predictRDD,bw = bandwidth, kernel = kernel, adaptive = adaptive)
+    //    print(re._2)
+    sc.makeRDD(re._1)
+  }
 
 }
