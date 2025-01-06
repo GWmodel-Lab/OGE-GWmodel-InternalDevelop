@@ -4,58 +4,60 @@ import breeze.linalg.{DenseMatrix, DenseVector, inv, sum}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
+import whu.edu.cn.algorithms.SpatialStats.GWModels.Algorithm
 import whu.edu.cn.oge.Service
 
 import scala.collection.mutable
 
-object LinearRegression {
+object LinearRegression extends Algorithm {
 
   private var _data: RDD[mutable.Map[String, Any]] = _
-  private var _X: DenseMatrix[Double] = _
-  private var _Y: DenseVector[Double] = _
-  private var _1X: DenseMatrix[Double] = _
-  private var _nameX: Array[String]  = _
-  private var _rows: Int = 0
-  private var _df: Int  = 0
+  private var _dmatX: DenseMatrix[Double] = _
+  private var _dvecY: DenseVector[Double] = _
 
-  private def setX(properties: String, split: String = ",", Intercept: Boolean): Unit = {
+  private var _rawX: Array[Array[Double]] = _
+  private var _rawdX: DenseMatrix[Double] = _
+
+  private var _nameX: Array[String] = _
+  private var _nameY: String = _
+  private var _rows: Int = 0
+  private var _df: Int = 0
+
+  override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
     val x = _nameX.map(s => {
       _data.map(t => t(s).asInstanceOf[String].toDouble).collect()
     })
     _rows = x(0).length
     _df = x.length
-    _X = DenseMatrix.create(rows = _rows, cols = x.length, data = x.flatten)
-    if (Intercept) {
-      val ones_x = Array(DenseVector.ones[Double](_rows).toArray, x.flatten)
-      _1X = DenseMatrix.create(rows = _rows, cols = x.length + 1, data = ones_x.flatten)
-    }
+
+    _rawX = x
+    _rawdX = DenseMatrix.create(rows = _rows, cols = x.length, data = x.flatten)
+    val onesX = Array(DenseVector.ones[Double](_rows).toArray, x.flatten)
+    _dmatX = DenseMatrix.create(rows = _rows, cols = x.length + 1, data = onesX.flatten)
   }
 
-  private def setY(property: String): Unit = {
-    _Y = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
+  override def setY(property: String): Unit = {
+    _nameY = property
+    _dvecY = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
 
   /**
    * 线性回归
    *
    * @param data      RDD, csv读入
-   * @param x         输入X
    * @param y         输入Y
+   * @param x         输入X
    * @param Intercept 是否需要截距项，默认：是（true）
-   * @return          （系数，预测值，残差）各自以Array形式储存
+   * @return （系数，预测值，残差）各自以Array形式储存
    */
-  def LinearRegression(sc: SparkContext, data: RDD[mutable.Map[String, Any]], y: String, x: String, Intercept: Boolean =true)
+  def LinearRegression(sc: SparkContext, data: RDD[mutable.Map[String, Any]], y: String, x: String, Intercept: Boolean = true)
   : RDD[mutable.Map[String, Any]] = {
-    _data=data
-    val split = ","
-    setX(x, split, Intercept)
+    _data = data
+    setX(x)
     setY(y)
-    var X=_1X
-    if(! Intercept){
-      X= _X
-    }
-    val Y=_Y
+    val X = if (Intercept) _dmatX else _rawdX
+    val Y = _dvecY
     val W = DenseMatrix.eye[Double](_rows)
     val xtw = X.t * W
     val xtwx = xtw * X
@@ -66,12 +68,12 @@ object LinearRegression {
     val res = Y - y_hat
     var str = "\n  Linear Regression\n"
     if (Intercept) {
-      str += f"Intercept: ${betas(0)}%.4f\n${_nameX(0)}: ${betas(1)}%.4f\n${_nameX(1)}: ${betas(2)}%.4f\n"
+      str += f"Intercept: ${betas(0)}%.4e\n${_nameX(0)}: ${betas(1)}%.4e\n${_nameX(1)}: ${betas(2)}%.4e\n"
     } else {
-      str += f"${_nameX(0)}: ${betas(0)}%.4f\n${_nameX(1)}: ${betas(1)}%.4f\n"
+      str += f"${_nameX(0)}: ${betas(0)}%.4e\n${_nameX(1)}: ${betas(1)}%.4e\n"
     }
     str += diagnostic(X, Y, res, _df)
-//    print(str)
+    //    print(str)
     val shpRDDidx = data.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1 += ("yhat" -> y_hat(t._2.toInt))
@@ -83,23 +85,21 @@ object LinearRegression {
 
   /** Linear Regression for feature
    *
+   * @param sc        SparkContext
    * @param data      feature RDD
-   * @param x         输入X
    * @param y         输入Y
+   * @param x         输入X
    * @param Intercept 是否需要截距项，默认：是（true）
    * @return （系数，预测值，残差）各自以Array形式储存
+   *
    */
   def LinearReg(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))], y: String, x: String, Intercept: Boolean = true)
   : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
-    _data=data.map(t=>t._2._2)
-    val split=","
-    setX(x, split, Intercept)
+    _data = data.map(t => t._2._2)
+    setX(x)
     setY(y)
-    var X = _1X
-    if (!Intercept) {
-      X = _X
-    }
-    val Y = _Y
+    val X = if (Intercept) _dmatX else _rawdX
+    val Y = _dvecY
     val W = DenseMatrix.eye[Double](_rows)
     val xtw = X.t * W
     val xtwx = xtw * X
@@ -109,20 +109,20 @@ object LinearRegression {
     val y_hat = X * betas
     val res = Y - y_hat
     var str = "\n  Linear Regression\n"
-    if(Intercept){
-      str += f"Intercept: ${betas(0)}%.4f\n${_nameX(0)}: ${betas(1)}%.4f\n${_nameX(1)}: ${betas(2)}%.4f\n"
-    }else{
-      str += f"${_nameX(0)}: ${betas(0)}%.4f\n${_nameX(1)}: ${betas(1)}%.4f\n"
+    if (Intercept) {
+      str += f"Intercept: ${betas(0)}%.4e\n${_nameX(0)}: ${betas(1)}%.4e\n${_nameX(1)}: ${betas(2)}%.4e\n"
+    } else {
+      str += f"${_nameX(0)}: ${betas(0)}%.4e\n${_nameX(1)}: ${betas(1)}%.4e\n"
     }
-    str += diagnostic(X,Y,res,_df)
-//    print(str)
+    str += diagnostic(X, Y, res, _df)
+    //    print(str)
     val shpRDDidx = data.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1._2._2 += ("yhat" -> y_hat(t._2.toInt))
       t._1._2._2 += ("residual" -> res(t._2.toInt))
     })
-    Service.print(str,"Linear Regression for feature","String")
-    sc.makeRDD(shpRDDidx.map(t=>t._1))
+    Service.print(str, "Linear Regression for feature", "String")
+    sc.makeRDD(shpRDDidx.map(t => t._1))
   }
 
   protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], df: Double): String = {

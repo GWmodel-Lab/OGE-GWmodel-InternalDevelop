@@ -8,37 +8,42 @@ import breeze.numerics._
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-
+import whu.edu.cn.algorithms.SpatialStats.GWModels.Algorithm
 import whu.edu.cn.oge.Service
 
 import scala.collection.{breakOut, mutable}
 
-object LogisticRegression {
+object LogisticRegression extends Algorithm {
 
   private var _data: RDD[mutable.Map[String, Any]] = _
-  private var _X: DenseMatrix[Double] = _
-  private var _Y: DenseVector[Double] = _
-  private var _1X: DenseMatrix[Double] = _
+  private var _dmatX: DenseMatrix[Double] = _
+  private var _dvecY: DenseVector[Double] = _
+
+  private var _rawX: Array[Array[Double]] = _
+  private var _rawdX: DenseMatrix[Double] = _
+
   private var _nameX: Array[String] = _
+  private var _nameY: String = _
   private var _rows: Int = 0
   private var _df: Int = 0
 
-  private def setX(properties: String, split: String = ",", Intercept: Boolean): Unit = {
+  override def setX(properties: String, split: String = ","): Unit = {
     _nameX = properties.split(split)
     val x = _nameX.map(s => {
       _data.map(t => t(s).asInstanceOf[String].toDouble).collect()
     })
     _rows = x(0).length
     _df = x.length
-    _X = DenseMatrix.create(rows = _rows, cols = x.length, data = x.flatten)
-    if (Intercept) {
-      val ones_x = Array(DenseVector.ones[Double](_rows).toArray, x.flatten)
-      _1X = DenseMatrix.create(rows = _rows, cols = x.length + 1, data = ones_x.flatten)
-    }
+
+    _rawX = x
+    _rawdX = DenseMatrix.create(rows = _rows, cols = x.length, data = x.flatten)
+    val onesX = Array(DenseVector.ones[Double](_rows).toArray, x.flatten)
+    _dmatX = DenseMatrix.create(rows = _rows, cols = x.length + 1, data = onesX.flatten)
   }
 
-  private def setY(property: String): Unit = {
-    _Y = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
+  override def setY(property: String): Unit = {
+    _nameY = property
+    _dvecY = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
 
   def LogisticRegression(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
@@ -46,14 +51,10 @@ object LogisticRegression {
                        maxIter: Int = 100, epsilon: Double = 1e-6,learningRate: Double = 0.01)
   : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     _data = data.map(t=>t._2._2)
-    val split = ","
-    setX(x, split, Intercept)
+    setX(x)
     setY(y)
-    var X = _1X
-    if (!Intercept) {
-      X = _X
-    }
-    val Y = _Y
+    val X = if (Intercept) _dmatX else _rawdX
+    val Y=_dvecY
 
     // 初始化参数
     var weights = DenseVector.zeros[Double](X.cols)
