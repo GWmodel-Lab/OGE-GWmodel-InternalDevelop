@@ -48,14 +48,15 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
   def initPredict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): RDD[Array[Double]] = {
     val predCoor = pRDD.map(t => t._2._1.getCentroid.getCoordinate)
     val rddCoor = _shpRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
-    predCoor.map(p => {
+    val pdist = predCoor.map(p => {
       rddCoor.map(t => t.distance(p))
     })
+    _dist=pdist//带宽优选的化，_dist要重新赋值。这里能更改到吗？
+    pdist
   }
 
   def auto(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
     var printString = "Auto bandwidth selection\n"
-    //    println("auto bandwidth selection")
     val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
     opt_iters.foreach(t => {
       val i = (t - 1).toInt
@@ -147,9 +148,8 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
     if (bw <= 0) {
       throw new IllegalArgumentException("bandwidth should be over 0")
     }
-    if (_spWeight == null) {
-      throw new IllegalArgumentException("spatial weight should be initialized")
-    }
+    _kernel=kernel
+    _adaptive=adaptive
     val newWeight = if (_adaptive) {
       setWeight(round(bw), _kernel, _adaptive)
     } else {
@@ -258,6 +258,19 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
       val pdist=initPredict(pRDD)
       val pn=pdist.count()
       val pweight = getSpatialweight(pdist, bw = bw, kernel = kernel, adaptive = adaptive)
+      _spWeight=pweight
+
+      //添加一个approach参数
+      //switch case:null=>不优选 case:CV=>优选 case:AIC=>优选 case:其它=>不优选（或报错）
+
+//      var printString = "Auto bandwidth selection\n"
+//      val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
+//      opt_iters.foreach(t => {
+//        val i = (t - 1).toInt
+//        printString += (f"iter ${t.toInt}, bandwidth: ${opt_value(i)}%.2f, $approach: ${opt_result(i)}%.3f\n")
+//      })
+//      printString += f"Best bandwidth is $bwselect%.2f\n"
+
       val X=_dmatX
       val Y=_dvecY
       val xtw = pweight.map(w => {
@@ -313,7 +326,7 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
         s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\n" +
         s"Prediction established for $pn points \n" +
         "*********************************************************************************\n"
-      shpRDDidx.foreach(t=>println(t._1._2._2))
+//      shpRDDidx.foreach(t=>println(t._1._2._2))
       println(fitString)
       (shpRDDidx.map(t => t._1), fitString)
     }
@@ -410,7 +423,7 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
   //    DenseVector(arrbuf.toArray)
   //  }
 
-  private def getYHat(X: DenseMatrix[Double], betas: Array[DenseVector[Double]]): DenseVector[Double] = {
+  protected def getYHat(X: DenseMatrix[Double], betas: Array[DenseVector[Double]]): DenseVector[Double] = {
     val betas_idx = betas.zipWithIndex
     val yhat = betas_idx.map(t => {
       sum(t._1 * X(t._2, ::).inner)
@@ -430,10 +443,11 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
   //    weightRDD.map()
   //  }
 
+  //这个是有问题的
   private def modifyWeightCV(weightRDD: RDD[DenseVector[Double]]): RDD[DenseVector[Double]] = {
     weightRDD.map { t =>
       val modifiedVector = t.copy
-      for (i <- 0 until math.min(t.length, t.size)) {
+      for (i <- 0 until t.length) {
         modifiedVector(i) = 0
       }
       modifiedVector

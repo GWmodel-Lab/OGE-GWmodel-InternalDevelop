@@ -18,7 +18,7 @@ class GWRbase(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ext
   var _kernel:String=_
   var _adaptive:Boolean=_
 
-  def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): String = {
+  protected def calDiagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residual: DenseVector[Double], shat: DenseMatrix[Double]): String = {
     val shat0 = trace(shat)
     //    val shat1 = trace(shat * shat.t)
     val shat1=sum(shat.map(t=>t*t))
@@ -48,7 +48,7 @@ class GWRbase(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ext
 //    _geom = geomcopy.map(t => t._1)
 //  }
 
-  def setWeight(bw:Double, kernel:String, adaptive:Boolean): RDD[DenseVector[Double]] = {
+  protected def setWeight(bw:Double, kernel:String, adaptive:Boolean): RDD[DenseVector[Double]] = {
     if (_dist == null) {
       _dist = getDistRDD(_shpRDD)
       _disMax = _dist.map(t => max(t)).max

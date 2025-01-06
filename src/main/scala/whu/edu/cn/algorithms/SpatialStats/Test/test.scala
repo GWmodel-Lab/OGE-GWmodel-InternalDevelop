@@ -13,10 +13,10 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel,
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
 import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
-//import whu.edu.cn.algorithms.SpatialStats.GWModels.GWDA
-//import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
-//import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
-//import whu.edu.cn.algorithms.SpatialStats.GWModels.GTWR
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWDA
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
+import whu.edu.cn.algorithms.SpatialStats.GWModels.GTWR
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
@@ -54,9 +54,9 @@ object test {
     //    pca_test()
 
 
-//    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
+    //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEBNGLW", bandwidth=50,adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
-    //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
+    //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", 20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
     //    LinearRegression.LinearReg(shpfile,"aging", "GDP,pop")
     //    AverageNearestNeighbor.result(shpfile)
@@ -66,8 +66,8 @@ object test {
     //    TemporalAutoCorrelation.ACF(shpfile, "aging", 20)
     //    CorrelationAnalysis.corrMat(shpfile, "aging,GDP,pop,GI,sci_tech,education,revenue", method = "spearman")
     //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
-    //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 10, adaptive = true)
-    //    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "CV", adaptive = true)
+    //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)
+    //    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "AICc", adaptive = true)
     //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
@@ -85,29 +85,28 @@ object test {
     //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
     //    rddSample.foreach(println)
 
-    test()
+//    newGWR()
 
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
   }
 
-  def test()= {
-
-    val model=new GWRbasic(shpfile3)
-    model.setX("FLOORSZ")
-    model.setY("PURCHASE")
-    model.setWeight(bw = 98, kernel = "gaussian", adaptive = true)
-    val res=model.fitFunction()
-    val res_s=model.calDiagnostic(model.getX,model.getY,res._3,res._4)
-    println(res_s)
-    println("-------------")
+  def newGWR()= {
+//    val model=new GWRbasic(shpfile3)
+//    model.setX("FLOORSZ")
+//    model.setY("PURCHASE")
+//    model.setWeight(bw = 98, kernel = "gaussian", adaptive = true)
+//    val res=model.fitFunction()
+//    val res_s=model.calDiagnostic(model.getX,model.getY,res._3,res._4)
+//    println(res_s)
+//    println("-------------")
 //    val res2=GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",adaptive = true)
     val newRDD = shpfile3.map { case (id, (geometry, attributes)) =>
       val centroid = geometry.getCentroid()
       val newCoordinate = new Coordinate(centroid.getX + 500, centroid.getY + 500)
       val newPoint = geometry match {
-        case Point => centroid.getFactory.createPoint(newCoordinate)
+        case point: Point => centroid.getFactory.createPoint(newCoordinate)
         case _ =>
           geometry
       }
