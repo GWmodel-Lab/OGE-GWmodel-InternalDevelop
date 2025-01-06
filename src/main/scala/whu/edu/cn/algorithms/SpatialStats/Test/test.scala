@@ -9,6 +9,7 @@ import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnal
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LogisticRegression
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
@@ -58,7 +59,8 @@ object test {
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", 20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-    //    LinearRegression.LinearReg(shpfile,"aging", "GDP,pop")
+    //    LinearRegression.LinearReg(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY")
+    LogisticRegression.LogisticRegression(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
     //    AverageNearestNeighbor.result(shpfile)
     //    DescriptiveStatistics.describe(shpfile)
     //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
