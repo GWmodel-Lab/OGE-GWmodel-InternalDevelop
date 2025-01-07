@@ -41,23 +41,31 @@ object RipleysK {
     val adds = maxDs / nTimes
     val rek = calculate(dMat, area, nCounts, adds, nTimes)
     //random test
-    var maxk=new Array[(Double,Double)](nTimes)
-    maxk=rek.map(t=>(t._1,0.0))
-//    println(maxk.toVector)
+    var maxk = new Array[(Double, Double)](nTimes)
+    maxk = rek.map(t => (t._1, 0.0))
+    //    println(maxk.toVector)
     for (i <- 1 to nTests) {
       val randp = randomPoints(extents._1, extents._2, extents._3, extents._4, nCounts)
       val dist = arrayDist(randp, randp)
       val r = calculate(dist, area, nCounts, adds, nTimes).zipWithIndex
-      maxk=r.map(t => {
+      maxk = r.map(t => {
         (min(maxk(t._2)._1, t._1._2), max(maxk(t._2)._2, t._1._2))
       })
-//      println(r.toList)
-//      println(maxk.toVector)
+      //      println(r.toList)
+      //      println(maxk.toVector)
     }
-    val res=rek.zipWithIndex.map(t=>{
-      (t._1._1,t._1._2,maxk(t._2)._1,maxk(t._2)._2)
+    val res = rek.zipWithIndex.map(t => {
+      (t._1._1, t._1._2, maxk(t._2)._1, maxk(t._2)._2)
     })
-    val reStr="Dist,\t\tK-value,\t\tLowConf,\t\tHighConf\n"+res.mkString("\n")
+    // 字符宽度
+    val headers = "%-12s%-12s%-12s%-12s".format("Dist", "K-value", "LowConf", "HighConf")
+    // 格式化对齐
+    val data = res.map {
+      case (a, b, c, d) =>
+        "%-12.4f%-12.4f%-12.4f%-12.4f".format(a, b, c, d)
+    }.mkString("\n")
+    // 拼接
+    val reStr = s"$headers\n$data"
     println(reStr)
     reStr
   }
