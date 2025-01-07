@@ -4,8 +4,7 @@ import breeze.linalg.{DenseMatrix, DenseVector, norm, normalize}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.locationtech.jts.geom.{Coordinate, Point}
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics, RipleysK}
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics, RipleysK, PrincipalComponentAnalysis}
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression
@@ -52,11 +51,10 @@ object test {
 
     val t1 = System.currentTimeMillis()
 
-    //    pca_test()
-
     //    AverageNearestNeighbor.result(shpfile)
     //    DescriptiveStatistics.describe(shpfile)
     //    RipleysK.ripley(shpfile)
+    //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
 
     //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
     //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)
@@ -112,10 +110,6 @@ object test {
       (id, (newPoint, attributes))
     }
     GWRbasic.predict(sc, shpfile3, newRDD, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",bandwidth = 50, kernel = "gaussian", adaptive = true)
-  }
-
-  def pca_test():Unit= {
-    PCA(shpfile)
   }
 
   //这个是要写一个日期类型数据间隔计算的（甚至可以用到gtwr里面），现在的计算是单纯的数字相加减，希望支持yyyymmdd这些类型的
