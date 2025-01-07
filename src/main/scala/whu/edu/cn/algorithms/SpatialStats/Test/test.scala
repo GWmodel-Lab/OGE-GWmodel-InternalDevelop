@@ -51,10 +51,9 @@ object test {
 
     val t1 = System.currentTimeMillis()
     //    acf_test()
-    //    linear_test()
     //    pca_test()
-
-    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 1.0)
+    //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 0.5)
+    //    GTWR.autoFit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", 20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
@@ -72,6 +71,7 @@ object test {
     //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
+    //    testGWRpredict()
 
     //    println(Geodetector.factorDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
     //    println(Geodetector.interactionDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
@@ -86,23 +86,12 @@ object test {
     //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
     //    rddSample.foreach(println)
 
-//    newGWR()
-
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
   }
 
-  def newGWR()= {
-//    val model=new GWRbasic(shpfile3)
-//    model.setX("FLOORSZ")
-//    model.setY("PURCHASE")
-//    model.setWeight(bw = 98, kernel = "gaussian", adaptive = true)
-//    val res=model.fitFunction()
-//    val res_s=model.calDiagnostic(model.getX,model.getY,res._3,res._4)
-//    println(res_s)
-//    println("-------------")
-//    val res2=GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",adaptive = true)
+  def testGWRpredict()= {
     val newRDD = shpfile3.map { case (id, (geometry, attributes)) =>
       val centroid = geometry.getCentroid()
       val newCoordinate = new Coordinate(centroid.getX + 500, centroid.getY + 500)

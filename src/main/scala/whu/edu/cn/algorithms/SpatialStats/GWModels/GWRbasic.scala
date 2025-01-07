@@ -249,7 +249,7 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
     val shat = DenseMatrix.create(rows = si.collect().length, cols = si.collect().length, data = si.collect().flatMap(_.toArray))
     val yhat = getYHat(X, betas.collect())
     val residual = Y - yhat
-    val s = calDiagnostic(X, Y, residual, shat)
+    //    val s = calDiagnostic(X, Y, residual, shat)
     //    println(s)
     (betas.collect(), yhat, residual, shat)
   }
