@@ -156,8 +156,9 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
       setWeight(bw, _kernel, _adaptive)
     }
     val results = fitFunction(weight = newWeight)
-    //    results._1.foreach(println)
-    val betas = DenseMatrix.create(_cols, _rows, data = results._1.flatMap(t => t.toArray))
+//    results._1.take(20).foreach(println)
+//    val betas = DenseMatrix.create(_cols, _rows, data = results._1.flatMap(t => t.toArray))
+    val betas = results._1
     val arr_yhat = results._2.toArray
     val arr_residual = results._3.toArray
     val shpRDDidx = _shpRDD.collect().zipWithIndex
@@ -171,10 +172,9 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
       _nameUsed = _nameX
     }
     val name = Array("Intercept") ++ _nameUsed
-    for (i <- 0 until betas.rows) {
+    for (i <- 0 until _cols) {
       shpRDDidx.map(t => {
-        val a = betas(i, t._2)
-        t._1._2._2 += (name(i) -> a)
+        t._1._2._2 += (name(i) -> betas(t._2)(i))
       })
     }
     var bw_type = "Fixed"
@@ -327,7 +327,7 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
         s"Prediction established for $pn points \n" +
         "*********************************************************************************\n"
 //      shpRDDidx.foreach(t=>println(t._1._2._2))
-      println(fitString)
+//      println(fitString)
       (shpRDDidx.map(t => t._1), fitString)
     }
 
@@ -559,6 +559,7 @@ object GWRbasic {
     model.initPredict(predictRDD)
     val re=model.predict(predictRDD,bw = bandwidth, kernel = kernel, adaptive = adaptive)
     //    print(re._2)
+    Service.print(re._2,"Basic GWR prediction with specific bandwidth","String")
     sc.makeRDD(re._1)
   }
 

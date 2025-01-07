@@ -13,10 +13,11 @@ import scala.collection.mutable
 
 class GTWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extends GWRbasic(inputRDD) {
 
-  private var _timestamps: DenseVector[Double] = DenseVector.ones(1)
+  private var _timestamps: DenseVector[Double] = _
   private var _stdist: Array[DenseVector[Double]] = _
-  protected var _sdist: Array[Tuple2[DenseVector[Double], Int]] = _
-  protected var _tdist: Array[DenseVector[Double]] = _
+  private var _sdist: Array[Tuple2[DenseVector[Double], Int]] = _
+  private var _tdist: Array[DenseVector[Double]] = _
+
   private var _stWeightArray: Array[DenseVector[Double]] = _
 
 //  private var _stdist: RDD[DenseVector[Double]] = _
@@ -26,11 +27,19 @@ class GTWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
   private var _lambda = 0.05
 
   def setT(property: String): Unit = {
-    _timestamps = DenseVector(_shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
+    if (property.isEmpty()) {
+      _timestamps = DenseVector.ones[Double](_rows)
+    } else {
+      _timestamps = DenseVector(_shpRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect())
+    }
   }
 
-  def setLambda(l: Double): Unit = {
-    _lambda = l
+  def setLambda(lambda: Double): Unit = {
+    if (lambda < 0 || lambda > 1) {
+      throw new IllegalArgumentException("lambda must in [0,1]")
+    } else {
+      _lambda = lambda
+    }
   }
 
   def setDist(): Unit = {
@@ -69,7 +78,7 @@ class GTWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
       _kernel = kernel
       _adaptive = adaptive
     }
-    _stWeightArray = _stdist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive)) //问题在这个不对，计算的时候，转化为fix的结果不对。
+    _stWeightArray = _stdist.map(t => getSpatialweightSingle(t, bw = bw, kernel = kernel, adaptive = adaptive))
     //    spweight_dvec.foreach(t=>println(t))
 //    _spWeight = getSpatialweight(_stdist, bw = bw, kernel = kernel, adaptive = adaptive)
 //    getSpatialweight(_dist, bw = bw, kernel = kernel, adaptive = adaptive)
@@ -83,7 +92,8 @@ class GTWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     } else {
       throw new IllegalArgumentException("bandwidth should be over 0 or spatial weight should be initialized")
     }
-    val results = fitArrFunction(_dmatX, _dvecY, _stWeightArray) //fix的结果有问题？
+    val results = fitArrFunction(_dmatX, _dvecY, _stWeightArray)
+//    results._1.take(20).foreach(println)
     val betas = DenseMatrix.create(_cols, _rows, data = results._1.flatMap(t => t.toArray))
     val arr_yhat = results._2.toArray
     val arr_residual = results._3.toArray
@@ -104,19 +114,17 @@ class GTWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
         t._1._2._2 += (name(i) -> a)
       })
     }
-    var bw_type = "Fixed"
-    if (adaptive) {
-      bw_type = "Adaptive"
-    }
+    val bw_type = if (adaptive) "Adaptive" else "Fixed"
+
     val fitFormula = _nameY + " ~ " + _nameX.mkString(" + ")
     var fitString = "\n*********************************************************************************\n" +
-      "*               Results of Geographically t Weighted Regression                   *\n" +
+      "*           Results of Geographically Temporally Weighted Regression            *\n" +
       "*********************************************************************************\n" +
       "**************************Model calibration information**************************\n" +
       s"Formula: $fitFormula" +
       s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$bw%.2f\nlambda: ${_lambda}%.2f\n"
     fitString += calDiagnostic(_dmatX, _dvecY, results._3, results._4)
-    println(fitString)
+//    println(fitString)
     (shpRDDidx.map(t => t._1), fitString)
   }
 
@@ -124,9 +132,8 @@ class GTWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
   (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseVector[Double]]) = {
     //    val xtw = weight.map(w => eachColProduct(X, w).t)
     val xtw = weight.map(w => {
-      val v1 = (DenseVector.ones[Double](_rows) * w).toArray
       val xw = _dvecX.flatMap(t => (t * w).toArray)
-      DenseMatrix.create(_rows, _cols, data = v1 ++ xw).t
+      DenseMatrix.create(_rows, _cols, data = xw).t
     })
     val xtwx = xtw.map(t => t * X)
     val xtwy = xtw.map(t => t * Y)
@@ -186,10 +193,10 @@ object GTWR {
    * @param bandwidth   bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
-   * @param lambda
+   * @param lambda      lambda value for spatial-temporal distance
    * @return featureRDD and diagnostic String
    */
-  def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String, propertiesT: String,
+  def fit(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String, propertiesT: String = "",
           bandwidth: Double, kernel: String = "gaussian", adaptive: Boolean = false, lambda: Double=0.05)
   : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     val model = new GTWR(featureRDD)
@@ -199,7 +206,7 @@ object GTWR {
     model.setLambda(lambda)
     val re = model.fit(bw = bandwidth, kernel = kernel, adaptive = adaptive)
     //    print(re._2)
-//    Service.print(re._2, "Basic GWR calculation with specific bandwidth", "String")
+    Service.print(re._2, "GTWR calculation", "String")
     sc.makeRDD(re._1)
   }
 }

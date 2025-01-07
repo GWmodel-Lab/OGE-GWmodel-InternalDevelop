@@ -54,13 +54,12 @@ object test {
     //    linear_test()
     //    pca_test()
 
-
-    //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEBNGLW", bandwidth=50,adaptive=true, lambda = 0.5)
+    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 1.0)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", 20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-    //    LinearRegression.LinearReg(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY")
-    LogisticRegression.LogisticRegression(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
+    //    LinearRegression.LinearReg(sc, shpfile, "aging", "PCGDP,GI,FD,education")
+    //    LogisticRegression.LogisticRegression(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
     //    AverageNearestNeighbor.result(shpfile)
     //    DescriptiveStatistics.describe(shpfile)
     //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)

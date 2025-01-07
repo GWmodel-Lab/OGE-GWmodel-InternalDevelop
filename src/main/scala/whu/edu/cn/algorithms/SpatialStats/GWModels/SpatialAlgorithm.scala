@@ -30,7 +30,7 @@ class SpatialAlgorithm(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any
   //构造函数会自动调用
   init(inputRDD)
 
-  def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {
+  protected def init(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]): Unit = {
     _geom = getGeometry(inputRDD)
     _shpRDD = inputRDD
     if (_dist == null) {
