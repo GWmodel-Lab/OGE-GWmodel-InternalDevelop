@@ -8,6 +8,7 @@ import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnal
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression
+import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LogisticRegression
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
@@ -20,10 +21,12 @@ import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, S
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
-import whu.edu.cn.oge.Feature._
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging.{OrdinaryKriging, selfDefinedKriging}
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.interpolationUtils
 import whu.edu.cn.util.ShapeFileUtil._
 import breeze.linalg.{norm, normalize}
 import breeze.numerics._
+
 
 object test {
   //global variables
@@ -32,16 +35,16 @@ object test {
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
-  val shpPath: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\cn_aging.shp"
+  val shpPath: String = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/cn_aging.shp"
   val shpfile = readShp(sc, shpPath, encode)
 
-  val shpPath2: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\MississippiHR.shp"
+  val shpPath2: String = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/points.shp"
   val shpfile2 = readShp(sc, shpPath2, encode)
 
-  val shpPath3: String = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\LNHP100.shp"
+  val shpPath3: String = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/LNHP100.shp"
   val shpfile3 = readShp(sc, shpPath3, encode)
 
-  val csvpath = "src\\main\\scala\\whu\\edu\\cn\\algorithms\\SpatialStats\\Test\\testdata\\test_aqi.csv"
+  val csvpath = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
   //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
 
@@ -52,13 +55,20 @@ object test {
     //    linear_test()
     //    pca_test()
 
+    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
+//    interpolationUtils.makeTIFF(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
 
+
+
+
+//    selfDefinedKriging(sc,shpfile2,"z",10,10,"Sph",0.1,0.1,0.1)
 
 //    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-    //    LinearRegression.LinearReg(shpfile,"aging", "GDP,pop")
+    //    LinearRegression.LinearReg(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY")
+    LogisticRegression.LogisticRegression(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
     //    AverageNearestNeighbor.result(shpfile)
     //    DescriptiveStatistics.describe(shpfile)
     //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
