@@ -25,14 +25,17 @@ object PrincipalComponentAnalysis {
    * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
    * @return DenseMatrix[Double] 结果为降维处理后的数据
    */
-  def PCA(testshp: RDD[(String, (Geometry, Map[String, Any]))]): DenseMatrix[Double] = {
+  def PCA(testshp: RDD[(String, (Geometry, Map[String, Any]))],properties: String,
+          keep: Int=2, split: String = ",",is_scale: Boolean = false): DenseMatrix[Double] = {
     //原始的数据
-    val pArr: Array[String] = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE") //属性字符串数组
+    val pArr= properties.split(split)
+    if(keep>properties.length){
+      throw new IllegalArgumentException("the principal components should be less than properties input value")
+    }
+    //    val pArr: Array[String] = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE") //属性字符串数组
     var lst = shpToList(testshp, pArr(0))
     val col = pArr.length
     val row = lst.length
-    var i = 0;
-    var j = 0;
     val matrix = new DenseMatrix[Double](row, col)
     for (i <- 0 to (col - 1)) {
       lst = shpToList(testshp, pArr(i))
@@ -40,8 +43,8 @@ object PrincipalComponentAnalysis {
         matrix(j, i) = lst(j)
       }
     }
-    //选择top2的特征
-    val s = generatePCA(matrix, 2)
+    //选择topK的特征
+    val s = generatePCA(matrix, keep, pArr,is_scale)
     s
   }
 
@@ -81,36 +84,95 @@ object PrincipalComponentAnalysis {
    * @param topK Int的形式
    * @return DenseMatrix[Double]
    */
-  def generatePCA(A: DenseMatrix[Double], topK: Int): DenseMatrix[Double] = {
+  def generatePCA(A: DenseMatrix[Double], topK: Int, varName: Array[String],is_scale: Boolean = false): DenseMatrix[Double] = {
 
     val B = A.copy
-    val avg = sum(B, Axis._0).inner.map(_ / B.rows)
+    val avg = sum(B, Axis._0).inner.map(_ / B.rows) // center
+
+    //    println(f"is_scale:$is_scale")
+    val scale =DenseVector.ones[Double](B.cols)
+    if(is_scale){
+      for(j <- 0 until B.cols){
+        scale.update(j,breeze.stats.stddev(B(::,j)))
+      }
+    }
+    //    println(f"scale:\n$scale")
 
     //中心化处理
     for (i <- 0 to B.rows - 1; j <- 0 to B.cols - 1) {
       val o = BigDecimal(B.apply(i, j))
       val jj = BigDecimal(avg.apply(j))
-      B.update(i, j, (o - jj).toDouble)
+      val updated = (o-jj).toDouble/scale(j)
+      B.update(i, j, updated)
     }
-    val ratio = 1 / (B.rows.toDouble - 1)
 
-    //求协方差矩阵
-    val C = (B.t * B).map(_ * ratio)
-    val featuresInfo = eigSym(C)
-    val eigenvalues = featuresInfo.eigenvalues
-//    println("特征值  " + eigenvalues)
-    val eigenvectors: DenseMatrix[Double] = featuresInfo.eigenvectors
-//    println("特征向量 " + eigenvectors)
-    //降维处理
-    val tuples: immutable.Seq[(Int, Double)] = for (i <- 0 to eigenvalues.toArray.length - 1) yield ((i, eigenvalues.toArray.apply(i)))
-    val indexs: immutable.Seq[Int] = tuples.sortWith(((t1: (Int, Double), t2: (Int, Double)) => t1._2.compareTo(t2._2) > 0)).take(2).map(_._1)
-    val D: DenseMatrix[Double] = selectCols(eigenvectors, indexs.toArray)
+    //奇异值分解
+    val svd = breeze.linalg.svd(B)
+    val U = svd.leftVectors
+    val S = svd.singularValues
+    val eigenvalues = S.map(t => t*t)
+    val resPC = DenseMatrix.zeros[Double](B.rows,topK)// dimension reduced
+    for(i <- 0 until topK){
+      val score_i = U(::,i)*S(i)
+      resPC(::,i) := score_i
+    }
 
-    println("原始数据")
-    println(A)
-    println("降维处理后")
-    println(A*D)
-    A * D
+    // print original data
+    val A_print : DenseMatrix[String] = DenseMatrix.zeros(A.rows+1,A.cols)
+    for(i<- 0 until A_print.rows){
+      for(j<- 0 until A_print.cols){
+        A_print(i,j) = if(i==0){
+          varName(j)
+        } else{
+          A(i-1,j).formatted("%.4f")
+        }
+      }
+    }
+
+    // stdDev, proportion of variance, cumulative proportion
+    val importance : DenseMatrix[String] = DenseMatrix.zeros(4,resPC.cols+1)
+    importance(0,0)=""
+    importance(1,0)="Standard Deviation"
+    importance(2,0)="Proportion of Variance"
+    importance(3,0)="Cumulative Proportion"
+    val totalVar = sum(eigenvalues)
+    val propVar = eigenvalues.map(_/totalVar)
+    val cumulProp = DenseVector.zeros[Double](eigenvalues.length)
+    //    println(f"totalVar:$totalVar")
+    //    println(f"propVar:$propVar")
+    //    println(f"cumulProp:$cumulProp")
+    cumulProp(0) = propVar(0)
+    for(i <- 1 until eigenvalues.length){
+      cumulProp(i) = cumulProp(i-1) + propVar(i)
+    }
+    for (j <- 0 until resPC.cols) {
+      importance(0,j+1) = f"PC${j+1}"
+      importance(1,j+1) = breeze.stats.stddev(resPC(::,j)).formatted("%.4f").toString // stddev
+      importance(2,j+1) = propVar(j).formatted("%.4f").toString
+      importance(3,j+1) = cumulProp(j).formatted("%.4f").toString
+    }
+
+    // print processed data
+    val res_rows = min(resPC.rows, 10)
+    val res_print: DenseMatrix[String] = DenseMatrix.zeros(res_rows + 1, resPC.cols)
+    for(i<- 0 until res_print.rows){
+      for(j<- 0 until res_print.cols){
+        res_print(i, j) = if (i == 0) {
+          f"PC${j+1}"
+        } else {
+          resPC(i - 1, j).formatted("%.4f")
+        }
+      }
+    }
+
+    var str_1st10 = if(resPC.rows>10){"(First 10)"}else{""}
+    var str = "\n*******************Summary of PCA*******************\n"
+    str += s"Number of Principal Components(PCs): ${topK}\nImportance of Components:\n"+ f"${importance}\n"+
+//      "\nOriginal Data (First 10):\n" + f"${A_print}\n...\n" +
+      "\nProcessed Data " + str_1st10 + ":\n" + f"${res_print}\n"
+    str += "****************************************************\n"
+    print(str)
+    resPC
   }
 }
 
