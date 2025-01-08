@@ -15,7 +15,7 @@ object FeatureSpatialWeight {
   //  }
 
   /**
-   * 对距离RDD进行权重向量求解，尤其是通过getRDDDistRDD函数得到的距离
+   * 对距离RDD进行权重向量求解，尤其是通过getDistRDD函数得到的距离
    *
    * @param distRDD    Distance RDD
    * @param bw       Bandwidth size

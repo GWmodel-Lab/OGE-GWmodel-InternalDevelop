@@ -1,10 +1,10 @@
 package whu.edu.cn.algorithms.SpatialStats.Test
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{DenseMatrix, DenseVector, norm, normalize}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics}
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.PrincipalComponentAnalysis.PCA
+import org.locationtech.jts.geom.{Coordinate, Point}
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics, RipleysK, PrincipalComponentAnalysis}
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LinearRegression
@@ -46,61 +46,73 @@ object test {
 
   val csvpath = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/test_aqi.csv"
   val csvdata = readcsv(sc, csvpath)
-  //写成无参数的函数形式来进行测试，方便区分，以后可以改成 catch...if... 形式
 
   def main(args: Array[String]): Unit = {
 
     val t1 = System.currentTimeMillis()
-    //    acf_test()
-    //    linear_test()
-    //    pca_test()
 
-    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
-//    interpolationUtils.makeTIFF(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
+    //    AverageNearestNeighbor.result(shpfile)
+    //    DescriptiveStatistics.describe(shpfile)
+    //    RipleysK.ripley(shpfile)
+    //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
 
-
-
-
-//    selfDefinedKriging(sc,shpfile2,"z",10,10,"Sph",0.1,0.1,0.1)
-
-//    GTWR.fit(sc,shpfile3,"y","x1,x2,x3","t", bandwidth=100,adaptive=true, lambda = 0.5)
+    //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
+    //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)
+    //    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "AICc", adaptive = true)
+    //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 0.5)
+    //    GTWR.autoFit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
+    //    testGWRpredict()
+
+    //    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
+    //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
+    //    selfDefinedKriging(sc,shpfile2,"z",10,10,"Sph",0.1,0.1,0.1)
+
     //    LinearRegression.LinearReg(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY")
-    LogisticRegression.LogisticRegression(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
-    //    AverageNearestNeighbor.result(shpfile)
-    //    DescriptiveStatistics.describe(shpfile)
-    //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
-    //    SpatialAutoCorrelation.localMoranI(shpfile, "aging")
-    //    TemporalAutoCorrelation.ACF(shpfile, "aging", 20)
-    //    CorrelationAnalysis.corrMat(shpfile, "aging,GDP,pop,GI,sci_tech,education,revenue", method = "spearman")
-    //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
-    //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 10, adaptive = true)
-    //    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "CV", adaptive = true)
+    //    LogisticRegression.LogisticRegression(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
     //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
 
-    //    println(Geodetector.factorDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
-    //    println(Geodetector.interactionDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
-    //    println(Geodetector.ecologicalDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
-    //    println(Geodetector.riskDetector(shpfile3, "PURCHASE", "FLOORSZ,TYPEDETCH,TYPETRRD,TYPEBNGLW,BLDPOSTW"))
-    //    println(Geodetector.factorDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
-    //    println(Geodetector.interactionDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
-    //    println(Geodetector.ecologicalDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
-    //    println(Geodetector.riskDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,SIP,TIP,PIP,pop,city,employee"))
-    //    println(Geodetector.riskDetector(shpfile, "GDP", "province"))
-    //    println(Geodetector.interactionDetector(shpfile2, "HR60", "PO60,DV60,STATE_NAME"))
+    //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
+    //    SpatialAutoCorrelation.localMoranI(sc, shpfile, "aging")
+    //    TemporalAutoCorrelation.ACF(shpfile, "aging", 20)
+    //    CorrelationAnalysis.corrMat(shpfile, "aging,GDP,pop,GI,sci_tech,education,revenue", method = "spearman")
+    //    acf_test()
+
+    //    println(Geodetector.factorDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,pop,city,employee"))
+    //    println(Geodetector.interactionDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,pop,city,employee"))
+    //    println(Geodetector.ecologicalDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,pop,city,employee"))
+    //    println(Geodetector.riskDetector(shpfile, "aging", "PCGDP,GI,FD,education,GDP,province,pop,city,employee"))
+
     //    val rddSample=SandwichSampling.sampling(sc, shpfile3,"PURCHASE", "FLOORSZ", "TYPEDETCH")
     //    rddSample.foreach(println)
-    PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
+    //    randomSampling(sc, shpfile2)
+    //    regularSampling(sc, shpfile2)
+    //    stratifiedSampling(sc, shpfile2, "aging")
 
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
   }
 
+  def testGWRpredict()= {
+    val newRDD = shpfile3.map { case (id, (geometry, attributes)) =>
+      val centroid = geometry.getCentroid()
+      val newCoordinate = new Coordinate(centroid.getX + 500, centroid.getY + 500)
+      val newPoint = geometry match {
+        case point: Point => centroid.getFactory.createPoint(newCoordinate)
+        case _ =>
+          geometry
+      }
+      (id, (newPoint, attributes))
+    }
+    GWRbasic.predict(sc, shpfile3, newRDD, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",bandwidth = 50, kernel = "gaussian", adaptive = true)
+  }
+
+  //这个是要写一个日期类型数据间隔计算的（甚至可以用到gtwr里面），现在的计算是单纯的数字相加减，希望支持yyyymmdd这些类型的
   def acf_test(): Unit = {
     val t1 = System.currentTimeMillis()
     //test date calculator
