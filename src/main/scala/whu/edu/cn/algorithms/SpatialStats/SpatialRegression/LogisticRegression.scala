@@ -46,9 +46,9 @@ object LogisticRegression extends Algorithm {
     _dvecY = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
 
-  def LogisticRegression(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
-                       y: String, x: String, Intercept: Boolean = true,
-                       maxIter: Int = 100, epsilon: Double = 1e-6,learningRate: Double = 0.01)
+  def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
+          y: String, x: String, Intercept: Boolean = true,
+          maxIter: Int = 100, epsilon: Double = 1e-6, learningRate: Double = 0.01)
   : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     _data = data.map(t=>t._2._2)
     setX(x)
@@ -141,6 +141,8 @@ object LogisticRegression extends Algorithm {
       str += f"${_nameX(i-1)}: ${weights(i).formatted("%.6f")}\n"
     }
 
+    str += diagnostic(X, Y, devRes, _df)
+
 //    str += "\n"
 //    str += f"${res.toArray.min},${res.toArray.max},${res.toArray.sum/res.length}\n"
 
@@ -169,6 +171,42 @@ object LogisticRegression extends Algorithm {
     }
 
     z.map(x => if (1.0 / (1.0 + math.exp(-x)) > 0.5) 1.0 else 0.0)
+  }
+
+  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], devRes: DenseVector[Double], df: Double): String = {
+    val n = X.rows.toDouble
+    val p = df
+
+    // deviance of null model
+    val y_mean = breeze.stats.mean(Y)
+    val null_deviance = Y.toArray.map(yi => {
+      if(yi==1){
+        -2 * math.log(y_mean)
+      }else{
+        -2 * math.log(1-y_mean)
+      }
+    }).sum
+
+    // deviance redisuals square sum
+    val residual_deviance = sum(devRes.map(x => x*x))
+
+    // Cox & Snell R2, Nagelkerke R2
+    val cox_snall_r2 = 1 - math.exp((residual_deviance - null_deviance)/n)
+    val nagelkerke_r2 = cox_snall_r2/(1-math.exp(-null_deviance/n))
+
+    //AIC
+    val aic = residual_deviance + 2*(p+1)
+
+    // degree of freedom
+    val null_df = n-1
+    val residual_df = n-p-1
+
+    val res = "\nDiagnostics:\n"+
+    f"Null deviance:     $null_deviance%.2f on $null_df%.0f degrees of freedom\n"+
+    f"Residual deviance: $residual_deviance%.2f on $residual_df%.0f degrees of freedom\n"+
+    f"AIC: $aic%.2f\n"+
+    f"Pseudo R-squared: $nagelkerke_r2%.4f\n"
+    res
   }
 
 
