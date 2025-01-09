@@ -48,7 +48,7 @@ object LogisticRegression extends Algorithm {
 
   def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
           y: String, x: String, Intercept: Boolean = true,
-          maxIter: Int = 100, epsilon: Double = 1e-6, learningRate: Double = 0.01)
+          maxIter: Int = 100, epsilon: Double = 1e-6)
   : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     _data = data.map(t=>t._2._2)
     setX(x)
