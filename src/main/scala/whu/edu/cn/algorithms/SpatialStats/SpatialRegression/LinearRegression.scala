@@ -112,7 +112,8 @@ object LinearRegression extends Algorithm {
     var str = "\n********************Results of Linear Regression********************\n"
     val str_split = ""
     var formula = f"${y} ~ "
-    for (i <- 1 until X.cols) {
+    val X_max = if(Intercept) X.cols else X.cols + 1
+    for (i <- 1 until X_max) {
       if (i == 1) {
         formula += f"${_nameX(i - 1)} "
       } else {
@@ -137,9 +138,13 @@ object LinearRegression extends Algorithm {
     str += "Coefficients:\n"
     if (Intercept) {
       str += f"Intercept:${betas(0).formatted("%.6f")}\n"
-    }
-    for (i <- 1 until (X.cols)) {
-      str += f"${_nameX(i - 1)}: ${betas(i).formatted("%.6f")}\n"
+      for (i <- 1 until (X.cols)) {
+        str += f"${_nameX(i - 1)}: ${betas(i).formatted("%.6f")}\n"
+      }
+    }else{
+      for (i <- 0 until (X.cols)) {
+        str += f"${_nameX(i)}: ${betas(i).formatted("%.6f")}\n"
+      }
     }
 
     str += diagnostic(X, Y, residual, _df)

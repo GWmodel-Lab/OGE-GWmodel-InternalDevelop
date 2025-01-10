@@ -116,13 +116,15 @@ object LogisticRegression extends Algorithm {
     var str = "\n********************Results of Logistic Regression********************\n"
 
     var formula = f"${y} ~ "
-    for(i <- 1 until X.cols){
+    val X_max = if(Intercept) X.cols else X.cols + 1
+    for(i <- 1 until X_max){
       if (i==1){
       formula += f"${_nameX(i-1)} "
       }else{
         formula += f"+ ${_nameX(i-1)} "
       }
     }
+
     str += "Formula:\n" + formula + f"\n"
 
     str += "\n"
@@ -136,9 +138,13 @@ object LogisticRegression extends Algorithm {
     str += "Coefficients:\n"
     if(Intercept){
       str += f"Intercept:${weights(0).formatted("%.6f")}\n"
-    }
-    for(i <- 1 until (X.cols)){
-      str += f"${_nameX(i-1)}: ${weights(i).formatted("%.6f")}\n"
+      for (i <- 1 until (X.cols)) {
+        str += f"${_nameX(i - 1)}: ${weights(i).formatted("%.6f")}\n"
+      }
+    }else{
+      for(i <- 0 until (X.cols)){
+        str += f"${_nameX(i)}: ${weights(i).formatted("%.6f")}\n"
+      }
     }
 
     str += diagnostic(X, Y, devRes, _df)
