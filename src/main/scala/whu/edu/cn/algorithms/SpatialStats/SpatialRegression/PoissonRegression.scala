@@ -3,6 +3,7 @@ package whu.edu.cn.algorithms.SpatialStats.SpatialRegression
 import breeze.linalg.{DenseMatrix, DenseVector, max}
 import breeze.linalg._
 import breeze.numerics._
+import breeze.stats.distributions.Poisson
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
@@ -132,7 +133,8 @@ object PoissonRegression extends Algorithm {
     var str = "\n********************Results of Poisson Regression********************\n"
 
     var formula = f"${y} ~ "
-    for (i <- 1 until X.cols) {
+    val X_max = if(Intercept) X.cols else X.cols + 1
+    for (i <- 1 until X_max) {
       if (i == 1) {
         formula += f"${_nameX(i - 1)} "
       } else {
@@ -157,9 +159,11 @@ object PoissonRegression extends Algorithm {
       }
     }else{
       for (i <- 0 until (X.cols)) {
-        str += f"${_nameX(i - 1)}: ${beta(i).formatted("%.6f")}\n"
+        str += f"${_nameX(i)}: ${beta(i).formatted("%.6f")}\n"
       }
     }// need to fix at linear and logistic
+
+    str += diagnostic(X, Y, devRes, _df, mu,weights,Intercept)
 
     str += "\n"
     str += f"Number of Iterations: ${iter}\n"
@@ -169,9 +173,48 @@ object PoissonRegression extends Algorithm {
     Service.print(str,"Poisson Regression for feature","String")
   }
 
-  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], devRes: DenseVector[Double], df: Double): String = {
+  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], devRes: DenseVector[Double], df: Double,
+                           mu: DenseVector[Double], weights: DenseVector[Double], Intercept: Boolean ): String = {
 
-    ""
+    val n = X.rows.toDouble
+    val p = df
+
+    // deviance of null model
+    val y_mean = breeze.stats.mean(Y)
+    val null_deviance = if(Intercept){
+      Y.toArray.map(yi => {
+      if (yi == 1) {
+        -2 * math.log(y_mean)
+      } else {
+        -2 * yi* math.log(y_mean/yi)
+      }
+    }).sum
+    } else {
+      Y.toArray.zip(mu.toArray).map{case(yi,m) => {
+        if (yi == 1) {
+          -2 * math.log(m)
+        } else {
+          -2 * yi * math.log(m/ yi)
+        }
+      }}.sum // null deviance is required to fix when Intercept == false
+    }
+
+
+    // deviance redisuals square sum
+    val residual_deviance = sum(devRes.map(x => x * x))
+
+    //AIC
+    val aic = calculateAIC(Y.toArray,n.toInt,mu.toArray,weights.toArray, p, Intercept)
+
+    // degree of freedom
+    val null_df = if(Intercept) n - 1 else n
+    val residual_df = if(Intercept) n - p - 1 else n - p
+
+    "\nDiagnostics:\n"+
+      f"Null deviance:     $null_deviance%.2f on $null_df%.0f degrees of freedom\n" +
+      f"Residual deviance: $residual_deviance%.2f on $residual_df%.0f degrees of freedom\n" +
+      f"AIC: $aic%.2f\n"
+      //f"Pseudo R-squared: $nagelkerke_r2%.4f\n"
   }
 
   private def calculateDeviance(y: DenseVector[Double], mu: DenseVector[Double],
@@ -201,5 +244,17 @@ object PoissonRegression extends Algorithm {
       res(i) = a(i) / b(i)
     }
     res
+  }
+
+  def calculateAIC(y: Array[Double], n: Int, mu: Array[Double], wt: Array[Double], p: Double, Intercept: Boolean): Double = {
+    // 计算 AIC
+    val aic = -2 * (y.zip(mu).zip(wt).map { case ((yValue, muValue), weight) =>
+      if (yValue > 0) {
+        Poisson(muValue).logProbabilityOf(yValue.toInt) * weight // 计算对数似然值并乘以权重
+      } else {
+        0.0 // 对于 y <= 0 的情况，返回0
+      }
+    }.sum) + 2 * (p + 1)
+    if (Intercept) aic else aic - 2 // intercept = false, p+1 => p
   }
 }

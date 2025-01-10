@@ -70,7 +70,7 @@ object test {
 
     //    LinearRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY")
     //    LogisticRegression.fit(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
-    PoissonRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY")
+    PoissonRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
     //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
