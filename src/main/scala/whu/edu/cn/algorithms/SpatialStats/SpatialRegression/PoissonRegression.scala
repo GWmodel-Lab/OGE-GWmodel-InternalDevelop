@@ -179,26 +179,16 @@ object PoissonRegression extends Algorithm {
     val n = X.rows.toDouble
     val p = df
 
-    // deviance of null model
+    // deviance of null model, y > 0
     val y_mean = breeze.stats.mean(Y)
     val null_deviance = if(Intercept){
-      Y.toArray.map(yi => {
-      if (yi == 1) {
-        -2 * math.log(y_mean)
-      } else {
-        -2 * yi* math.log(y_mean/yi)
-      }
-    }).sum
+      Y.toArray.map(yi => -2 * yi* math.log(y_mean/yi)).sum
     } else {
       Y.toArray.zip(mu.toArray).map{case(yi,m) => {
-        if (yi == 1) {
-          -2 * math.log(m)
-        } else {
-          -2 * yi * math.log(m/ yi)
-        }
-      }}.sum // null deviance is required to fix when Intercept == false
+          //-2 * math.log(m)
+          2 * (yi * math.log(yi) - (yi))
+      }}.sum + 2 * n
     }
-
 
     // deviance redisuals square sum
     val residual_deviance = sum(devRes.map(x => x * x))
