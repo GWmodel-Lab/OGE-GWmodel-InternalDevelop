@@ -147,7 +147,7 @@ object LogisticRegression extends Algorithm {
       }
     }
 
-    str += diagnostic(X, Y, devRes, _df)
+    str += diagnostic(X, Y, devRes, _df, Intercept)
 
 //    str += "\n"
 //    str += f"${res.toArray.min},${res.toArray.max},${res.toArray.sum/res.length}\n"
@@ -179,7 +179,8 @@ object LogisticRegression extends Algorithm {
     z.map(x => if (1.0 / (1.0 + math.exp(-x)) > 0.5) 1.0 else 0.0)
   }
 
-  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], devRes: DenseVector[Double], df: Double): String = {
+  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double],
+                           devRes: DenseVector[Double], df: Double, Intercept: Boolean): String = {
     val n = X.rows.toDouble
     val p = df
 
@@ -201,11 +202,11 @@ object LogisticRegression extends Algorithm {
     val nagelkerke_r2 = cox_snall_r2/(1-math.exp(-null_deviance/n))
 
     //AIC
-    val aic = residual_deviance + 2*(p+1)
+    val aic = if(Intercept)residual_deviance + 2*(p+1) else residual_deviance + 2*p
 
     // degree of freedom
-    val null_df = n-1
-    val residual_df = n-p-1
+    val null_df = if(Intercept)n-1 else n
+    val residual_df = if(Intercept)n-p-1 else n-p
 
     val res = "\nDiagnostics:\n"+
     f"Null deviance:     $null_deviance%.2f on $null_df%.0f degrees of freedom\n"+
