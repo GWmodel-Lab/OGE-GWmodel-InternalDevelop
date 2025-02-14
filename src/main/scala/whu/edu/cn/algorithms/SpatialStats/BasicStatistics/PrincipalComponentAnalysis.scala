@@ -23,13 +23,17 @@ object PrincipalComponentAnalysis {
    * 输入RDD，对数据进行主成分分析
    *
    * @param testshp RDD[(String, (Geometry, Map[String, Any]))]的形式
-   * @return DenseMatrix[Double] 结果为降维处理后的数据
+   * @param properties String的形式
+   * @param keep Int的形式
+   * @param split String的形式
+   * @param is_scale Boolean的形式
+   * @return String 结果为降维处理后的总结
    */
-  def PCA(testshp: RDD[(String, (Geometry, Map[String, Any]))],properties: String,
-          keep: Int=2, split: String = ",",is_scale: Boolean = false): DenseMatrix[Double] = {
+  def PCA(testshp: RDD[(String, (Geometry, Map[String, Any]))], properties: String,
+          keep: Int = 2, split: String = ",", is_scale: Boolean = false): String = {
     //原始的数据
-    val pArr= properties.split(split)
-    if(keep>properties.length){
+    val pArr = properties.split(split)
+    if (keep > properties.length) {
       throw new IllegalArgumentException("the principal components should be less than properties input value")
     }
     //    val pArr: Array[String] = Array[String]("PROF", "FLOORSZ", "UNEMPLOY", "PURCHASE") //属性字符串数组
@@ -44,7 +48,7 @@ object PrincipalComponentAnalysis {
       }
     }
     //选择topK的特征
-    val s = generatePCA(matrix, keep, pArr,is_scale)
+    val s = generatePCA(matrix, keep, pArr, is_scale)
     s
   }
 
@@ -82,9 +86,11 @@ object PrincipalComponentAnalysis {
    *
    * @param A DenseMatrix[Double]的形式
    * @param topK Int的形式
-   * @return DenseMatrix[Double]
+   * @param varName Array[String]的形式
+   * @param is_scale Boolean的形式
+   * @return String
    */
-  def generatePCA(A: DenseMatrix[Double], topK: Int, varName: Array[String],is_scale: Boolean = false): DenseMatrix[Double] = {
+  def generatePCA(A: DenseMatrix[Double], topK: Int, varName: Array[String],is_scale: Boolean = false): String = {
 
     val B = A.copy
     val avg = sum(B, Axis._0).inner.map(_ / B.rows) // center
@@ -172,7 +178,8 @@ object PrincipalComponentAnalysis {
       "\nProcessed Data " + str_1st10 + ":\n" + f"${res_print}\n"
     str += "****************************************************\n"
     print(str)
-    resPC
+    //resPC
+    str
   }
 }
 
