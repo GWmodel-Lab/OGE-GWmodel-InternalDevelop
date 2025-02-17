@@ -149,13 +149,13 @@ object LinearRegression extends Algorithm {
 
     str += diagnostic(X, Y, residual, _df,Intercept)
     str += "**********************************************************************\n"
-    //    print(str)
+    Service.print(str, "Linear Regression for feature", "String")
+
     val shpRDDidx = data.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1._2._2 += ("yhat" -> y_hat(t._2.toInt))
       t._1._2._2 += ("residual" -> residual(t._2.toInt))
     })
-    Service.print(str, "Linear Regression for feature", "String")
     sc.makeRDD(shpRDDidx.map(t => t._1))
   }
 

@@ -46,6 +46,18 @@ object LogisticRegression extends Algorithm {
     _dvecY = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
 
+  /** Logistic Regression for feature
+   *
+   * @param sc        SparkContext
+   * @param data      feature RDD
+   * @param y         输入Y
+   * @param x         输入X
+   * @param Intercept 是否需要截距项，默认：是（true）
+   * @param maxIter 迭代计算的最大次数，默认：100
+   * @param epsilon 收敛阈值，默认：1e-6
+   * @return （系数，预测值，残差）各自以Array形式储存
+   *
+   */
   def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
           y: String, x: String, Intercept: Boolean = true,
           maxIter: Int = 100, epsilon: Double = 1e-6)
@@ -92,14 +104,14 @@ object LogisticRegression extends Algorithm {
     }
 
     //yhat, residual
-    val yhat = sigmoid(X * weights)
-    val res = (Y - yhat)
+    val y_hat = sigmoid(X * weights)
+    val residual = (Y - y_hat)
 
     // deviance residuals
     val devRes = DenseVector.zeros[Double](Y.length)
     for (i<- 0 until Y.length){
       val y = Y(i)
-      val mu = yhat(i)
+      val mu = y_hat(i)
       val eps = 1e-10
       val clippedMu = max(eps,min(1-eps,mu))
 
@@ -157,13 +169,13 @@ object LogisticRegression extends Algorithm {
 
     str += "**********************************************************************\n"
     //print(str)
+    Service.print(str,"Logistic Regression for feature","String")
 
     val shpRDDidx = data.collect().zipWithIndex
     shpRDDidx.map(t => {
-      t._1._2._2 += ("yhat" -> yhat(t._2.toInt))
-      t._1._2._2 += ("residual" -> res(t._2.toInt))
+      t._1._2._2 += ("yhat" -> y_hat(t._2.toInt))
+      t._1._2._2 += ("residual" -> residual(t._2.toInt))
     })
-    Service.print(str,"Logistic Regression for feature","String")
     sc.makeRDD(shpRDDidx.map(t=>t._1))
   }
 
