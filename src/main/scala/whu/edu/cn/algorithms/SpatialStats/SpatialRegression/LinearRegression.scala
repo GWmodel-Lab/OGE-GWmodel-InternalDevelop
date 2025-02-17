@@ -73,7 +73,7 @@ object LinearRegression extends Algorithm {
     } else {
       str += f"${_nameX(0)}: ${betas(0)}%.4e\n${_nameX(1)}: ${betas(1)}%.4e\n"
     }
-    str += diagnostic(X, Y, res, _df)
+    str += diagnostic(X, Y, res, _df, Intercept)
     //    print(str)
     val shpRDDidx = data.collect().zipWithIndex
     shpRDDidx.map(t => {
@@ -112,7 +112,8 @@ object LinearRegression extends Algorithm {
     var str = "\n********************Results of Linear Regression********************\n"
     val str_split = ""
     var formula = f"${y} ~ "
-    for (i <- 1 until X.cols) {
+    val X_max = if(Intercept) X.cols else X.cols + 1
+    for (i <- 1 until X_max) {
       if (i == 1) {
         formula += f"${_nameX(i - 1)} "
       } else {
@@ -137,31 +138,33 @@ object LinearRegression extends Algorithm {
     str += "Coefficients:\n"
     if (Intercept) {
       str += f"Intercept:${betas(0).formatted("%.6f")}\n"
-    }
-    for (i <- 1 until (X.cols)) {
-      str += f"${_nameX(i - 1)}: ${betas(i).formatted("%.6f")}\n"
+      for (i <- 1 until (X.cols)) {
+        str += f"${_nameX(i - 1)}: ${betas(i).formatted("%.6f")}\n"
+      }
+    }else{
+      for (i <- 0 until (X.cols)) {
+        str += f"${_nameX(i)}: ${betas(i).formatted("%.6f")}\n"
+      }
     }
 
-    str += diagnostic(X, Y, residual, _df)
+    str += diagnostic(X, Y, residual, _df,Intercept)
     str += "**********************************************************************\n"
-    //    print(str)
+    Service.print(str, "Linear Regression for feature", "String")
+
     val shpRDDidx = data.collect().zipWithIndex
     shpRDDidx.map(t => {
       t._1._2._2 += ("yhat" -> y_hat(t._2.toInt))
       t._1._2._2 += ("residual" -> residual(t._2.toInt))
     })
-    Service.print(str, "Linear Regression for feature", "String")
     sc.makeRDD(shpRDDidx.map(t => t._1))
   }
 
-  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], df: Double): String = {
+  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], residuals: DenseVector[Double], df: Double, Intercept: Boolean): String = {
     val n = X.rows.toDouble
-    val p = X.cols -1
-    val k = p+1
 
-    val rss = sum(residuals.toArray.map(t => t * t))
+    val rss = residuals.toArray.map(t => t * t).sum
     val mean_y = Y.toArray.sum / Y.toArray.length
-    val yss = Y.toArray.map(t => (t - mean_y) * (t - mean_y)).sum
+    val yss = if(Intercept)Y.toArray.map(t => (t-mean_y) * (t-mean_y)).sum else Y.toArray.map(t => (t) * (t)).sum
 
     val r2 = 1 - rss / yss
     val r2_adj = 1 - (1 - r2) * (n - 1) / (n - df - 1)
@@ -169,13 +172,14 @@ object LinearRegression extends Algorithm {
     //AIC, AICc and BIC
     val sigma2 = rss/n
     val L = -n/2 * (math.log(2*math.Pi)) - n/2 * math.log(sigma2) - rss/(2*sigma2) // log likelihood
-    // fix probably required
+    //val p = X.cols
+    val k = X.cols + 1
     val aic = -2 * L + k * 2
     val aicc = aic + (2*k*(k+1))/(n-k-1)
     val bic = -2 * L + k * math.log(n)
 
     // Residual Standard Error
-    val df_residual = n - df - 1
+    val df_residual = if(Intercept)n - df - 1 else n - df
     val rse = math.sqrt(rss / df_residual)
 
     // F-statistics

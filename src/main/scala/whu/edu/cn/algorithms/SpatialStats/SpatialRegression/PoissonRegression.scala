@@ -45,9 +45,21 @@ object PoissonRegression extends Algorithm {
     _dvecY = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
 
+  /**
+   *
+   * @param sc        SparkContext
+   * @param data      feature RDD
+   * @param y         输入Y
+   * @param x         输入X
+   * @param Intercept 是否需要截距项，默认：是（true）
+   * @param maxIter 迭代计算的最大次数，默认：100
+   * @param epsilon   收敛阈值，默认：1e-6
+   * @return （系数，预测值，残差）各自以Array形式储存
+   *
+   */
   def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
           y: String, x: String, Intercept: Boolean = true,
-          maxIter: Int = 100,epsilon: Double = 1e-8): Unit = {
+          maxIter: Int = 100,epsilon: Double = 1e-6): RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     _data = data.map(t => t._2._2)
     setX(x)
     setY(y)
@@ -112,14 +124,14 @@ object PoissonRegression extends Algorithm {
     }
 
     //yhat, residual
-    val yhat = exp(X * beta)
-    val res = (Y - yhat)
+    val y_hat = exp(X * beta)
+    val residual = (Y - y_hat)
 
     // deviance residuals
     val devRes = DenseVector.zeros[Double](Y.length)
     for (i <- 0 until Y.length) {
       val yi = Y(i)
-      val yhat_i = yhat(i)
+      val yhat_i = y_hat(i)
 
       if(yi==0){
         devRes(i) = -math.sqrt(2.0 * yhat_i)
@@ -171,6 +183,13 @@ object PoissonRegression extends Algorithm {
     str += "**********************************************************************\n"
 
     Service.print(str,"Poisson Regression for feature","String")
+
+    val shpRDDidx = data.collect().zipWithIndex
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("yhat" -> y_hat(t._2.toInt))
+      t._1._2._2 += ("residual" -> residual(t._2.toInt))
+    })
+    sc.makeRDD(shpRDDidx.map(t=>t._1))
   }
 
   protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], devRes: DenseVector[Double], df: Double,

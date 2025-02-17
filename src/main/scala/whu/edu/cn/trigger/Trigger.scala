@@ -593,9 +593,9 @@ object Trigger {
       case "SpatialStats.SpatialRegression.LinearRegression.feature" =>
         featureRddList += (UUID -> LinearRegression.fit(sc, featureRddList(args("data")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("y"), args("x"), args("Intercept").toBoolean))
       case "SpatialStats.SpatialRegression.LogisticRegression.feature" =>
-        featureRddList += (UUID -> LogisticRegression.fit(sc, featureRddList(args("data")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("y"), args("x"), args("Intercept").toBoolean))
+        featureRddList += (UUID -> LogisticRegression.fit(sc, featureRddList(args("data")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("y"), args("x"), args("Intercept").toBoolean,args("maxIter").toInt,args("epsilon").toDouble))
       case "SpatialStats.SpatialRegression.PoissonRegression.feature" =>
-        featureRddList += (UUID -> PoissonRegression.fit(sc, featureRddList(args("data")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("y"), args("x"), args("Intercept").toBoolean))
+        featureRddList += (UUID -> PoissonRegression.fit(sc, featureRddList(args("data")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("y"), args("x"), args("Intercept").toBoolean,args("maxIter").toInt,args("epsilon").toDouble))
       //Sampling
       case "SpatialStats.STSampling.randomSampling" =>
         featureRddList += (UUID -> Sampling.randomSampling(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("n").toInt))
