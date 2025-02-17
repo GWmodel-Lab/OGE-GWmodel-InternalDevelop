@@ -198,8 +198,8 @@ object LogisticRegression extends Algorithm {
     val residual_deviance = sum(devRes.map(x => x*x))
 
     // Cox & Snell R2, Nagelkerke R2
-    val cox_snall_r2 = 1 - math.exp((residual_deviance - null_deviance)/n)
-    val nagelkerke_r2 = cox_snall_r2/(1-math.exp(-null_deviance/n))
+    //val cox_snall_r2 = 1 - math.exp((residual_deviance - null_deviance)/n)
+    //val nagelkerke_r2 = cox_snall_r2/(1-math.exp(-null_deviance/n))
 
     //AIC
     val aic = if(Intercept)residual_deviance + 2*(p+1) else residual_deviance + 2*p
@@ -211,8 +211,8 @@ object LogisticRegression extends Algorithm {
     val res = "\nDiagnostics:\n"+
     f"Null deviance:     $null_deviance%.2f on $null_df%.0f degrees of freedom\n"+
     f"Residual deviance: $residual_deviance%.2f on $residual_df%.0f degrees of freedom\n"+
-    f"AIC: $aic%.2f\n"+
-    f"Pseudo R-squared: $nagelkerke_r2%.4f\n"
+    f"AIC: $aic%.2f\n"
+    //f"Pseudo R-squared: $nagelkerke_r2%.4f\n"
     res
   }
 
