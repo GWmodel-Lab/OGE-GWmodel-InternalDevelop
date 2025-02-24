@@ -46,9 +46,21 @@ object LogisticRegression extends Algorithm {
     _dvecY = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
 
+  /** Logistic Regression for feature
+   *
+   * @param sc        SparkContext
+   * @param data      feature RDD
+   * @param y         输入Y
+   * @param x         输入X
+   * @param Intercept 是否需要截距项，默认：是（true）
+   * @param maxIter 迭代计算的最大次数，默认：100
+   * @param epsilon 收敛阈值，默认：1e-6
+   * @return （系数，预测值，残差）各自以Array形式储存
+   *
+   */
   def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],
           y: String, x: String, Intercept: Boolean = true,
-          maxIter: Int = 100, epsilon: Double = 1e-6, learningRate: Double = 0.01)
+          maxIter: Int = 100, epsilon: Double = 1e-6)
   : RDD[(String, (Geometry, mutable.Map[String, Any]))] = {
     _data = data.map(t=>t._2._2)
     setX(x)
@@ -92,14 +104,14 @@ object LogisticRegression extends Algorithm {
     }
 
     //yhat, residual
-    val yhat = sigmoid(X * weights)
-    val res = (Y - yhat)
+    val y_hat = sigmoid(X * weights)
+    val residual = (Y - y_hat)
 
     // deviance residuals
     val devRes = DenseVector.zeros[Double](Y.length)
     for (i<- 0 until Y.length){
       val y = Y(i)
-      val mu = yhat(i)
+      val mu = y_hat(i)
       val eps = 1e-10
       val clippedMu = max(eps,min(1-eps,mu))
 
@@ -116,13 +128,15 @@ object LogisticRegression extends Algorithm {
     var str = "\n********************Results of Logistic Regression********************\n"
 
     var formula = f"${y} ~ "
-    for(i <- 1 until X.cols){
+    val X_max = if(Intercept) X.cols else X.cols + 1
+    for(i <- 1 until X_max){
       if (i==1){
       formula += f"${_nameX(i-1)} "
       }else{
         formula += f"+ ${_nameX(i-1)} "
       }
     }
+
     str += "Formula:\n" + formula + f"\n"
 
     str += "\n"
@@ -136,12 +150,16 @@ object LogisticRegression extends Algorithm {
     str += "Coefficients:\n"
     if(Intercept){
       str += f"Intercept:${weights(0).formatted("%.6f")}\n"
-    }
-    for(i <- 1 until (X.cols)){
-      str += f"${_nameX(i-1)}: ${weights(i).formatted("%.6f")}\n"
+      for (i <- 1 until (X.cols)) {
+        str += f"${_nameX(i - 1)}: ${weights(i).formatted("%.6f")}\n"
+      }
+    }else{
+      for(i <- 0 until (X.cols)){
+        str += f"${_nameX(i)}: ${weights(i).formatted("%.6f")}\n"
+      }
     }
 
-    str += diagnostic(X, Y, devRes, _df)
+    str += diagnostic(X, Y, devRes, _df, Intercept)
 
 //    str += "\n"
 //    str += f"${res.toArray.min},${res.toArray.max},${res.toArray.sum/res.length}\n"
@@ -151,13 +169,13 @@ object LogisticRegression extends Algorithm {
 
     str += "**********************************************************************\n"
     //print(str)
+    Service.print(str,"Logistic Regression for feature","String")
 
     val shpRDDidx = data.collect().zipWithIndex
     shpRDDidx.map(t => {
-      t._1._2._2 += ("yhat" -> yhat(t._2.toInt))
-      t._1._2._2 += ("residual" -> res(t._2.toInt))
+      t._1._2._2 += ("yhat" -> y_hat(t._2.toInt))
+      t._1._2._2 += ("residual" -> residual(t._2.toInt))
     })
-    Service.print(str,"Logistic Regression for feature","String")
     sc.makeRDD(shpRDDidx.map(t=>t._1))
   }
 
@@ -173,7 +191,8 @@ object LogisticRegression extends Algorithm {
     z.map(x => if (1.0 / (1.0 + math.exp(-x)) > 0.5) 1.0 else 0.0)
   }
 
-  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double], devRes: DenseVector[Double], df: Double): String = {
+  protected def diagnostic(X: DenseMatrix[Double], Y: DenseVector[Double],
+                           devRes: DenseVector[Double], df: Double, Intercept: Boolean): String = {
     val n = X.rows.toDouble
     val p = df
 
@@ -191,21 +210,21 @@ object LogisticRegression extends Algorithm {
     val residual_deviance = sum(devRes.map(x => x*x))
 
     // Cox & Snell R2, Nagelkerke R2
-    val cox_snall_r2 = 1 - math.exp((residual_deviance - null_deviance)/n)
-    val nagelkerke_r2 = cox_snall_r2/(1-math.exp(-null_deviance/n))
+    //val cox_snall_r2 = 1 - math.exp((residual_deviance - null_deviance)/n)
+    //val nagelkerke_r2 = cox_snall_r2/(1-math.exp(-null_deviance/n))
 
     //AIC
-    val aic = residual_deviance + 2*(p+1)
+    val aic = if(Intercept)residual_deviance + 2*(p+1) else residual_deviance + 2*p
 
     // degree of freedom
-    val null_df = n-1
-    val residual_df = n-p-1
+    val null_df = if(Intercept)n-1 else n
+    val residual_df = if(Intercept)n-p-1 else n-p
 
     val res = "\nDiagnostics:\n"+
     f"Null deviance:     $null_deviance%.2f on $null_df%.0f degrees of freedom\n"+
     f"Residual deviance: $residual_deviance%.2f on $residual_df%.0f degrees of freedom\n"+
-    f"AIC: $aic%.2f\n"+
-    f"Pseudo R-squared: $nagelkerke_r2%.4f\n"
+    f"AIC: $aic%.2f\n"
+    //f"Pseudo R-squared: $nagelkerke_r2%.4f\n"
     res
   }
 
