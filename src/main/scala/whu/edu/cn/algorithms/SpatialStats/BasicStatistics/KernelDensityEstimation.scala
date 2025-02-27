@@ -31,13 +31,13 @@ object KernelDensityEstimation extends Algorithm {
    *
    * @param sc SparkContext
    * @param data RDD
-   * @param property 输入X
-   * @param bw 带宽，默认为-1，若为空，则根据输入数据优选带宽bw.nrd0
+   * @param property 原始数据X的属性名
+   * @param bw 带宽，若为空，则默认根据输入数据优选带宽bw.nrd0
    * @param n 估计密度时网格的个数，默认512
-   * @param cut 决定分析的区间，区间上下界为输入数据的最值加/减cut*bw，cut默认为3
-   * @param kernel 核函数类型，默认为gaussian，此外还包括rectangular, triangular,epanechnikov,biweight,cosine及optcosine
-   * @param from 网格的起始，若为空，则默认为min(data)-cut*bw
-   * @param to 网格的终点，若为空，则默认为max(data)+cut*bw
+   * @param cut 决定KDE网格的区间，cut默认为3
+   * @param kernel 核函数类型，默认为gaussian，此外还包括rectangular,triangular,epanechnikov,biweight,cosine及optcosine
+   * @param from 网格的起始，若为空，则默认为min(X)-cut*bw
+   * @param to 网格的终点，若为空，则默认为max(X)+cut*bw
    * @return 字符串
    */
   def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String,
