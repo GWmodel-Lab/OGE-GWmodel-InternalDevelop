@@ -53,7 +53,7 @@ object test {
     //    DescriptiveStatistics.describe(shpfile)
     //    RipleysK.ripley(shpfile)
     //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
-    KernelDensityEstimation.fit(sc,shpfile3,"PURCHASE",kernel = "optcosine")
+    KernelDensityEstimation.fit(sc,shpfile3,"PURCHASE",kernel = "gaussian",from = Some(200000),to = Some(30000),n = 512)
 
     //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
     //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)

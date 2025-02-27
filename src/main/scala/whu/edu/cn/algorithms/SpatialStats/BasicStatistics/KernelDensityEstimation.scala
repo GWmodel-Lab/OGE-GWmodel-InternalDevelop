@@ -31,26 +31,43 @@ object KernelDensityEstimation extends Algorithm {
    *
    * @param sc SparkContext
    * @param data RDD
-   * @param x 输入X
-   * @param bw 带宽，默认为-1，若bw<=0，则根据输入数据优选带宽bw.nrd0
-   * @param n 估计密度时的等距点数，默认512
+   * @param property 输入X
+   * @param bw 带宽，默认为-1，若为空，则根据输入数据优选带宽bw.nrd0
+   * @param n 估计密度时网格的个数，默认512
    * @param cut 决定分析的区间，区间上下界为输入数据的最值加/减cut*bw，cut默认为3
    * @param kernel 核函数类型，默认为gaussian，此外还包括rectangular, triangular,epanechnikov,biweight,cosine及optcosine
-   * @return
+   * @param from 网格的起始，若为空，则默认为min(data)-cut*bw
+   * @param to 网格的终点，若为空，则默认为max(data)+cut*bw
+   * @return 字符串
    */
-  def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))],x: String,
-          bw: Double = -1,n: Int = 512, cut: Int = 3, kernel: String = "gaussian"):Unit = {
+  def fit(sc: SparkContext, data: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String,
+          bw: Option[Double] = None, n: Int = 512, cut: Int = 3, kernel: String = "gaussian",
+          from: Option[Double] = None, to: Option[Double] = None):String = {
     _data = data.map(t => t._2._2)
-    setX(x)
+    setX(property)
     val X = _dvecX
 
-    val bandwidth = if(bw <=0) bw_nrd0(sc,X) else bw
+    val bandwidth = bw.getOrElse(bw_nrd0(sc,X))
     val nPoints = n
     val minData = X.toArray.min
     val maxData = X.toArray.max
 
-    val gridMin = minData-cut*bandwidth
-    val gridMax = maxData+cut*bandwidth
+    // inspect
+    if (bandwidth <=0) {
+      throw new IllegalArgumentException("bw must be positive")
+    }
+    if(nPoints <= 1){
+      throw new IllegalArgumentException("number of grids is less than 2")
+    }
+
+    var gridMin = from.getOrElse(minData-cut*bandwidth)
+    var gridMax = to.getOrElse(maxData+cut*bandwidth)
+    // from > to时
+    if(gridMin > gridMax){
+      val a = gridMin
+      gridMin = gridMax
+      gridMax = a
+    }
     val grid = breeze.linalg.linspace(gridMin, gridMax, nPoints)    // x of result
     val x_rdd = DenseVectorToRDD(sc,grid)
 
@@ -100,12 +117,14 @@ object KernelDensityEstimation extends Algorithm {
     resMat(6, 2) = y_max.toString
 
     val str = "\n**************Result of Kernel Density Estimation**************\n"+
-      f"Number of Samples: ${X.length}; Bandwidth: ${bandwidth.formatted("%.4f")}\n"+
-      f"Kernel: $kernel\n"+
+      f"Number of Samples: ${X.length}; Number of Grid: ${grid.length}\n"+
+      f"Kernel: $kernel; Bandwidth: ${bandwidth.formatted("%.4f")}\n"+
       f"$resMat\n"+
               "***************************************************************\n"
-    println(str)
+    Service.print(str, "Kernel Density Estimation", "String")
 
+    str
+    //trigger modification required
     }
 
   def kernelSelection(name: String): Double => Double = {

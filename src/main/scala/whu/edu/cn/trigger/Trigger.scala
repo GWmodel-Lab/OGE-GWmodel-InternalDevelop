@@ -1,7 +1,7 @@
 package whu.edu.cn.trigger
 
 import whu.edu.cn.algorithms.SpatialStats.GWModels
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics, PrincipalComponentAnalysis, RipleysK}
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics, KernelDensityEstimation, PrincipalComponentAnalysis, RipleysK}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{LinearRegression, LogisticRegression, PoissonRegression, SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
@@ -571,6 +571,8 @@ object Trigger {
         stringList += (UUID -> PrincipalComponentAnalysis.PCA(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("properties"), args("keep").toInt, args("split"), args("is_scale").toBoolean))
       case "SpatialStats.BasicStatistics.RipleysK" =>
         stringList += (UUID -> RipleysK.ripley(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]]))
+      case "SpatialStats.BasicStatistics.KernelDensityEstimation" =>
+        stringList += (UUID -> KernelDensityEstimation.fit(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]],args("property"),args("bw").asInstanceOf[Option[Double]],args("n").toInt,args("cut").toInt,args("kernel"),args("from").asInstanceOf[Option[Double]],args("to").asInstanceOf[Option[Double]])) // KDE
       //st correlation
       case "SpatialStats.STCorrelations.CorrelationAnalysis.corrMat" =>
         stringList += (UUID -> CorrelationAnalysis.corrMat(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("properties"), args("method")))
