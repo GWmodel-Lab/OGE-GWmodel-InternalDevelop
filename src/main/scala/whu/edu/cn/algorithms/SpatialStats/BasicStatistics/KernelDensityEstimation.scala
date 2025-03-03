@@ -5,27 +5,111 @@ import breeze.numerics._
 import breeze.signal._
 import breeze.stats._
 import breeze.interpolation._
+import geotrellis.layer.{Bounds, LayoutDefinition, SpaceTimeKey, TileLayerMetadata}
+import geotrellis.vector
+import geotrellis.vector.PointFeature
+import geotrellis.raster
+import geotrellis.raster.{DoubleCellType, MultibandTile, RasterExtent, TileLayout, density}
+import geotrellis.raster.mapalgebra.focal.Kernel
+import geotrellis.spark.withFeatureRDDRasterizeMethods
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
 import whu.edu.cn.algorithms.SpatialStats.GWModels.Algorithm
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.interpolationUtils.{createPredictionPoints, getExtent}
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.LogisticRegression.setX
+import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils
 import whu.edu.cn.oge.Service
+import whu.edu.cn.entity
 
-import scala.math.BigDecimal
+import scala.math.{BigDecimal, Pi, exp, max, pow, sqrt}
 import scala.collection.mutable
-import scala.math.{Pi, exp, pow, sqrt}
+import scala.collection.mutable.ListBuffer
 
 
 object KernelDensityEstimation extends Algorithm {
   private var _data: RDD[mutable.Map[String, Any]] = _
   private var _dvecX: DenseVector[Double] = _
+  private var _dmatX: DenseMatrix[Double] = _
   private var _nameX: String = _
 
   override def setX(property: String, split: String = ","): Unit = {
     _nameX = property
     _dvecX = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
+
+  /**
+   *
+   * @param sc SparkContext
+   * @param featureRDD RDD
+   * @param propertyName Property to analyse
+   * @param rows output rows
+   * @param cols output cols
+   * @return raster
+   */
+  def fitSpatial(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],
+                 propertyName: Option[String] = None, rows: Int = 20, cols: Int = 20, kernel: String = "gaussian",
+                 bw: Option[Double] = None) ={
+    val extent = getExtent(featureRDD)
+    val pointsRas = createPredictionPoints(extent, rows, cols)
+    val n = featureRDD.count()
+
+    val points: Array[PointFeature[Double]] = featureRDD.map(t => {
+      val p = vector.Point(t._2._1.getCoordinate)
+      val data = if(propertyName.isEmpty == true) 1.0/n.toDouble else t._2._2(propertyName.get).asInstanceOf[String].toDouble
+      PointFeature(p, data)
+    }).collect()
+    //val halfDistance = max(extent.xmax - extent.xmin, extent.ymax - extent.ymin) / 2
+    val X = points.map(t => t.getX)
+    val Y = points.map(t => t.getY)
+    val W = points.map(t => t.data)
+
+    //bandwidth (no attribute first)
+    val bandwidth = bw.getOrElse(bw_nrd0(sc,DenseVector(X),DenseVector(Y),DenseVector(W)))
+    if (bandwidth <= 0) {
+      throw new IllegalArgumentException("bw must be positive")
+    }
+
+    //kdeSpatial(points,pointsRas,bandwidth,kernel)
+    val kernelSize = bandwidth.toInt
+    val sigma = 1.0
+    val amplitude = 400.0
+    val K = Kernel.gaussian(kernelSize,sigma,amplitude)
+    val rasterExtent = RasterExtent(extent,cols,rows)
+    val densityTile = density.KernelDensity.apply(points.toTraversable, K,rasterExtent)
+
+    val a = densityTile.toArrayDouble().toList
+    //println(a.length)
+    //println(a)
+
+    // output
+    val crs = OtherUtils.getCrs(featureRDD)
+
+    val tl = TileLayout(1, 1, cols, rows)
+    val ld = LayoutDefinition(extent, tl)
+    val time = System.currentTimeMillis()
+    val bounds = Bounds(SpaceTimeKey(0, 0, time), SpaceTimeKey(0, 0, time))
+    val cellType = DoubleCellType
+    val tileLayerMetadata = TileLayerMetadata(cellType, ld, extent, crs, bounds)
+    //output raster value
+    val featureRaster = pointsRas.zipWithIndex.map(t => {
+      val data = a(t._2)
+      val geom = t._1
+      val feature = new vector.Feature[Geometry, Double](geom, data)
+      //      println(geom,data)
+      feature
+    })
+    //make rdd
+    val featureRDDforRaster = sc.makeRDD(featureRaster)
+    val originCoverage = featureRDDforRaster.rasterize(cellType, ld)
+    val imageRDD = originCoverage.map(t => {
+      val k = entity.SpaceTimeBandKey(SpaceTimeKey(0, 0, time), ListBuffer("kriging_interpolation"))
+      val v = MultibandTile(t._2)
+      (k, v)
+    })
+    (imageRDD, tileLayerMetadata)
+  }
+
 
   /**
    *
@@ -127,7 +211,7 @@ object KernelDensityEstimation extends Algorithm {
     //trigger modification required
     }
 
-  def kernelSelection(name: String): Double => Double = {
+  protected def kernelSelection(name: String): Double => Double = {
     name match {
       case "gaussian"     => (u:Double) => (1.0 / sqrt(2 * Pi)) * exp(-0.5 * u * u)
       case "rectangular"  => (u:Double) => if(scala.math.abs(u)>1) 0 else 0.5
@@ -140,7 +224,7 @@ object KernelDensityEstimation extends Algorithm {
     }
   }
 
-  def kde(data: Array[Double], grid: Array[Double], bandwidth: Double, kernel: String): Array[Double] = {
+  protected def kde(data: Array[Double], grid: Array[Double], bandwidth: Double, kernel: String): Array[Double] = {
     val n = data.length
     val K = kernelSelection(kernel)
     grid.map { point =>
@@ -151,7 +235,7 @@ object KernelDensityEstimation extends Algorithm {
     }
   }
 
-  def bw_nrd0(sc: SparkContext,X:DenseVector[Double]):Double={
+  protected def bw_nrd0(sc: SparkContext,X:DenseVector[Double]):Double={
     if(X.length < 2) throw new IllegalArgumentException("require at least 2 samples")
     val stddev = breeze.stats.stddev(X)
     var lo = math.min(stddev,computePercentile(DenseVectorToRDD(sc,X),75)/1.34)
@@ -167,7 +251,41 @@ object KernelDensityEstimation extends Algorithm {
     0.9 * lo * math.pow(X.length,-0.2)
   }
 
-  // modifying
+  // bw with coordinates (based on standard distance)
+  protected def bw_nrd0(sc: SparkContext, X: DenseVector[Double], Y: DenseVector[Double], W: DenseVector[Double]): Double = {
+    val n = X.length
+    if (X.length < 2) throw new IllegalArgumentException("require at least 2 samples")
+    if (X.length != Y.length) throw new IllegalArgumentException("number of coordinate X is not equal to Y")
+    // Uniformed weight
+    val w_uni = W.map{_/W.sum}
+
+    // （加权）平均中心
+    val weightedCenterX = (0 until X.length).map(t => X(t)*w_uni(t)).sum
+    val weightedCenterY = (0 until Y.length).map(t => Y(t)*w_uni(t)).sum
+
+    //println(f"CenterX: $weightedCenterX\nCenterY: $weightedCenterY")
+
+    // 与平均中心的距离
+    val distances = (0 until X.length).map{ i =>
+      val dx = X(i) - weightedCenterX
+      val dy = Y(i) - weightedCenterY
+      sqrt(dx * dx + dy * dy)
+    }.toArray
+
+    // 距离的中值
+    val medianDistance = computePercentile(DenseVectorToRDD(sc,DenseVector(distances)),50)
+
+    //加权标准距离
+    val sd = sqrt((0 until X.length).map{ i =>
+      val dx = X(i) - weightedCenterX
+      val dy = Y(i) - weightedCenterY
+      w_uni(i)*(dx*dx+dy*dy) // 加权平方差
+    }.sum)
+
+    0.9*min(sd,medianDistance/sqrt(scala.math.log(2)))*pow(n,-0.2)
+
+  }
+
   /**
    * compute percentile from an unsorted Spark RDD
    *
@@ -175,7 +293,7 @@ object KernelDensityEstimation extends Algorithm {
    * @param tile : percentile to compute, [0,100]
    * @return value of input data at the specified percentile
    */
-  def computePercentile(data: RDD[Double], tile: Double): Double = {
+  protected def computePercentile(data: RDD[Double], tile: Double): Double = {
     // NIST method; data to be sorted in ascending order
     val percentile = if(tile <0) 0 else if (tile >100) 100 else tile
     val sortedData = data.sortBy(x => x)
@@ -199,11 +317,11 @@ object KernelDensityEstimation extends Algorithm {
     }
   }
 
-  def DenseVectorToRDD(sc: SparkContext, data:DenseVector[Double]):RDD[Double]={
+  protected def DenseVectorToRDD(sc: SparkContext, data:DenseVector[Double]):RDD[Double]={
     sc.parallelize(data.toArray)
   }
 
-  def formatToSignificantFigures(value: Double, significantFigures: Int): String = {
+  protected def formatToSignificantFigures(value: Double, significantFigures: Int): String = {
     val precision =  BigDecimal(value).precision
     val scale = significantFigures - precision + 1
     println(scale)
