@@ -571,8 +571,8 @@ object Trigger {
         stringList += (UUID -> PrincipalComponentAnalysis.PCA(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("properties"), args("keep").toInt, args("split"), args("is_scale").toBoolean))
       case "SpatialStats.BasicStatistics.RipleysK" =>
         stringList += (UUID -> RipleysK.ripley(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]]))
-//      case "SpatialStats.BasicStatistics.KernelDensityEstimation" =>
-//        stringList += (UUID -> KernelDensityEstimation.fit(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]],args("property"),args("bw").asInstanceOf[Option[Double]],args("n").toInt,args("cut").toInt,args("kernel"),args("from").asInstanceOf[Option[Double]],args("to").asInstanceOf[Option[Double]])) // KDE
+      case "SpatialStats.BasicStatistics.KernelDensityEstimation" =>
+        coverageRddList += (UUID -> KernelDensityEstimation.fit(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyName").asInstanceOf[Option[String]],args("rows").toInt,args("cols").toInt,args("kernel"), args("size").toInt,args("sigma").toDouble,args("amplitude").toDouble,args("radius").toInt)) // KDE
       //st correlation
       case "SpatialStats.STCorrelations.CorrelationAnalysis.corrMat" =>
         stringList += (UUID -> CorrelationAnalysis.corrMat(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("properties"), args("method")))
