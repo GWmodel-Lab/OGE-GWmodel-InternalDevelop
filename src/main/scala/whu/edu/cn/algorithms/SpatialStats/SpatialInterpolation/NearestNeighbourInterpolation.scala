@@ -1,7 +1,11 @@
 package whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation
 
 import geotrellis.layer.{Bounds, LayoutDefinition, SpaceTimeKey, TileLayerMetadata}
-import geotrellis.raster.{DoubleCellType, MultibandTile, RasterExtent, Tile, TileLayout}
+import geotrellis.raster._
+import geotrellis.raster.render._
+import geotrellis.vector._
+import geotrellis.raster.rasterize._
+import geotrellis.raster.{DoubleCellType, MultibandTile, RasterExtent, Tile, TileLayout,render,rasterize}
 import geotrellis.raster.interpolation.{OrdinaryKrigingMethods, SimpleKrigingMethods}
 import geotrellis.spark.withFeatureRDDRasterizeMethods
 import geotrellis.vector
@@ -22,11 +26,52 @@ import whu.edu.cn.entity.SpaceTimeBandKey
 
 object NearestNeighbourInterpolation {
 
-  def fit(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyName: String, rows: Int = 20, cols: Int = 20,
-          method: String = "Sph", binMaxCount: Int = 20):Unit
-  //(RDD[(SpaceTimeBandKey, MultibandTile)],TileLayerMetadata[SpaceTimeKey])
-  = {
+  def fit(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],
+          propertyName: String, rows: Int = 20, cols: Int = 20)  = {
+    val extent = getExtent(featureRDD)
+    val crs = OtherUtils.getCrs(featureRDD)
+    val pointsRas = createPredictionPoints(extent, rows, cols)
+    //convert points
+    val points: Array[PointFeature[Double]] = featureRDD.map(t => {
+      val p = vector.Point(t._2._1.getCoordinate)
+      val data = t._2._2(propertyName).asInstanceOf[String].toDouble
+      PointFeature(p, data)
+    }).collect()
+
+    println("************************************************************")
+    println(s"Parameters load correctly, start calculation")
+
+    // interpolation
+    val interpolatedPoints = pointsRas.map { ptRas =>
+      val nearest = points.minBy(pt => ptRas.distance(pt.geom)) // find the nearest point
+      nearest.data // data of nearest point
+    }
+    //println(interpolatedPoints.toList)
+
+    //output
+    val tl = TileLayout(1, 1, cols, rows)
+    val ld = LayoutDefinition(extent, tl)
+    val time = System.currentTimeMillis()
+    val bounds = Bounds(SpaceTimeKey(0, 0, time), SpaceTimeKey(0, 0, time))
+    val cellType = DoubleCellType
+    val tileLayerMetadata = TileLayerMetadata(cellType, ld, extent, crs, bounds)
+    //output raster value
+    val featureRaster = makeRasterVarOutput(pointsRas, interpolatedPoints)
+    //make rdd
+    val featureRDDforRaster = sc.makeRDD(featureRaster)
+    val originCoverage = featureRDDforRaster.rasterize(cellType, ld)
+    val imageRDD = originCoverage.map(t => {
+      val k = entity.SpaceTimeBandKey(SpaceTimeKey(0, 0, time), ListBuffer("nearest_neighbour_interpolation"))
+      val v = MultibandTile(t._2)
+      (k, v)
+    })
+    println("nearest neighbour interpolation succeeded")
+    println("************************************************************")
+    (imageRDD, tileLayerMetadata)
+
 
   }
+
+
 
 }

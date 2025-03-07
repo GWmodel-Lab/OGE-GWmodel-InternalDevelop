@@ -72,6 +72,17 @@ object interpolationUtils {
     featureRaster
   }
 
+  def makeRasterVarOutput(predictPoint: Array[Point], predictValue: Array[Double]) = {
+    val featureRaster = predictPoint.zipWithIndex.map(t => {
+      val data = predictValue(t._2)
+      val geom = t._1
+      val feature = new vector.Feature[Geometry, Double](geom, data)
+      //      println(geom,data)
+      feature
+    })
+    featureRaster
+  }
+
   def makeTiff(coverage: (RDD[(SpaceTimeBandKey, MultibandTile)], TileLayerMetadata[SpaceTimeKey]),path: String ,name: String): Unit = {
     val coverageArray: Array[(SpatialKey, MultibandTile)] = coverage._1.map(t => {
       (t._1.spaceTimeKey.spatialKey, t._2)
