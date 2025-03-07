@@ -55,9 +55,10 @@ object KernelDensityEstimation extends Algorithm {
   def fit(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],
           propertyName: Option[String] = None, rows: Int = 20, cols: Int = 20, kernel: String = "gaussian",
           size: Int = 3, sigma: Double = 1.0, amplitude: Double = 1.0, radius: Int = 2) ={
-    val extent = getExtent(featureRDD)
-    val pointsRas = createPredictionPoints(extent, rows, cols)
     val n = featureRDD.count()
+    val extent = getExtent(featureRDD)
+    val rasterExtent = RasterExtent(extent,cols,rows)
+    val pointsRas = createPredictionPoints(extent, rows, cols)
     val cellWidth = (extent.xmax-extent.xmin)/cols
     val cellHeight = (extent.ymax-extent.ymin)/rows
     //println(f"$cellWidth, $cellHeight")
@@ -68,19 +69,6 @@ object KernelDensityEstimation extends Algorithm {
       PointFeature(p, data)
     }).collect()
 
-    //println(points.map(t=>t.data).toList)
-
-    //val halfDistance = max(extent.xmax - extent.xmin, extent.ymax - extent.ymin) / 2
-//    val X = points.map(t => t.getX)
-//    val Y = points.map(t => t.getY)
-//    val W = points.map(t => t.data)
-
-    //bandwidth
-//    val bandwidth = bw.getOrElse(bw_nrd0(sc,DenseVector(X),DenseVector(Y),DenseVector(W)))
-//    if (bandwidth <= 0) {
-//      throw new IllegalArgumentException("bw must be positive")
-//    }
-
     if(size % 2 == 0) throw new IllegalArgumentException("Size of kernel must be odd.")
 
     val K = kernel match {
@@ -88,7 +76,10 @@ object KernelDensityEstimation extends Algorithm {
       case "circle" => Kernel.circle(size, min(cellWidth,cellHeight),radius)
       case _ => throw new IllegalArgumentException("Error kernel type")
     }
-    val rasterExtent = RasterExtent(extent,cols,rows)
+
+    // calculation
+    println("************************************************************")
+    println(s"Parameters load correctly, start calculation")
     val densityTile = density.KernelDensity.apply(points.toTraversable, K,rasterExtent)
     val a = densityTile.toArrayDouble().toList
 
@@ -113,10 +104,12 @@ object KernelDensityEstimation extends Algorithm {
     val featureRDDforRaster = sc.makeRDD(featureRaster)
     val originCoverage = featureRDDforRaster.rasterize(cellType, ld)
     val imageRDD = originCoverage.map(t => {
-      val k = entity.SpaceTimeBandKey(SpaceTimeKey(0, 0, time), ListBuffer("kriging_interpolation"))
+      val k = entity.SpaceTimeBandKey(SpaceTimeKey(0, 0, time), ListBuffer("kernel_density_estimation"))
       val v = MultibandTile(t._2)
       (k, v)
     })
+    println("kernel density estimation succeeded")
+    println("************************************************************")
     (imageRDD, tileLayerMetadata)
   }
 
