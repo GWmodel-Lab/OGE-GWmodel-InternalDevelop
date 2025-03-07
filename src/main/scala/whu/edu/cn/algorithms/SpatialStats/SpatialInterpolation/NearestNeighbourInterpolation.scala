@@ -1,20 +1,13 @@
 package whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation
 
 import geotrellis.layer.{Bounds, LayoutDefinition, SpaceTimeKey, TileLayerMetadata}
-import geotrellis.raster._
-import geotrellis.raster.render._
-import geotrellis.vector._
-import geotrellis.raster.rasterize._
 import geotrellis.raster.{DoubleCellType, MultibandTile, RasterExtent, Tile, TileLayout,render,rasterize}
-import geotrellis.raster.interpolation.{OrdinaryKrigingMethods, SimpleKrigingMethods}
 import geotrellis.spark.withFeatureRDDRasterizeMethods
 import geotrellis.vector
-import geotrellis.vector.interpolation.{EmpiricalVariogram, Exponential, Gaussian, Kriging, NonLinearSemivariogram, OrdinaryKriging, Semivariogram, Spherical}
 import geotrellis.vector.{Extent, PointFeature}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.locationtech.jts.geom.Geometry
-import org.locationtech.proj4j.UnknownAuthorityCodeException
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils
 import whu.edu.cn.entity
 
