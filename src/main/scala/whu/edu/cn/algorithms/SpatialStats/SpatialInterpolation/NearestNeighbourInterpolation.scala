@@ -19,6 +19,15 @@ import whu.edu.cn.entity.SpaceTimeBandKey
 
 object NearestNeighbourInterpolation {
 
+  /**
+   *
+   * @param sc SparkContext
+   * @param featureRDD RDD
+   * @param propertyName property name, string
+   * @param rows rows of interpolated raster, default 20
+   * @param cols columns of interpolates raster, default 20
+   * @return RDD[(SpaceTimeBandKey, MultibandTile)]
+   */
   def fit(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],
           propertyName: String, rows: Int = 20, cols: Int = 20)  = {
     val extent = getExtent(featureRDD)
@@ -35,7 +44,7 @@ object NearestNeighbourInterpolation {
     println(s"Parameters load correctly, start calculation")
 
     // interpolation
-    val interpolatedPoints = pointsRas.map { ptRas =>
+    val interpolatedValues = pointsRas.map { ptRas =>
       val nearest = points.minBy(pt => ptRas.distance(pt.geom)) // find the nearest point
       nearest.data // data of nearest point
     }
@@ -49,7 +58,7 @@ object NearestNeighbourInterpolation {
     val cellType = DoubleCellType
     val tileLayerMetadata = TileLayerMetadata(cellType, ld, extent, crs, bounds)
     //output raster value
-    val featureRaster = makeRasterVarOutput(pointsRas, interpolatedPoints)
+    val featureRaster = makeRasterVarOutput(pointsRas, interpolatedValues)
     //make rdd
     val featureRDDforRaster = sc.makeRDD(featureRaster)
     val originCoverage = featureRDDforRaster.rasterize(cellType, ld)
