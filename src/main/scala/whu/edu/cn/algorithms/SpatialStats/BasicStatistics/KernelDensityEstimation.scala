@@ -65,7 +65,7 @@ object KernelDensityEstimation extends Algorithm {
 
     val points: Array[PointFeature[Double]] = featureRDD.map(t => {
       val p = vector.Point(t._2._1.getCoordinate)
-      val data = if(propertyName.isEmpty == true) 1.0/n.toDouble else t._2._2(propertyName.get).asInstanceOf[String].toDouble
+      val data = if(propertyName.isEmpty == true) 1.0/n.toDouble else t._2._2(propertyName.get).asInstanceOf[java.math.BigDecimal].doubleValue
       PointFeature(p, data)
     }).collect()
 
