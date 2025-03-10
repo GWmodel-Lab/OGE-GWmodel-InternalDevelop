@@ -35,7 +35,7 @@ object KernelDensityEstimation extends Algorithm {
 
   override def setX(property: String, split: String = ","): Unit = {
     _nameX = property
-    _dvecX = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
+    _dvecX = DenseVector(_data.map(t => t(property).asInstanceOf[java.math.BigDecimal].doubleValue).collect())
   }
 
   /**
