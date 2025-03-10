@@ -37,7 +37,7 @@ object NearestNeighbourInterpolation {
     //convert points
     val points: Array[PointFeature[Double]] = featureRDD.map(t => {
       val p = vector.Point(t._2._1.getCoordinate)
-      val data = t._2._2(propertyName).asInstanceOf[String].toDouble
+      val data = t._2._2(propertyName).asInstanceOf[java.math.BigDecimal].doubleValue
       PointFeature(p, data)
     }).collect()
 
