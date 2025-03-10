@@ -14,7 +14,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.locationtech.jts.geom.Geometry
 import redis.clients.jedis.Jedis
 import whu.edu.cn.algorithms.SpatialStats.STSampling.{Sampling, SandwichSampling}
-import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.{Kriging,NearestNeighbourInterpolation,LinearInterpolation}
 import whu.edu.cn.entity.OGEClassType.OGEClassType
 import whu.edu.cn.entity.{CoverageCollectionMetadata, OGEClassType, RawTile, SpaceTimeBandKey, VisualizationParam}
 import whu.edu.cn.jsonparser.JsonToArg
@@ -610,7 +610,10 @@ object Trigger {
         coverageRddList += (UUID -> Kriging.OrdinaryKriging(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyName"), args("rows").toInt, args("cols").toInt, args("method"), args("binMaxCount").toInt))
       case "SpatialStats.SpatialInterpolation.selfDefinedKriging" =>
         coverageRddList += (UUID -> Kriging.selfDefinedKriging(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyName"), args("rows").toInt, args("cols").toInt, args("method"), args("range").toDouble, args("sill").toDouble, args("nugget").toDouble))
-
+      case "SpatialStats.SpatialInterpolation.NearestNeighbourInterpolation" =>
+        coverageRddList += (UUID -> NearestNeighbourInterpolation.fit(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyName"), args("rows").toInt, args("cols").toInt))
+      case "SpatialStats.SpatialInterpolation.LinearInterpolation" =>
+        coverageRddList += (UUID -> LinearInterpolation.fit(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyName"), args("rows").toInt, args("cols").toInt))
       //GWmodel
       case "SpatialStats.GWModels.GWRbasic.autoFit" =>
         val re_gwr = GWModels.GWRbasic.autoFit(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyY"), args("propertiesX"), args("kernel"), args("approach"), args("adaptive").toBoolean)

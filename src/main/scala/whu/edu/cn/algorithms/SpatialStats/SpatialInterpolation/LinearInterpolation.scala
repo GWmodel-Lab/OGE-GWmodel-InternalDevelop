@@ -31,7 +31,8 @@ object LinearInterpolation {
    * @return raster
    */
   def fit(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],
-          propertyName: String, rows: Int = 20, cols: Int = 20): (RDD[(SpaceTimeBandKey, MultibandTile)], TileLayerMetadata[SpaceTimeKey]) ={
+          propertyName: String, rows: Int = 20, cols: Int = 20):
+  (RDD[(SpaceTimeBandKey, MultibandTile)], TileLayerMetadata[SpaceTimeKey]) ={
     val extent = getExtent(featureRDD)
     val crs = OtherUtils.getCrs(featureRDD)
     val pointsRas = createPredictionPoints(extent, rows, cols)

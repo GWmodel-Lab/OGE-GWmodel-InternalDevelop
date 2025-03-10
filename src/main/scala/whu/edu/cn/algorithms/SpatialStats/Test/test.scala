@@ -64,8 +64,8 @@ object test {
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
     //    testGWRpredict()
 
-    val ras = LinearInterpolation.fit(sc,shpfile2,"z",10,10)
-    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","linear")
+    //    val ras = LinearInterpolation.fit(sc,shpfile2,"z",10,10)
+    //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","linear")
     //    val ras = NearestNeighbourInterpolation.fit(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","nni")
     //    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
