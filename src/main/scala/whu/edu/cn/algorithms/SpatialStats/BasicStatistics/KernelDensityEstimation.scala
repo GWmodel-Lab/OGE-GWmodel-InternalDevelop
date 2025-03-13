@@ -35,7 +35,7 @@ object KernelDensityEstimation extends Algorithm {
 
   override def setX(property: String, split: String = ","): Unit = {
     _nameX = property
-    _dvecX = DenseVector(_data.map(t => t(property).asInstanceOf[java.math.BigDecimal].doubleValue).collect())
+    _dvecX = DenseVector(_data.map(t => t(property).asInstanceOf[String].toDouble).collect())
   }
 
   /**
@@ -65,7 +65,7 @@ object KernelDensityEstimation extends Algorithm {
 
     val points: Array[PointFeature[Double]] = featureRDD.map(t => {
       val p = vector.Point(t._2._1.getCoordinate)
-      val data = if(propertyName.isEmpty == true) 1.0/n.toDouble else t._2._2(propertyName.get).asInstanceOf[java.math.BigDecimal].doubleValue
+      val data = if(propertyName.isEmpty == true) 1.0/n.toDouble else t._2._2(propertyName.get).asInstanceOf[String].toDouble
       PointFeature(p, data)
     }).collect()
 
