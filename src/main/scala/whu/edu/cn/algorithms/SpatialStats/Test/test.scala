@@ -20,7 +20,7 @@ import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, r
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging.{OrdinaryKriging, selfDefinedKriging}
-import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.{IDW, LinearInterpolation, NearestNeighbourInterpolation, interpolationUtils}
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.{IDW, LinearInterpolation, NearestNeighbourInterpolation, SplineInterpolation, interpolationUtils}
 import whu.edu.cn.util.ShapeFileUtil._
 import breeze.linalg.{norm, normalize}
 import breeze.numerics._
@@ -64,7 +64,8 @@ object test {
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
     //    testGWRpredict()
 
-        val ras = IDW.fit(sc,shpfile2,"z",10,10)
+    val ras = SplineInterpolation.fit(sc,shpfile2,"z",10,10)
+    //    val ras = IDW.fit(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","idw-ellipse4")
     //    val ras = LinearInterpolation.fit(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","linear")
