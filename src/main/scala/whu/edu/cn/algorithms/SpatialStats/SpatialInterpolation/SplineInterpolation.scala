@@ -87,7 +87,6 @@ object SplineInterpolation {
     println("************************************************************")
     println(s"Parameters load correctly, start calculation")
 
-
     val m = cols // x
     val n = rows // y
     // determine control lattice PHI
@@ -138,7 +137,7 @@ object SplineInterpolation {
       PHI(i)(j) = PHI_solved((i)*(n+3)+(j))
     }
 
-    println(PHI.map(t => println(t.toList)))
+//    println(PHI.map(t => println(t.toList)))
 
     // interpolation
     val interpolatedValues = pointsRas.map{ point =>
