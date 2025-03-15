@@ -71,7 +71,15 @@ object SplineInterpolation {
     (imageRDD, tileLayerMetadata)
   }
 
-  // B-spline interpolation
+  /** B spline interpolation
+   *
+   * @param sc           SparkContext
+   * @param featureRDD   RDD
+   * @param propertyName property name
+   * @param rows         rows of output raster
+   * @param cols         columns of output raster
+   * @return output raster
+   */
   def BSpline(implicit sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],
               propertyName: String, rows: Int = 20, cols: Int = 20)={
     val extent = getExtent(featureRDD)
