@@ -10,11 +10,7 @@ import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{LinearRegression, LogisticRegression, PoissonRegression, SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWRbasic
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWDA
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWAverage
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GWCorrelation
-import whu.edu.cn.algorithms.SpatialStats.GWModels.GTWR
+import whu.edu.cn.algorithms.SpatialStats.GWModels.{GTWR, GWAverage, GWCorrelation, GWDA, GWRbasic, MGWR}
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
@@ -48,6 +44,7 @@ object test {
   def main(args: Array[String]): Unit = {
 
     val t1 = System.currentTimeMillis()
+    testMGWR()
 
     //    AverageNearestNeighbor.result(shpfile)
     //    DescriptiveStatistics.describe(shpfile)
@@ -70,7 +67,9 @@ object test {
 
     //    LinearRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
     //    LogisticRegression.fit(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
-        PoissonRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
+    //    PoissonRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
+    //    LinearRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY")
+    //    LogisticRegression.fit(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY")
     //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
@@ -95,6 +94,18 @@ object test {
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
+  }
+
+  def testMGWR() = {
+
+    val model = new MGWR(shpfile3)
+    model.setY("PURCHASE")
+    model.setX("FLOORSZ,UNEMPLOY,PROF")
+    val kernel="gaussian"
+    val approach="AICc"
+    val adaptive=true
+    model.backfitting(1)
+
   }
 
   def testGWRpredict()= {
