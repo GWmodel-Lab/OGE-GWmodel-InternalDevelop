@@ -54,7 +54,8 @@ object test {
     //    RipleysK.ripley(shpfile)
     //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
 
-    //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
+        GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "bisquare",approach = "AICc",adaptive = false)
+    //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare",approach = "CV")
     //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)
     //    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "AICc", adaptive = true)
     //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 0.5)
@@ -70,7 +71,7 @@ object test {
 
     //    LinearRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
     //    LogisticRegression.fit(sc, shpfile3,y="TYPEFLAT", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
-        PoissonRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
+    //    PoissonRegression.fit(sc, shpfile3,y="PURCHASE", x="FLOORSZ,PROF,UNEMPLOY",Intercept = true)
     //    SpatialLagModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialErrorModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")
     //    SpatialDurbinModel.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education")

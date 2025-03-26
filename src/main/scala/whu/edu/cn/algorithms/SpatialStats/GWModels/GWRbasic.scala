@@ -443,13 +443,10 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
   //    weightRDD.map()
   //  }
 
-  //这个是有问题的
   private def modifyWeightCV(weightRDD: RDD[DenseVector[Double]]): RDD[DenseVector[Double]] = {
-    weightRDD.map { t =>
+    weightRDD.zipWithIndex.map { case (t, idx) =>
       val modifiedVector = t.copy
-      for (i <- 0 until t.length) {
-        modifiedVector(i) = 0
-      }
+      modifiedVector(idx.toInt) = 0  // 只将当前点的权重设为0
       modifiedVector
     }
   }
