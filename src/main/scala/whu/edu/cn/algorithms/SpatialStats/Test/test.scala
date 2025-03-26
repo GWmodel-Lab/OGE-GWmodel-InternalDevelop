@@ -20,6 +20,7 @@ import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.interpolationUtil
 import whu.edu.cn.util.ShapeFileUtil._
 import breeze.linalg.{norm, normalize}
 import breeze.numerics._
+import whu.edu.cn.oge.Feature
 
 
 object test {
@@ -45,6 +46,9 @@ object test {
 
     val t1 = System.currentTimeMillis()
     testMGWR()
+//    val gwrres = GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "gaussian")//comparison
+//    val residual = Feature.get(gwrres,"residual")
+//    println(residual)
 
     //    AverageNearestNeighbor.result(shpfile)
     //    DescriptiveStatistics.describe(shpfile)
@@ -101,10 +105,16 @@ object test {
     val model = new MGWR(shpfile3)
     model.setY("PURCHASE")
     model.setX("FLOORSZ,UNEMPLOY,PROF")
+//    val model = new MGWR(shpfile)
+//    model.setY("aging")
+//    model.setX("PCGDP,GI,FD,education")
+    // params
     val kernel="gaussian"
     val approach="AICc"
     val adaptive=true
-    model.backfitting(1)
+
+//    model.backfitting(sc,100)
+    model.regress(sc,100)
 
   }
 
