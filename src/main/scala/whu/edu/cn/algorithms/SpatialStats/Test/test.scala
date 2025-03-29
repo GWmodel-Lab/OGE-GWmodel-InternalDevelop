@@ -46,7 +46,7 @@ object test {
 
     val t1 = System.currentTimeMillis()
     testMGWR()
-//    val gwrres = GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "gaussian")//comparison
+//    GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "gaussian")//comparison
 //    val residual = Feature.get(gwrres,"residual")
 //    println(residual)
 

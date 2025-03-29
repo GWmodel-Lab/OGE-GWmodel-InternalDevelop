@@ -332,13 +332,13 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
     }
 
   // public functions, written for MGWR
-  def getBandwidth(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double={
-    bandwidthSelection(kernel,approach, adaptive)
-  }
-
-  def getAICc(bw: Double): Double = {
-    bandwidthAICc(bw)
-  }
+//  def getBandwidth(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double={
+//    bandwidthSelection(kernel,approach, adaptive)
+//  }
+//
+//  def getAICc(bw: Double): Double = {
+//    bandwidthAICc(bw)
+//  }
 
   protected def bandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
     if (adaptive) {
