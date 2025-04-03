@@ -102,9 +102,9 @@ object test {
 
   def testMGWR() = {
 
-    val model = new MGWR(shpfile3)
-    model.setY("PURCHASE")
-    model.setX("FLOORSZ,UNEMPLOY,PROF")
+//    val model = new MGWR(shpfile3)
+//    model.setY("PURCHASE")
+//    model.setX("FLOORSZ,UNEMPLOY,PROF")
 //    val model = new MGWR(shpfile)
 //    model.setY("aging")
 //    model.setX("PCGDP,GI,FD,education")
@@ -114,8 +114,8 @@ object test {
     val adaptive=true
 
 //    model.backfitting(sc,100)
-    model.regress(sc,100)
-
+//    model.regress(100)
+    MGWR.regress(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF",kernel, approach, adaptive, 100)
   }
 
   def testGWRpredict()= {

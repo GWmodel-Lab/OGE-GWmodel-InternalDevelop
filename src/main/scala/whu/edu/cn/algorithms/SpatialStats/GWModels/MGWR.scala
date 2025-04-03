@@ -24,8 +24,32 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
   var _approach:String=_
 
   var bw0:Double=0
+  var eps0:Double = 0
 
   var mbetas:Array[Array[Double]]=_
+
+//  protected def setKernel(kernel:String) ={
+//    _kernel = kernel
+//  }
+//
+//  protected def setApproach(approach: String) = {
+//    _approach = approach
+//  }
+//
+//  protected def setAdaptive(adaptive: Boolean) = {
+//    _adaptive = adaptive
+//  }
+//
+//  protected def setEps(eps: Double) ={
+//    eps0 = eps
+//  }
+
+  protected def setParams(kernel:String, approach: String, adaptive: Boolean, eps: Double) ={
+    _kernel = kernel
+    _approach = approach
+    _adaptive = adaptive
+    eps0 = eps
+  }
 
   def fitAll(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true)={
     println("Initializing...")
@@ -43,7 +67,7 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
 
   }
 
-  def backfitting(sc: SparkContext,iter:Int)={
+  def backfitting(iter:Int)={
     // _rows samples and _cols variables, dp.n = _rows and var.n = _cols
     val varN = _cols
     val dpN = _rows
@@ -94,8 +118,9 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
 
     // calculation
     var iter_present = 1
+    val iter_max = if(iter>0) iter else maxIter
     var is_converged = false
-    while(!is_converged && iter_present <= iter){
+    while(!is_converged && iter_present <= iter_max){
       println(f"---------------------------iteration $iter_present---------------------------")
       for (i <- 0 until _cols) {
         val varname = if(i==0)"Intercept" else _nameX(i-1)
@@ -172,8 +197,8 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     res
   }
 
-  def regress(sc: SparkContext,iter: Int = 100)={
-    val bf = backfitting(sc, iter)
+  def regress(iter: Int = 100)={
+    val bf = backfitting(iter)
     val matFi = bf._1
     val vecBw = bf._2
     val matBetas = bf._3
@@ -187,15 +212,58 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     val rss = residuals.map(t=>t*t).sum
     val n = _rows
     val p = _cols - 1
-    val diag = calDiagnostic(_dmatX,_dvecY,residuals,shat)
-    println(diag)
+//    val diag = calDiagnostic(_dmatX,_dvecY,residuals,shat)
+//    println(diag)
 //    println(f"yhat: ${yhat.toList}")
 //    println(f"residuals: $residuals")
 //    println(f"bandwidth: $vecBw")
+    val shpRDDidx = _shpRDD.collect().zipWithIndex
+    shpRDDidx.foreach(t => t._1._2._2.clear())
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("yhat" -> yhat)
+      t._1._2._2 += ("residual" -> residuals)
+    })
+    if (_nameUsed == null) {
+      _nameUsed = _nameX
+    }
+    val name = Array("Intercept") ++ _nameUsed
+    for (i <- 0 until _cols) {
+      shpRDDidx.map(t => {
+        t._1._2._2 += (name(i) -> matBetas(::,i))
+      })
+    }
+    val fitFormula = _nameY + " ~ " + _nameUsed.mkString(" + ")
+    val bw_type = if(_adaptive) "Adaptive" else "Fixed"
+    val kernel = _kernel
+    // require modification when intercept == false
+    var mat_bw = DenseMatrix.zeros[String](2,_cols)
+    for(i<- 0 until _cols){
+      if(i ==0){
+        mat_bw(0,i) = "Intercept"
+      }
+      else{
+        mat_bw(0,i) = _nameUsed(i-1)
+      }
+      mat_bw(1,i) = vecBw(i).toString
+    }
+//    var str_bw = "\n"
+//    for(i <- 0 until _cols){
+//      val varname = if (i == 0) "Intercept" else _nameUsed(i-1)
+//      str_bw += f"$varname: ${vecBw(i).toString}\n"
+//    }
+    val fitString = "\n*********************************************************************************\n" +
+      "*               Results of Geographically Weighted Regression                   *\n" +
+      "*********************************************************************************\n" +
+      "**************************Model calibration information**************************\n" +
+      s"Formula: $fitFormula" +
+      s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"\n${mat_bw}\n" +
+      calDiagnostic(_dmatX,_dvecY,residuals,shat)
+    (shpRDDidx.map(t => t._1), fitString)
+    //(matBetas,yhat,residuals,shat,fitString)
 
   }
 
-  protected def converge(Fi: DenseMatrix[Double], FiOld: DenseMatrix[Double], threshold: Double = 1e-5): Boolean = {
+  protected def converge(Fi: DenseMatrix[Double], FiOld: DenseMatrix[Double]): Boolean = {
     val n = _rows
     val numerator = (Fi -:- FiOld).map(t => t * t).sum / n
     val denominator = (0 until _rows).map(t => {
@@ -203,7 +271,7 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     }).sum
     val SOCf = sqrt(numerator / denominator)
     println(f"SOC-f: $SOCf")
-    if (SOCf <= threshold) {
+    if (SOCf <= eps0) {
       true
     } else {
       false
@@ -456,15 +524,20 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
 object MGWR {
 
   def regress(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false) = {
+              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, iteration: Int = 100, epsilon: Double = 1e-5) = {
     val model = new MGWR(featureRDD)
     model.setY(propertyY)
     model.setX(propertiesX)
-    val re0=model.fitAll(kernel = kernel, approach = approach, adaptive = adaptive)
+//    val re0=model.fitAll(kernel = kernel, approach = approach, adaptive = adaptive)
+//    model.setKernel(kernel)
+//    model.setApproach(approach)
+//    model.setAdaptive(adaptive)
+//    model.setEps(epsilon)
+    model.setParams(kernel = kernel, approach = approach, adaptive = adaptive, eps = epsilon)
+    val re = model.regress(iteration)
 
-
-    //    Service.print(re._2, "Multiscale GWR", "String")
-    //    sc.makeRDD(re._1)
+    Service.print(re._2, "Multiscale GWR", "String")
+    sc.makeRDD(re._1)
   }
 
 }
