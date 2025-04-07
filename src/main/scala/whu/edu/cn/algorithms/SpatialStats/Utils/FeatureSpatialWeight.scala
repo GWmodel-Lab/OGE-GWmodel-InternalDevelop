@@ -56,6 +56,21 @@ object FeatureSpatialWeight {
   }
 
   /**
+   * 获取一个矢量RDD的K最邻近权重矩阵，面状、点状皆可
+   *
+   * @param polyRDD 输入的数据，项目矢量RDD类型
+   * @param style   邻接矩阵的权重计算类型 ，计算结果只针对邻接的对象算权重，非邻接的对象权重均为0。默认为W类型。
+   *                                    W：1/邻居数； B：1； C：1/平均邻居数； U：1/总邻居数；
+   * @param k 邻接数量，默认为4
+   * @return RDD形式的权重向量
+   */
+  def getKNearestNeighbourWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style: String = "W", k: Int = 4)={
+    val coors = polyRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
+    val n = coors.length
+
+  }
+
+  /**
    * 对单个距离向量进行权重向量求解
    *
    * @param dist     \~english Distance vector \~chinese 距离向量

@@ -120,6 +120,10 @@ object SpatialAutoCorrelation {
     sc.makeRDD(featRDDidx.map(_._1))
   }
 
+  def globalGearyC(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W") ={
+
+  }
+
 
   def plotmoran(x: Array[Double], w: RDD[DenseVector[Double]], morani: Double): Unit = {
     val xx = x
