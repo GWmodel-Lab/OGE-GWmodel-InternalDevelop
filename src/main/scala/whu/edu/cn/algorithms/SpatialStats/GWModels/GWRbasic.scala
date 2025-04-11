@@ -661,6 +661,7 @@ object GWRbasic {
    * @param bandwidth   bandwidth value
    * @param kernel      kernel function: including gaussian, exponential, bisquare, tricube, boxcar
    * @param adaptive    true for adaptive distance, false for fixed distance
+   * @param approach    ways for bandwidth selection: including null, AICc and CV
    * @return featureRDD and diagnostic String
    */
   def predict(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))],predictRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
