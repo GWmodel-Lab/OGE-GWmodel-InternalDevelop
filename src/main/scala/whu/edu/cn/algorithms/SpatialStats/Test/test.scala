@@ -99,9 +99,7 @@ object test {
   }
 
   def testGeary()={
-    //val knn = GearysC.getKNNMatrix(shpfile3)
-    //val a = 0
-    //println(s"knn: $knn $a")
+    SpatialAutoCorrelation.globalGearyC(shpfile3,"PURCHASE", weightstyle = "W")
   }
 
   def testGWRpredict()= {

@@ -121,7 +121,10 @@ object SpatialAutoCorrelation {
   }
 
   def globalGearyC(featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, plot: Boolean = false, test: Boolean = false, weightstyle: String = "W") ={
-
+    val weight = getKNearestNeighbourWeight(featureRDD, weightstyle)
+    println(f"weight: \n")
+    weight.collect().foreach(println)
+    val sum_weight = sumWeight(weight)
   }
 
 

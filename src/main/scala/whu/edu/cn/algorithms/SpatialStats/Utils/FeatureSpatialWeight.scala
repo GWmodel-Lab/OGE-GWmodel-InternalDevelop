@@ -61,13 +61,28 @@ object FeatureSpatialWeight {
    * @param polyRDD 输入的数据，项目矢量RDD类型
    * @param style   邻接矩阵的权重计算类型 ，计算结果只针对邻接的对象算权重，非邻接的对象权重均为0。默认为W类型。
    *                                    W：1/邻居数； B：1； C：1/平均邻居数； U：1/总邻居数；
-   * @param k 邻接数量，默认为4
+   * @param k 最邻近数量，默认为4
    * @return RDD形式的权重向量
    */
   def getKNearestNeighbourWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style: String = "W", k: Int = 4)={
     val coors = polyRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
     val n = coors.length
-
+    val dist = FeatureDistance.getDistRDD(polyRDD)
+    val knn_bool = dist.map(t=>{
+      val sort = t.sorted
+      val thresh = sort(k-1)
+      t.map(u => if(u <= thresh) true else false)
+    })
+    val knn_weight = boolNeighborWeight(knn_bool)
+    val knn_collect = knn_weight.collect()
+    val sum_knn: Double = knn_collect.map(t => t.toArray.sum).sum
+    val avg_knn: Double = knn_collect.length.toDouble
+    style match {
+      case "W" => knn_weight.map(t => t * (t / sum(t)))
+      case "B" => knn_weight.map(t => t)
+      case "C" => knn_weight.map(t => (t * (1.0 * avg_knn / sum_knn)))
+      case "U" => knn_weight.map(t => (t * (1.0 / sum_knn)))
+    }
   }
 
   /**
