@@ -68,10 +68,16 @@ object FeatureSpatialWeight {
     val coors = polyRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
     val n = coors.length
     val dist = FeatureDistance.getDistRDD(polyRDD)
-    val knn_bool = dist.map(t=>{
-      val sort = t.sorted
-      val thresh = sort(k-1)
-      t.map(u => if(u <= thresh) true else false)
+    //找点i的knn
+    val knn_bool = dist.zipWithIndex().map(t0=>{
+      val t = t0._1
+      val idx_self = t0._2.toInt//点i自身的索引
+      val distWithIndex = t.zipWithIndex// 创建带索引的距离数组，用于处理距离相等的情况
+      val sortedDist = distWithIndex.sortBy(x => (x._1, x._2))// 按距离排序，如果距离相等则按索引排序
+      val kNearestIndices = sortedDist.take(k+1).map(_._2).toSet// 获取前k+1个最近邻的索引,要排除自己
+      val res = t.zipWithIndex.map{case (d, idx) => kNearestIndices.contains(idx)}// 创建布尔数组，只标记k个最近邻
+      res(idx_self) = false
+      res
     })
     val knn_weight = boolNeighborWeight(knn_bool)
     val knn_collect = knn_weight.collect()

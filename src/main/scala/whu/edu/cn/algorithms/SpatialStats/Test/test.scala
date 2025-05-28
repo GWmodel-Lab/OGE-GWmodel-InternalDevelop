@@ -29,7 +29,7 @@ import breeze.numerics._
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-      .set("spark.testing.memory", "512000000")
+    .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -53,7 +53,7 @@ object test {
     //    DescriptiveStatistics.describe(shpfile)
     //    RipleysK.ripley(shpfile)
     //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
-    //testGeary()
+    testGeary()
 
     //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare")
     //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)
@@ -99,7 +99,8 @@ object test {
   }
 
   def testGeary()={
-    SpatialAutoCorrelation.globalGearyC(shpfile3,"PURCHASE", weightstyle = "W")
+    SpatialAutoCorrelation.globalGearyC(shpfile3,"PURCHASE", weightstyle = "W", knn = 4, test = true)
+    SpatialAutoCorrelation.localGearyC(sc, shpfile3, "PURCHASE", adjust = true)
   }
 
   def testGWRpredict()= {
