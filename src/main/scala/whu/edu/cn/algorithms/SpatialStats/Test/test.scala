@@ -66,7 +66,7 @@ object test {
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-    //    testGWRpredict()
+        testGWRpredict()
 
     //    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
@@ -102,17 +102,22 @@ object test {
   }
 
   def testGWRpredict()= {
-    val newRDD = shpfile3.map { case (id, (geometry, attributes)) =>
-      val centroid = geometry.getCentroid()
-      val newCoordinate = new Coordinate(centroid.getX + 500, centroid.getY + 500)
-      val newPoint = geometry match {
-        case point: Point => centroid.getFactory.createPoint(newCoordinate)
-        case _ =>
-          geometry
-      }
-      (id, (newPoint, attributes))
-    }
-    GWRbasic.predict(sc, shpfile3, newRDD, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",bandwidth = 50, kernel = "gaussian", adaptive = true)
+//    val newRDD = shpfile3.map { case (id, (geometry, attributes)) =>
+//      val centroid = geometry.getCentroid()
+//      val newCoordinate = new Coordinate(centroid.getX + 500, centroid.getY + 500)
+//      val newPoint = geometry match {
+//        case point: Point => centroid.getFactory.createPoint(newCoordinate)
+//        case _ =>
+//          geometry
+//      }
+//      (id, (newPoint, attributes))
+//    }
+
+    //重新生成了一个属性值、坐标和样本量都不同的数据
+    val shpPath_pre = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/LNHP100pred.shp"
+    val data_pre = readShp(sc, shpPath_pre, encode)
+    GWRbasic.predict(sc, shpfile3, data_pre, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",
+      bandwidth = 98, kernel = "gaussian", adaptive = true, approach = "AICc")
   }
 
   //这个是要写一个日期类型数据间隔计算的（甚至可以用到gtwr里面），现在的计算是单纯的数字相加减，希望支持yyyymmdd这些类型的
