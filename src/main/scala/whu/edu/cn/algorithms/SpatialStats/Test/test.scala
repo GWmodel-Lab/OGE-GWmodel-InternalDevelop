@@ -4,7 +4,7 @@ import breeze.linalg.{DenseMatrix, DenseVector, norm, normalize}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.locationtech.jts.geom.{Coordinate, Point}
-import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics, PrincipalComponentAnalysis, RipleysK}
+import whu.edu.cn.algorithms.SpatialStats.BasicStatistics.{AverageNearestNeighbor, DescriptiveStatistics, KernelDensityEstimation, PrincipalComponentAnalysis, RipleysK}
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.CorrelationAnalysis.corrMat
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation._
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{LinearRegression, LogisticRegression, PoissonRegression, SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
@@ -53,6 +53,9 @@ object test {
     //    DescriptiveStatistics.describe(shpfile)
     //    RipleysK.ripley(shpfile)
     //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
+    //    KernelDensityEstimation.fit_legacy(sc,shpfile3,"PURCHASE",kernel = "gaussian",from = Some(200000),to = Some(30000),n = 512)
+    val ras = KernelDensityEstimation.fit(sc,shpfile2,propertyName = Some("z"), cols = 10, rows = 10 ,size = 7, amplitude = 10)
+    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kde")
 
         GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "bisquare",approach = "AICc",adaptive = false)
     //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare",approach = "CV")
