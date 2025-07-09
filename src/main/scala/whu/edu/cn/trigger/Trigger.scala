@@ -645,6 +645,8 @@ object Trigger {
         featureRddList += (UUID -> GWModels.GWAverage.cal(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyY"), args("propertiesX"), args("bandwidth").toDouble, args("kernel"), args("adaptive").toBoolean, args("quantile").toBoolean))
       case "SpatialStats.GWModels.GWCorrelation" =>
         featureRddList += (UUID -> GWModels.GWCorrelation.cal(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyY"), args("propertiesX"), args("bandwidth").toDouble, args("kernel"), args("adaptive").toBoolean))
+      case "SpatialStats.GWModels.GWPCA" =>
+        featureRddList += (UUID -> GWModels.GWPCA.fit(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]],args("properties"),args("bandwidth").toDouble,args("kernel"), args("adaptive").toBoolean,args("k").toInt))
 
       //geodetector
       case "SpatialStats.SpatialHeterogeneity.GeoRiskDetector" =>
