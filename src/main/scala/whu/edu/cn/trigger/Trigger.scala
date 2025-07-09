@@ -580,6 +580,11 @@ object Trigger {
         stringList += (UUID -> SpatialAutoCorrelation.globalMoranI(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("property"), args("plot").toBoolean, args("test").toBoolean, args("weightstyle")))
       case "SpatialStats.STCorrelations.SpatialAutoCorrelation.localMoranI" =>
         featureRddList += (UUID -> SpatialAutoCorrelation.localMoranI(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("property"), args("adjust").toBoolean))
+      case "SpatialStats.STCorrelations.SpatialAutoCorrelation.globalGearyC" =>
+        stringList += (UUID -> SpatialAutoCorrelation.globalGearyC(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]],args("property"),args("test").toBoolean,args("weightstyle"),args("knn").toInt))
+
+      case "SpatialStats.STCorrelations.SpatialAutoCorrelation.localGearyC" =>
+        featureRddList += (UUID -> SpatialAutoCorrelation.localGearyC(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]],args("property"),args("adjust").toBoolean,args("weightstyle"),args("knn").toInt,args("nsim").toInt))
       case "SpatialStats.STCorrelations.TemporalAutoCorrelation.ACF" =>
         stringList += (UUID -> TemporalAutoCorrelation.ACF(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("property"), args("timelag").toInt))
       //spatial regression
