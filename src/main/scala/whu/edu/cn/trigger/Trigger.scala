@@ -585,6 +585,8 @@ object Trigger {
 
       case "SpatialStats.STCorrelations.SpatialAutoCorrelation.localGearyC" =>
         featureRddList += (UUID -> SpatialAutoCorrelation.localGearyC(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]],args("property"),args("adjust").toBoolean,args("weightstyle"),args("knn").toInt,args("nsim").toInt))
+      case "SpatialStats.STCorrelations.SpatialAutoCorrelation.getisOrdG" =>
+        featureRddList += (UUID -> SpatialAutoCorrelation.getisOrdG(sc,featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]],args("property"),args("weightstyle"),args("knn").toInt, args("star").toBoolean))
       case "SpatialStats.STCorrelations.TemporalAutoCorrelation.ACF" =>
         stringList += (UUID -> TemporalAutoCorrelation.ACF(featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("property"), args("timelag").toInt))
       //spatial regression
