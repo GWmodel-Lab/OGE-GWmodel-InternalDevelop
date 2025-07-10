@@ -200,7 +200,7 @@ object SpatialAutoCorrelation {
    * @param featureRDD  RDD
    * @param property    要计算的属性
    * @param adjust      是否调整，是否调整n的取值。false(默认):n；true:n-1
-   * @param weightstyle 权重计算方式，默认为W（每个邻居权重都为1/邻居数）
+   * @param weightstyle 权重计算方式，默认为W（每个邻居权重都为1/邻居数）,可输入值还包括"B""C""U"
    * @param knn         KNN邻接矩阵中邻居数量，默认为4
    * @param nsim        伪p值排列检验循环次数，默认为499
    * @return RDD内含局部Geary's C指数和预测值等
@@ -301,6 +301,70 @@ object SpatialAutoCorrelation {
       t._1._2._2 += ("kurtosis" -> results.map(_._9))
     })
     sc.makeRDD(featRDDidx.map(_._1))
+  }
+
+  /**
+   *
+   * @param sc          SparkContext
+   * @param featureRDD  RDD
+   * @param property    要计算的属性
+   * @param weightstyle 权重计算方式，默认为W（每个邻居权重都为1/邻居数）,可输入值还包括"B""C""U"
+   * @param knn         KNN邻接矩阵中邻居数量，默认为4
+   * @param star        Boolean变量，默认为false，即计算Gi，若为true则计算Gi*
+   * @return
+   */
+  def getisOrdG(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], property: String, weightstyle: String = "W",
+                knn: Int = 4, star: Boolean = false)={
+//    val knn = 4
+    val nb_weight = getKNearestNeighbourWeight(featureRDD, weightstyle, k = knn, self_included = star)
+    val arr = featureRDD.map(t => t._2._2(property).asInstanceOf[String].toDouble).collect()
+    val ave = arr.sum/arr.length
+    val variance = arr.map(t => pow(t - ave,2)).sum/arr.length
+    val stddev = sqrt(variance)
+    val n = arr.length
+//    val arr_meandiff = meandiff(arr)
+
+    val Gi = if(star) //gi_star
+      nb_weight.zipWithIndex().map { case (w, idx) => {
+      val i = idx.toInt
+      val sumW = w.sum
+      val sumW2 = w.map(t => t * t).sum
+      val sumWMultiX = (0 until n).map(j => {
+        w(j) * arr(j)
+      }).sum
+
+      val gi_up = sumWMultiX - ave * sumW
+      val gi_down = stddev * sqrt(((n) * sumW2 - sumW * sumW) / (n - 1))
+      gi_up / gi_down
+    }
+    }
+    else //gi
+      nb_weight.zipWithIndex().map{case (w, idx) =>{
+      val i = idx.toInt
+      val sumW = w.sum
+      val sumW2 = w.map(t=>t*t).sum
+      val sumWMultiX = (0 until n).map(j =>{
+        w(j)*arr(j)
+      }).sum
+
+      val ave_i = (arr.sum - arr(i))/(n-1)
+      val var_i = (arr.map(t=> t*t).sum - pow(arr(i),2))/(n-1) - pow(ave_i,2)
+      val stddev_i = sqrt(var_i)
+
+      val gi_up = sumWMultiX - ave_i * sumW
+      val gi_down = stddev_i * sqrt(((n-1) * sumW2 - sumW * sumW)/(n - 2))
+      gi_up/gi_down
+    }}
+
+//    Gi.collect().foreach(println)
+
+    val name_gi = if(star)"gi_star" else "gi"
+    val featRDDidx = featureRDD.collect().zipWithIndex
+    featRDDidx.map(t => {
+      t._1._2._2 += (name_gi -> Gi)
+    })
+    sc.makeRDD(featRDDidx.map(_._1))
+
   }
 
   def plotmoran(x: Array[Double], w: RDD[DenseVector[Double]], morani: Double): Unit = {
