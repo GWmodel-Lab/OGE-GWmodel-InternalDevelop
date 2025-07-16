@@ -637,6 +637,9 @@ object Trigger {
       case "SpatialStats.GWModels.GTWR.fit" =>
         val re_gwr = GWModels.GTWR.fit(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyY"), args("propertiesX"), args("propertyT"), args("bandwidth").toDouble, args("kernel"), args("adaptive").toBoolean, args("lambda").toDouble)
         featureRddList += (UUID -> re_gwr)
+      case "SpatialStats.GWModels.GTWR.predict" =>
+        val re_gwr = GWModels.GTWR.predict(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyY"), args("propertiesX"), args("propertiesT"), args("bandwidth").toDouble, args("kernel"), args("approach"), args("adaptive").toBoolean, args("lambda").toDouble)
+        featureRddList += (UUID -> re_gwr)
       case "SpatialStats.GWModels.GWDA.calculate" =>
         val re_gwr = GWModels.GWDA.calculate(sc, featureRddList(args("featureRDD")).asInstanceOf[RDD[(String, (Geometry, mutable.Map[String, Any]))]], args("propertyY"), args("propertiesX"), args("bandwidth").toDouble, args("kernel"), args("adaptive").toBoolean, args("method"))
         featureRddList += (UUID -> re_gwr)
