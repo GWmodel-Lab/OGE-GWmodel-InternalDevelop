@@ -20,13 +20,17 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
   var bwOptiArr:Array[Array[Double]]=_
   var bwOptiMap:Array[mutable.Map[Int, Double]]=_
 
-  var bwArr1:Array[Double]=_
+  // 初始带宽组
+  var bw0: Double = 0.0
+  var bwArr0:Array[Double]=_
+  var fitArr0 : Array[(Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseMatrix[Double]])] = _
   var _approach:String=_
 
-  var bw0:Double=0
   var eps0:Double = 0
 
   var mbetas:Array[Array[Double]]=_
+
+  var isPrint: Boolean = false
 
 //  protected def setKernel(kernel:String) ={
 //    _kernel = kernel
@@ -51,69 +55,117 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     eps0 = eps
   }
 
+  // 这个地方改成对每一个变量逐个进行回归
   def fitAll(kernel: String, approach: String, adaptive: Boolean)={
     println("Initializing...")
     _kernel=kernel
     _adaptive=adaptive
-    val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
-    bw0=bwselect
-    val newWeight = if (_adaptive) {
-      setWeight(round(bwselect), _kernel, _adaptive)
-    } else {
-      setWeight(bwselect, _kernel, _adaptive)
+    bwArr0 = (0 until _cols).map(t => 0.0).toArray
+    val Res = (0 until _cols).map{ i =>
+      val varname = if(i==0) "Intercept" else _nameX(i-1)
+      val yName = _nameY
+      println(f"Now select an optimum bandwidth for the model: $yName ~ $varname")
+
+      val mXi = _dvecX(i)
+      // 构造当前变量的局部回归设计矩阵
+      val arrmXi = (0 to 0).map(t => mXi).toArray
+      //      val onesVector = DenseVector.ones[Double](_rows)
+      val vecmXi = arrmXi
+      val matmXi = DenseMatrix.create(rows = _rows, cols = 1, data = vecmXi.flatMap(_.toArray))
+
+      // 这里为当前变量单独优选带宽
+      isPrint = true
+      val localBw = if (_adaptive) {
+        adaptiveBandwidthSelectionLocal(X = matmXi, Y = _dvecY)
+      } else {
+        fixedBandwidthSelectionLocal(X = matmXi, Y = _dvecY)
+      }
+      bwArr0(i) = localBw
+      val newWeight = if (_adaptive) {
+        setWeightLocal(round(localBw))
+      } else {
+        setWeightLocal(localBw)
+      }
+//      println("fit ready")
+      val res_fit = fitLocal(matmXi, _dvecY, weight = newWeight)
+      (localBw, res_fit)
+    }.toArray
+
+    bwArr0 = Res.map(_._1)
+    fitArr0 = Res.map(_._2)
+
+    isPrint = false
+    bw0 = if(_adaptive){
+      adaptiveBandwidthSelectionLocal(X = _dmatX, Y = _dvecY)
+    }else{
+      fixedBandwidthSelectionLocal(X = _dmatX, Y = _dvecY)
     }
-    println(f"Initial bandwidth: $bw0")
-    fitFunction(weight = newWeight)
+
+
+//    println(f"bw inifial: ${bwArr0.toList}")
+
+    // -------------------------
+    //    val bwselect = bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
+    //    bw0=bwselect
+    //    val newWeight = if (_adaptive) {
+    //      setWeight(round(bwselect), _kernel, _adaptive)
+    //    } else {
+    //      setWeight(bwselect, _kernel, _adaptive)
+    //    }
+    //    println(f"Initial bandwidth: $bw0")
+    //    fitFunction(weight = newWeight)
 
   }
 
   def backfitting(iter:Int)={
-    // _rows samples and _cols variables, dp.n = _rows and var.n = _cols
-    val varN = _cols
-    val dpN = _rows
-    val re0=fitAll(_kernel, _approach, _adaptive)
-    val betas=re0._1
-//    println(f"size of betas: ${betas.length}, ${betas(0).length}")
-    var resid=re0._3
-    var Shat =re0._4 // n*n
-    var S_array = new Array[DenseMatrix[Double]](varN)
-    for(i<- 0 until varN){
-      S_array(i) = DenseMatrix.zeros[Double](dpN,dpN)
-    }
-    var C    =(re0._5)//.map(_.t)
-    val idm = DenseMatrix.eye[Double](varN)
+    // var.n = _cols, dp.n = _rows
+    fitAll(_kernel, _approach, _adaptive)
 
-    //维度由外及内进行描述
-//    println(f"dimension of S_array: ${S_array.length},${S_array(0).rows},${S_array(0).cols}")
-//    println(f"dimension of C: ${C.length},${C(0).rows},${C(0).cols}")
-//    println(f"dimension of X: ${_dmatX.rows},${_dmatX.cols}")
+    val weight0 = if (_adaptive) {
+      setWeightLocal(round(bw0))
+    } else {
+      setWeightLocal(bw0)
+    }
+    val res0 = fitLocal(_dmatX, _dvecY, weight = weight0)
+
+    var betas0 = res0._1
+    var yhat0 = res0._2
+    var resid0 = res0._3
+    var Shat = res0._4
+    var C0 = res0._5
+    println("Initial Selection Finished")
+
+    var rss0 = resid0.toArray.map(t => t*t).sum
+
+    val S_arrays = new Array[DenseMatrix[Double]](_cols)
+    for(i<- 0 until _cols){
+      S_arrays(i) = DenseMatrix.zeros[Double](_rows,_rows)
+    }
+
     //初始化
-    for(i <- 0 until varN; j <- 0 until dpN){
+    for(i <- 0 until _cols; j <- 0 until _rows){
       val xji = _dmatX(j,i)
-      val Cj = C(j)
+      val Cj = C0(j)
       val term = xji * Cj(i,::).t
-      S_array(i)(j,::) := term.t
+      S_arrays(i)(j,::) := term.t
     }
 
-    val Y = _dvecY
-    val betasT: Array[Array[Double]] = betas.map(_.toArray).transpose
-    var rss0 = resid.toArray.map(t => t*t).sum
-    val criterion = 1e7
+    val betasT: Array[Array[Double]] = betas0.map(_.toArray).transpose
 
     val matFi = DenseMatrix.zeros[Double](_rows,_cols)
     for(i<-0 until _cols){
       matFi(::,i) := DenseVector(betasT(i)) *:* _dvecX(i)
     }
-    val matFi_old = DenseMatrix.zeros[Double](_rows,_cols)
-    for (r <- 0 until _rows; c <- 0 until _cols) {
-      matFi_old(r, c) = matFi(r, c)
-    }
+    val matFi_old = matFi.copy/*DenseMatrix.zeros[Double](_rows,_cols)*/
+//    for (r <- 0 until _rows; c <- 0 until _cols) {
+//      matFi_old(r, c) = matFi(r, c)
+//    }
 
     val vecBw = DenseVector.zeros[Double](_cols)
     val matBetas = DenseMatrix.zeros[Double](_rows, _cols)
     // initialization
     for(i <- 0 until _rows; j <- 0 until _cols){
-      matBetas(i,j) = betas(i)(j)
+      matBetas(i,j) = betas0(i)(j)
     }
 
     // calculation
@@ -128,67 +180,50 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
 
         val mXi = _dvecX(i)
         val fi = matFi(::, i)
-        val mYi = resid + fi
-
-        // local regression between mYi and mXi
-        // create a new RDD of mXi and mYi for local GWR
-//        val shpRDDidx = _shpRDD.collect().zipWithIndex
-//        shpRDDidx.foreach(t => t._1._2._2.clear())
-//        shpRDDidx.map(t => {
-//          t._1._2._2 += ("localX" -> mXi(t._2).toString)
-//          t._1._2._2 += ("localY" -> mYi(t._2).toString)
-//        })
-//        val localRDD = sc.makeRDD(shpRDDidx.map(t => t._1))
-//        val localGWR = new GWRbasic(localRDD)
-//        localGWR.setY("localY")
-//        localGWR.setX("localX")
-//        val localBw =  localGWR.getBandwidth(_kernel,_approach,_adaptive)
-//
-//        val localWeight = if (_adaptive) {
-//          localGWR.setWeight_(round(localBw), _kernel, _adaptive)
-//        } else {
-//          localGWR.setWeight_(localBw, _kernel, _adaptive)
-//        }
-//        val localGWRRes = localGWR.fitFunction(weight = localWeight)
+        val yi = resid0 + fi
 
         val arrmXi = (0 to 0).map(t => mXi).toArray
-        val onesVector = DenseVector.ones[Double](_rows)
-        val vecmXi = onesVector +: arrmXi
-        val matmXi = DenseMatrix.create(rows = _rows, cols = 2, data = vecmXi.flatMap(_.toArray))
+        //      val onesVector = DenseVector.ones[Double](_rows)
+        val vecmXi = arrmXi
+        val matmXi = DenseMatrix.create(rows = _rows, cols = 1, data = vecmXi.flatMap(_.toArray))
+
+        isPrint = false
         val localBw = if(_adaptive){
-          adaptiveBandwidthSelectionLocal(X = matmXi, Y = mYi)
+          adaptiveBandwidthSelectionLocal(X = matmXi, Y = yi)
         }else{
-          fixedBandwidthSelectionLocal(X = matmXi, Y = mYi)
+          fixedBandwidthSelectionLocal(X = matmXi, Y = yi)
         }
         val localWeight = if (_adaptive) {
           setWeightLocal(round(localBw))
         } else {
           setWeightLocal(localBw)
         }
-        val localGWRRes = fitLocal(matmXi,mYi,localWeight)
+        val localGWRRes = fitLocal(matmXi,yi,localWeight)
 
-        val betai = localGWRRes._1.map(t =>t(1))
+        val betai = localGWRRes._1.map(t =>t(0))
         val Si = localGWRRes._4
-        val S_arrayi = S_array(i)
-        S_array(i) = Si * S_arrayi + Si - Si * Shat
-        Shat = Shat - S_arrayi + S_array(i)
-        println(f"Newly selected bandwidth for $varname : $localBw")
+        val S_arrayi = S_arrays(i)
+        S_arrays(i) = Si * S_arrayi + Si - Si * Shat
+        Shat = Shat - S_arrayi + S_arrays(i)
+        println(f"Newly selected bandwidth for $varname : ${localBw.toInt}")
 
         //update fi
         matFi(::, i) := DenseVector(betai) *:* mXi
         vecBw(i) = localBw
         matBetas(::, i) := DenseVector(betai)
-        resid = Y - DenseVector((0 until _rows).map(t => matFi(t, ::).inner.sum).toArray)
+        resid0 = _dvecY - DenseVector((0 until _rows).map(t => matFi(t, ::).inner.sum).toArray)
 
         println("--------------------------------------------")
       }
 
-      val resid1 = Y - DenseVector((0 until _rows).map(t => matFi(t, ::).inner.sum).toArray)
+      val resid1 = _dvecY - DenseVector((0 until _rows).map(t => matFi(t, ::).inner.sum).toArray)
       val rss1 = resid1.map(t =>t*t).sum
       is_converged = converge(matFi,matFi_old)
-      for(r <- 0 until _rows;c <- 0 until _cols){
-        matFi_old(r,c) = matFi(r,c)
-      }
+//      is_converged = calc_dCVR(rss0, rss1)
+      matFi_old := matFi.copy
+//      for(r <- 0 until _rows;c <- 0 until _cols){
+//        matFi_old(r,c) = matFi(r,c)
+//      }
       iter_present = iter_present+1
       rss0 = rss1
     }
@@ -197,7 +232,7 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     res
   }
 
-  def regress(iter: Int = 100)={
+  def regress(iter: Int)={
     val bf = backfitting(iter)
     val matFi = bf._1
     val vecBw = bf._2
@@ -244,7 +279,7 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
       else{
         mat_bw(0,i) = _nameUsed(i-1)
       }
-      mat_bw(1,i) = vecBw(i).toString
+      mat_bw(1,i) = if(_adaptive)round(vecBw(i)).toString else vecBw(i).formatted("%.2f")
     }
 //    var str_bw = "\n"
 //    for(i <- 0 until _cols){
@@ -272,6 +307,16 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     val SOCf = sqrt(numerator / denominator)
     println(f"SOC-f: $SOCf")
     if (SOCf <= eps0) {
+      true
+    } else {
+      false
+    }
+  }
+
+  protected def calc_dCVR(rss0: Double, rss1: Double): Boolean = {
+    val dCVR = math.sqrt(math.abs(rss1 - rss0) / rss1)
+    println(f"dCVR: $dCVR")
+    if (dCVR <= eps0) {
       true
     } else {
       false
@@ -420,7 +465,16 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     val shat0 = trace(shat)
     val rss = residual.toArray.map(t => t * t).sum
     val n = X.rows
-    n * log(rss / n) + n * log(2 * math.Pi) + n * ((n + shat0) / (n - 2 - shat0))
+    val aicc = n * log(rss / n) + n * log(2 * math.Pi) + n * ((n + shat0) / (n - 2 - shat0))
+    if(isPrint) {
+      if (_adaptive) {
+        println(f"Adaptive bandwidth: ${round(bw)}, AICc value: $aicc")
+      }
+      else {
+        println(f"Fixed bandwidth: ${bw}, AICc value: $aicc")
+      }
+    }
+    aicc
   }
 
   private def bandwidthCVLocal(X: DenseMatrix[Double], Y: DenseVector[Double], bw: Double): Double = {
@@ -432,7 +486,16 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     val cvWeight = modifyWeightCVLocal(newWeight)
     val results = fitLocal(X, Y, weight = cvWeight)
     val residual = results._3
-    residual.toArray.map(t => t * t).sum
+    val cv_res = residual.toArray.map(t => t * t).sum
+    if(isPrint) {
+      if(_adaptive){
+        println(f"Adaptive bandwidth: ${round(bw)}, CV deviance: $cv_res")
+      }
+      else {
+        println(f"Fixed bandwidth: ${bw}, CV deviance: $cv_res")
+      }
+    }
+    cv_res
   }
 
   private def modifyWeightCVLocal(weightRDD: RDD[DenseVector[Double]]): RDD[DenseVector[Double]] = {
@@ -524,7 +587,7 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
 object MGWR {
 
   def regress(sc: SparkContext, featureRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], propertyY: String, propertiesX: String,
-              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, iteration: Int = 100, epsilon: Double = 1e-5) = {
+              kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = false, iteration: Int = 20, epsilon: Double = 1e-5) = {
     val model = new MGWR(featureRDD)
     model.setY(propertyY)
     model.setX(propertiesX)
