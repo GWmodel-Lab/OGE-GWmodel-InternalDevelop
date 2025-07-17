@@ -51,7 +51,7 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     eps0 = eps
   }
 
-  def fitAll(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true)={
+  def fitAll(kernel: String, approach: String, adaptive: Boolean)={
     println("Initializing...")
     _kernel=kernel
     _adaptive=adaptive
@@ -71,7 +71,7 @@ class MGWR(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
     // _rows samples and _cols variables, dp.n = _rows and var.n = _cols
     val varN = _cols
     val dpN = _rows
-    val re0=fitAll()
+    val re0=fitAll(_kernel, _approach, _adaptive)
     val betas=re0._1
 //    println(f"size of betas: ${betas.length}, ${betas(0).length}")
     var resid=re0._3

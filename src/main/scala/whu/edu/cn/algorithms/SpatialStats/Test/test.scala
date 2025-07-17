@@ -115,7 +115,7 @@ object test {
 
 //    model.backfitting(sc,100)
 //    model.regress(100)
-    MGWR.regress(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF",kernel, approach, adaptive, 100)
+    MGWR.regress(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF",kernel, approach, adaptive=false, 100)
   }
 
   def testGWRpredict()= {
