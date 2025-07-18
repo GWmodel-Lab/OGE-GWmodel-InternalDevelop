@@ -194,7 +194,7 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
   }
 
   def fitFunction(X: DenseMatrix[Double] = _dmatX, Y: DenseVector[Double] = _dvecY, weight: RDD[DenseVector[Double]] = _spWeight):
-  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double]) = {
+  (Array[DenseVector[Double]], DenseVector[Double], DenseVector[Double], DenseMatrix[Double], Array[DenseMatrix[Double]]) = {
 
     val xtw = weight.map(w => {
       val each_col_mat = _dvecX.map(t => t * w).flatMap(_.toArray)
@@ -252,7 +252,7 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
     val residual = Y - yhat
     //    val s = calDiagnostic(X, Y, residual, shat)
     //    println(s)
-    (betas.collect(), yhat, residual, shat)
+    (betas.collect(), yhat, residual, shat, ci.collect())
   }
 
     def predict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], bw: Double, kernel: String, adaptive: Boolean, approach: String): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
@@ -443,6 +443,15 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
 //      println(fitString)
       (shpRDDidx.map(t => t._1), fitString)
     }
+
+  // public functions, written for MGWR
+//  def getBandwidth(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double={
+//    bandwidthSelection(kernel,approach, adaptive)
+//  }
+//
+//  def getAICc(bw: Double): Double = {
+//    bandwidthAICc(bw)
+//  }
 
   protected def bandwidthSelection(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double = {
     if (adaptive) {
