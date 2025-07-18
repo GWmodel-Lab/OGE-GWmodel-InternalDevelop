@@ -10,7 +10,7 @@ import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{LinearRegression, LogisticRegression, PoissonRegression, SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
-import whu.edu.cn.algorithms.SpatialStats.GWModels.{GTWR, GWAverage, GWCorrelation, GWDA, GWRGeneralized, GWRbasic}
+import whu.edu.cn.algorithms.SpatialStats.GWModels.{GTWR, GWAverage, GWCorrelation, GWDA, GWPCA, GWRGeneralized, GWRbasic}
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
@@ -25,7 +25,7 @@ import breeze.numerics._
 object test {
   //global variables
   val conf: SparkConf = new SparkConf().setMaster("local[8]").setAppName("query")
-      .set("spark.testing.memory", "512000000")
+    .set("spark.testing.memory", "512000000")
   val sc = new SparkContext(conf)
   val encode="utf-8"
 
@@ -49,6 +49,9 @@ object test {
     //    DescriptiveStatistics.describe(shpfile)
     //    RipleysK.ripley(shpfile)
     //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
+
+    testGeary()
+
     //    KernelDensityEstimation.fit_legacy(sc,shpfile3,"PURCHASE",kernel = "gaussian",from = Some(200000),to = Some(30000),n = 512)
     //    val ras = KernelDensityEstimation.fit(sc,shpfile2,propertyName = Some("z"), cols = 10, rows = 10 ,size = 7, amplitude = 10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kde")
@@ -63,8 +66,9 @@ object test {
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-    //    testGWRpredict()
     testGTWRpredict()
+    //    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
+    //    testGWRpredict()
 
     //    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
@@ -97,6 +101,11 @@ object test {
     val tused = (System.currentTimeMillis() - t1) / 1000.0
     println(s"time used is $tused s")
     sc.stop()
+  }
+
+  def testGeary()={
+    SpatialAutoCorrelation.globalGearyC(shpfile3,"PURCHASE", weightstyle = "W", knn = 4, test = true)
+    SpatialAutoCorrelation.localGearyC(sc, shpfile3, "PURCHASE", adjust = true)
   }
 
   def testGWRpredict()= {

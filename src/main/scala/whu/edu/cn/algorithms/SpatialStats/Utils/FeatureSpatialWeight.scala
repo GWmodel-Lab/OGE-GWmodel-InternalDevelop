@@ -56,6 +56,42 @@ object FeatureSpatialWeight {
   }
 
   /**
+   * 获取一个矢量RDD的K最邻近权重矩阵，面状、点状皆可
+   *
+   * @param polyRDD 输入的数据，项目矢量RDD类型
+   * @param style   邻接矩阵的权重计算类型 ，计算结果只针对邻接的对象算权重，非邻接的对象权重均为0。默认为W类型。
+   *                                    W：1/邻居数； B：1； C：1/平均邻居数； U：1/总邻居数；
+   * @param k 最邻近数量，默认为4
+   * @return RDD形式的权重向量
+   */
+  def getKNearestNeighbourWeight(polyRDD: RDD[(String, (Geometry, Map[String, Any]))], style: String = "W", k: Int = 4)={
+    val coors = polyRDD.map(t => t._2._1.getCentroid.getCoordinate).collect()
+    val n = coors.length
+    val dist = FeatureDistance.getDistRDD(polyRDD)
+    //找点i的knn
+    val knn_bool = dist.zipWithIndex().map(t0=>{
+      val t = t0._1
+      val idx_self = t0._2.toInt//点i自身的索引
+      val distWithIndex = t.zipWithIndex// 创建带索引的距离数组，用于处理距离相等的情况
+      val sortedDist = distWithIndex.sortBy(x => (x._1, x._2))// 按距离排序，如果距离相等则按索引排序
+      val kNearestIndices = sortedDist.take(k+1).map(_._2).toSet// 获取前k+1个最近邻的索引,要排除自己
+      val res = t.zipWithIndex.map{case (d, idx) => kNearestIndices.contains(idx)}// 创建布尔数组，只标记k个最近邻
+      res(idx_self) = false
+      res
+    })
+    val knn_weight = boolNeighborWeight(knn_bool)
+    val knn_collect = knn_weight.collect()
+    val sum_knn: Double = knn_collect.map(t => t.toArray.sum).sum
+    val avg_knn: Double = knn_collect.length.toDouble
+    style match {
+      case "W" => knn_weight.map(t => t * (t / sum(t)))
+      case "B" => knn_weight.map(t => t)
+      case "C" => knn_weight.map(t => (t * (1.0 * avg_knn / sum_knn)))
+      case "U" => knn_weight.map(t => (t * (1.0 / sum_knn)))
+    }
+  }
+
+  /**
    * 对单个距离向量进行权重向量求解
    *
    * @param dist     \~english Distance vector \~chinese 距离向量
