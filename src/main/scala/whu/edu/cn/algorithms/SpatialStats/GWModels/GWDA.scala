@@ -18,6 +18,10 @@ import scala.collection.mutable.ArrayBuffer
 class GWDA(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extends GWRbase(inputRDD) {
 
   //其实应该用一个哈希表存，但是不知道有没有。现在就这样写成了算了。
+  //以下是新增用于哈希表的代码
+  private var _labelToIndex: Map[String, Int] = Map()
+  private var _indexToLabel: Map[Int, String] = Map()
+
   private val select_eps = 1e-6
   private var _method: String = "wlda"
   private var _inputY: Array[Any] = _
@@ -184,56 +188,92 @@ class GWDA(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
   }
 
   private def getYLevels(data: Array[_ <: Any] = _inputY): Unit = {
-    val data_idx = data.zipWithIndex
-    val distin_idx = data.distinct.zipWithIndex
-    val dlevel = data_idx.map(t => {
-      distin_idx.find(_._1 == data(t._2))
-    })
-    //    println(dlevel.toVector)
-    val levels = dlevel.map({
-      getSomeInt(_)
-    })
-    //    println(levels.toVector)
-    _distinctLevels = distin_idx
-    _levelArr = levels
-    _dataLevels = dlevel.zipWithIndex.map(t => (getSomeStr(t._1), getSomeInt(t._1), t._2))
+    val distinctLabels = data.distinct.map(_.toString)
+    _labelToIndex = distinctLabels.zipWithIndex.toMap
+    _indexToLabel = distinctLabels.zipWithIndex.map(_.swap).toMap
+    //    println(f"label to index: ${_labelToIndex.toList}")
+    //    println(f"index to label: ${_indexToLabel.toList}")
+
+    // 获取每个数据点的索引
+    _levelArr = data.map(x => _labelToIndex(x.toString))
+
+    // 构建数据级别信息
+    _dataLevels = data.zipWithIndex.map { case (value, idx) =>
+      (value.toString, _labelToIndex(value.toString), idx)
+    }
+
+    // 按标签分组
     _dataGroups = _dataLevels.groupBy(_._1)
     _nGroups = _dataGroups.size
-    //    levels
+
+    // 保存原始的唯一值信息（为了兼容性）
+    _distinctLevels = distinctLabels.zipWithIndex
+
+//    val data_idx = data.zipWithIndex
+//    val distin_idx = data.distinct.zipWithIndex
+//    val dlevel = data_idx.map(t => {
+//      distin_idx.find(_._1 == data(t._2))
+//    })
+//    //    println(dlevel.toVector)
+//    val levels = dlevel.map({getSomeInt(_)})
+//    //    println(levels.toVector)
+//    _distinctLevels = distin_idx
+//    _levelArr = levels
+//    _dataLevels = dlevel.zipWithIndex.map(t => (getSomeStr(t._1), getSomeInt(t._1), t._2))
+//    _dataGroups = _dataLevels.groupBy(_._1)
+//    _nGroups = _dataGroups.size
+//    //    levels
+
   }
 
   private def getXGroups(x: Array[DenseVector[Double]] = _rawX): Unit = {
     _xcols = x.length
-    val nlevel = _distinctLevels.length
-    val arrbuf = ArrayBuffer.empty[DenseVector[Double]]
     val x_trans = transhape(x)
-    for (i <- 0 until nlevel) { //i 是 第几类的类别循环，有几类循环几次
-      for (groups <- _dataGroups.values) { //groups里面是每一组的情况，已经区分好了的
-        //        for (j <- x.indices) { // j x的循环，x有多少列，循环多少次
-        //          groups.foreach(t => {
-        //            if (t._2 == i) {
-        //              val tmp = x(j)(t._3)
-        //              arrbuf += tmp
-        //            }
-        //          })
-        //        }
-        groups.foreach(t => {
-          if (t._2 == i) {
-            arrbuf += x_trans(t._3)
-          }
-        })
-        if (arrbuf.nonEmpty) {
-          _groupX += arrbuf.toArray
-        }
-        arrbuf.clear()
+
+//    val nlevel = _distinctLevels.length
+//    val arrbuf = ArrayBuffer.empty[DenseVector[Double]]
+//    for (i <- 0 until nlevel) { //i 是 第几类的类别循环，有几类循环几次
+//      for (groups <- _dataGroups.values) { //groups里面是每一组的情况，已经区分好了的
+//        //        for (j <- x.indices) { // j x的循环，x有多少列，循环多少次
+//        //          groups.foreach(t => {
+//        //            if (t._2 == i) {
+//        //              val tmp = x(j)(t._3)
+//        //              arrbuf += tmp
+//        //            }
+//        //          })
+//        //        }
+//        groups.foreach(t => {
+//          if (t._2 == i) {
+//            arrbuf += x_trans(t._3)
+//          }
+//        })
+//        if (arrbuf.nonEmpty) {
+//          _groupX += arrbuf.toArray
+//        }
+//        arrbuf.clear()
+//      }
+//    }
+
+    // 使用哈希表直接获取每个类别的数据
+    for (i <- 0 until _nGroups) {
+      val groupData = _dataLevels
+        .filter(_._2 == i) // 使用哈希表映射的索引进行过滤
+        .map(_._3) // 获取原始索引
+        .map(x_trans) // 获取对应的特征向量
+
+      if (groupData.nonEmpty) {
+        _groupX += groupData
       }
     }
+
+
   }
 
   private def getWeightGroups(allWeight: Array[DenseVector[Double]] = _spWeightArray): Array[Array[DenseVector[Double]]] = {
+    val spweight_trans = transhape(allWeight)
+
     val nlevel = _distinctLevels.length
     val weightbuf = ArrayBuffer.empty[DenseVector[Double]]
-    val spweight_trans = transhape(allWeight)
     val spweight_groups: ArrayBuffer[Array[DenseVector[Double]]] = ArrayBuffer.empty[Array[DenseVector[Double]]]
     for (i <- 0 until nlevel) {
       for (groups <- _dataGroups.values) {
@@ -249,6 +289,14 @@ class GWDA(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
       }
     }
     spweight_groups.toArray
+
+//    // 使用哈希表直接获取每个类别的权重
+//    (0 until _nGroups).map { i =>
+//      _dataLevels
+//        .filter(_._2 == i) // 使用哈希表映射的索引进行过滤
+//        .map(_._3) // 获取原始索引
+//        .map(spweight_trans) // 获取对应的权重向量
+//    }.toArray
   }
 
   private def getSomeInt(x: Option[(Any, Int)]): Int = x match {
@@ -479,23 +527,25 @@ class GWDA(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) extend
   }
 
   private def figLevelString(rowi: Int): String = {
-    var re = "NA"
-    for (i <- _distinctLevels.indices) {
-      if (rowi == _distinctLevels(i)._2) {
-        re = _distinctLevels(i)._1.asInstanceOf[String]
-      }
-    }
-    re
+//    var re = "NA"
+//    for (i <- _distinctLevels.indices) {
+//      if (rowi == _distinctLevels(i)._2) {
+//        re = _distinctLevels(i)._1.asInstanceOf[String]
+//      }
+//    }
+    //re
+    _indexToLabel.getOrElse(rowi,"NA")
   }
 
   private def figLevelInt(rowi: Int): Int = {
-    var re = -1
-    for (i <- _distinctLevels.indices) {
-      if (rowi == _distinctLevels(i)._2) {
-        re = _distinctLevels(i)._2
-      }
-    }
-    re
+//    var re = -1
+//    for (i <- _distinctLevels.indices) {
+//      if (rowi == _distinctLevels(i)._2) {
+//        re = _distinctLevels(i)._2
+//      }
+//    }
+//    re
+    rowi
   }
 
   private def covwt(x1: DenseVector[Double], x2: DenseVector[Double], w: DenseVector[Double]): Double = {
