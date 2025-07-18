@@ -10,7 +10,7 @@ import whu.edu.cn.algorithms.SpatialStats.STCorrelations.TemporalAutoCorrelation
 import whu.edu.cn.algorithms.SpatialStats.SpatialRegression.{LinearRegression, LogisticRegression, PoissonRegression, SpatialDurbinModel, SpatialErrorModel, SpatialLagModel}
 import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureDistance._
 import whu.edu.cn.algorithms.SpatialStats.Utils.OtherUtils._
-import whu.edu.cn.algorithms.SpatialStats.GWModels.{GTWR, GWAverage, GWCorrelation, GWDA, GWRGeneralized, MGWR, GWRbasic}
+import whu.edu.cn.algorithms.SpatialStats.GWModels.{GTWR, GWAverage, GWCorrelation, GWDA, GWPCA, GWRGeneralized, MGWR, GWRbasic}
 import whu.edu.cn.algorithms.SpatialStats.STCorrelations.{CorrelationAnalysis, SpatialAutoCorrelation, TemporalAutoCorrelation}
 import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, regularSampling, stratifiedSampling}
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
@@ -58,21 +58,22 @@ object test {
     testGeary()
 
     //    KernelDensityEstimation.fit_legacy(sc,shpfile3,"PURCHASE",kernel = "gaussian",from = Some(200000),to = Some(30000),n = 512)
-    val ras = KernelDensityEstimation.fit(sc,shpfile2,propertyName = Some("z"), cols = 10, rows = 10 ,size = 7, amplitude = 10)
-    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kde")
+    //    val ras = KernelDensityEstimation.fit(sc,shpfile2,propertyName = Some("z"), cols = 10, rows = 10 ,size = 7, amplitude = 10)
+    //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kde")
 
 
     //    GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "bisquare",approach = "AICc",adaptive = false)
     //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare",approach = "CV")
     //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)
     //    GWRbasic.autoFit(sc, shpfile, "aging", "PCGDP,GI,FD,education",approach = "AICc", adaptive = true)
-    GWRGeneralized.fit(sc, shpfile3, "BATH2","FLOORSZ", adaptive = false, approach = "AICc",family = "poisson", bandwidth = -1)//27523.1498571026)
+    //    GWRGeneralized.fit(sc, shpfile3, "BATH2","FLOORSZ", adaptive = false, approach = "AICc",family = "poisson", bandwidth = -1)//27523.1498571026)
     //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 0.5)
     //    GTWR.autoFit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", adaptive=true, lambda = 0.5)
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-        testGWRpredict()
+    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
+    //    testGWRpredict()
 
     //    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
