@@ -50,7 +50,7 @@ object test {
     //    RipleysK.ripley(shpfile)
     //    PrincipalComponentAnalysis.PCA(shpfile,"aging,GDP,pop,GI,sci_tech,education,revenue",keep = 2,is_scale =true)
 
-    testGeary()
+    //    testGeary()
 
     //    KernelDensityEstimation.fit_legacy(sc,shpfile3,"PURCHASE",kernel = "gaussian",from = Some(200000),to = Some(30000),n = 512)
     //    val ras = KernelDensityEstimation.fit(sc,shpfile2,propertyName = Some("z"), cols = 10, rows = 10 ,size = 7, amplitude = 10)
@@ -67,7 +67,7 @@ object test {
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
+    //    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
     //    testGWRpredict()
 
     //    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
@@ -83,6 +83,7 @@ object test {
 
     //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
     //    SpatialAutoCorrelation.localMoranI(sc, shpfile, "aging")
+    SpatialAutoCorrelation.getisOrdG(sc, shpfile3, "PURCHASE", star = true)
     //    TemporalAutoCorrelation.ACF(shpfile, "aging", 20)
     //    CorrelationAnalysis.corrMat(shpfile, "aging,GDP,pop,GI,sci_tech,education,revenue", method = "spearman")
     //    acf_test()
