@@ -78,4 +78,9 @@ class GWRbase(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ext
     _dvecY
   }
 
+  // function write for MGWR
+//  def setWeight_(bw:Double, kernel:String, adaptive:Boolean) = {
+//    setWeight(bw, kernel, adaptive)
+//  }
+
 }
