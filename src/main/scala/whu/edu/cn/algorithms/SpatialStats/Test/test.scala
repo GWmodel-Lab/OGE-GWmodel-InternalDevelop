@@ -16,7 +16,7 @@ import whu.edu.cn.algorithms.SpatialStats.STSampling.Sampling.{randomSampling, r
 import whu.edu.cn.algorithms.SpatialStats.SpatialHeterogeneity.Geodetector
 import whu.edu.cn.algorithms.SpatialStats.STSampling.SandwichSampling
 import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.Kriging.{OrdinaryKriging, selfDefinedKriging}
-import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.interpolationUtils
+import whu.edu.cn.algorithms.SpatialStats.SpatialInterpolation.{IDW, LinearInterpolation, NearestNeighbourInterpolation, SplineInterpolation, interpolationUtils}
 import whu.edu.cn.util.ShapeFileUtil._
 import breeze.linalg.{norm, normalize}
 import breeze.numerics._
@@ -68,7 +68,7 @@ object test {
     //    GWRGeneralized.fit(sc, shpfile3, "BATH2","FLOORSZ", adaptive = false, approach = "AICc",family = "poisson", bandwidth = -1)//27523.1498571026)
     //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 0.5)
     //    GTWR.autoFit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", adaptive=true, lambda = 0.5)
-        GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
+    //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
     //    testGTWRpredict()
@@ -76,6 +76,16 @@ object test {
     //    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
     //    testGWRpredict()
 
+    val ras = SplineInterpolation.BSpline(sc, shpfile2, "z", 10, 10)
+    interpolationUtils.makeTiff(ras, "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/", "b-spline")
+    //    val ras = SplineInterpolation.thinPlateSpline(sc,shpfile2,"z",10,10)
+    //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","thin-plate-spline")
+    //    val ras = IDW.fit(sc,shpfile2,"z",10,10)
+    //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","idw")
+    //    val ras = LinearInterpolation.fit(sc,shpfile2,"z",10,10)
+    //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","linear")
+    //    val ras = NearestNeighbourInterpolation.fit(sc,shpfile2,"z",10,10)
+    //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","nni")
     //    val ras=OrdinaryKriging(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kriging")
     //    selfDefinedKriging(sc,shpfile2,"z",10,10,"Sph",0.1,0.1,0.1)
