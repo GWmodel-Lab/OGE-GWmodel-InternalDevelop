@@ -45,7 +45,7 @@ object test {
   def main(args: Array[String]): Unit = {
 
     val t1 = System.currentTimeMillis()
-    testMGWR()
+//    testMGWR()
 //    GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "gaussian")//comparison
 //    val residual = Feature.get(gwrres,"residual")
 //    println(residual)
@@ -68,10 +68,10 @@ object test {
     //    GWRGeneralized.fit(sc, shpfile3, "BATH2","FLOORSZ", adaptive = false, approach = "AICc",family = "poisson", bandwidth = -1)//27523.1498571026)
     //    GTWR.fit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", bandwidth=40,adaptive=true, lambda = 0.5)
     //    GTWR.autoFit(sc,shpfile3,"PURCHASE","FLOORSZ,UNEMPLOY,PROF","TYPEDETCH", adaptive=true, lambda = 0.5)
-    //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
+        GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
-    testGTWRpredict()
+    //    testGTWRpredict()
     
     //    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
     //    testGWRpredict()
