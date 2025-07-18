@@ -61,7 +61,6 @@ object test {
     //    val ras = KernelDensityEstimation.fit(sc,shpfile2,propertyName = Some("z"), cols = 10, rows = 10 ,size = 7, amplitude = 10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","kde")
 
-
     //    GWRbasic.auto(sc, shpfile3, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", kernel = "bisquare",approach = "AICc",adaptive = false)
     //    GWRbasic.auto(sc, shpfile, "aging", "PCGDP,GI,FD,TS,CL,PCD,PIP,SIP,TIP,education", kernel = "bisquare",approach = "CV")
     //    GWRbasic.fit(sc, shpfile, "aging", "PCGDP,GI,FD,education", 50, adaptive = true)
@@ -72,6 +71,8 @@ object test {
     //    GWDA.calculate(sc,shpfile3,"TYPEDETCH","FLOORSZ,UNEMPLOY,PROF",kernel = "bisquare",method = "wlda")
     //    GWCorrelation.cal(sc, shpfile, "aging", "GDP,pop", bw=20, kernel = "bisquare", adaptive = true)
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
+    testGTWRpredict()
+    
     //    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
     //    testGWRpredict()
 
@@ -89,7 +90,7 @@ object test {
 
     //    SpatialAutoCorrelation.globalMoranI(shpfile, "aging", plot = false, test = true)
     //    SpatialAutoCorrelation.localMoranI(sc, shpfile, "aging")
-    SpatialAutoCorrelation.getisOrdG(sc, shpfile3, "PURCHASE", star = true)
+    //    SpatialAutoCorrelation.getisOrdG(sc, shpfile3, "PURCHASE", star = true)
     //    TemporalAutoCorrelation.ACF(shpfile, "aging", 20)
     //    CorrelationAnalysis.corrMat(shpfile, "aging,GDP,pop,GI,sci_tech,education,revenue", method = "spearman")
     //    acf_test()
@@ -149,8 +150,19 @@ object test {
     //重新生成了一个属性值、坐标和样本量都不同的数据
     val shpPath_pre = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/LNHP100pred.shp"
     val data_pre = readShp(sc, shpPath_pre, encode)
-    GWRbasic.predict(sc, shpfile3, data_pre, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",
-      bandwidth = 98, kernel = "gaussian", adaptive = true, approach = "AICc")
+//    GWRbasic.predict(sc, shpfile3, data_pre, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",
+//      bandwidth = 98, kernel = "gaussian", adaptive = true, approach = "AICc")
+  }
+
+  def testGTWRpredict() = {
+
+    //重新生成了一个属性值、坐标和样本量都不同的数据
+    val shpPath_pre = "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/LNHP100pred.shp"
+    val data_pre = readShp(sc, shpPath_pre, encode)
+//    GWRbasic.predict(sc, shpfile3, data_pre, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF",
+//      bandwidth = 98, kernel = "gaussian", adaptive = false, approach = "AICc")
+    GTWR.predict(sc, shpfile3, data_pre, "PURCHASE", "FLOORSZ,UNEMPLOY,PROF", "TYPEDETCH",
+      bandwidth = 98, kernel = "gaussian", adaptive = false, approach = "AICc")
   }
 
   //这个是要写一个日期类型数据间隔计算的（甚至可以用到gtwr里面），现在的计算是单纯的数字相加减，希望支持yyyymmdd这些类型的

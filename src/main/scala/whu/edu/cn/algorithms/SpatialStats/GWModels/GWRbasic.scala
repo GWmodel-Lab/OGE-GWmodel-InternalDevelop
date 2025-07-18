@@ -255,194 +255,197 @@ class GWRbasic(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) ex
     (betas.collect(), yhat, residual, shat, ci.collect())
   }
 
-    def predict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], bw: Double, kernel: String, adaptive: Boolean, approach: String): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
-      // here prefix "p-" means "predict"
-      val pdist=initPredict(pRDD)//predictdata到data距离矩阵
-      val dist = _dist//data的距离矩阵
-      val pn=pdist.count()//predictdata样本量
+  def predict(pRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))], bw: Double, kernel: String, adaptive: Boolean, approach: String): (Array[(String, (Geometry, mutable.Map[String, Any]))], String) = {
+    // here prefix "p-" means "predict"
+    val pdist=initPredict(pRDD)//predictdata到data距离矩阵
+    val dist = _dist//data的距离矩阵
+    val pn=pdist.count()//predictdata样本量
 
-      val X = _dmatX
-      val Y = _dvecY
+    val X = _dmatX
+    val Y = _dvecY
+    _kernel = kernel
+    _adaptive = adaptive
 
-      val x_pre = _nameX.map(s => {
-        DenseVector(pRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
-      })
-      val pd_n = x_pre(0).length
-      val var_n = _cols
-      val pvecX = DenseVector.ones[Double](pd_n) +: x_pre
-      val pX = DenseMatrix.create(rows = pd_n, cols = var_n, data = pvecX.flatMap(_.toArray))
+    val x_pre = _nameX.map(s => {
+      DenseVector(pRDD.map(t => t._2._2(s).asInstanceOf[String].toDouble).collect())
+    })
+    val pd_n = x_pre(0).length
+    val var_n = _cols
+    val pvecX = DenseVector.ones[Double](pd_n) +: x_pre
+    val pX = DenseMatrix.create(rows = pd_n, cols = var_n, data = pvecX.flatMap(_.toArray))
 
-      //带宽优选，添加一个approach参数
-      //switch case:null=>不优选 case:CV=>优选 case:AIC=>优选 case:其它=>不优选（或报错）
-      val finalBw = approach match {
-        case "null" => bw
-        case "CV" | "AICc" =>
-          _kernel = kernel
-          _adaptive = adaptive
-          bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
-        case _ => bw
+    //带宽优选，添加一个approach参数
+    //switch case:null=>不优选 case:CV=>优选 case:AIC=>优选 case:其它=>不优选（或报错）
+    val finalBw = approach match {
+      case "null" => bw
+      case "CV" | "AICc" =>
+        bandwidthSelection(kernel = kernel, approach = approach, adaptive = adaptive)
+      case _ => bw
+    }
+    if (finalBw <= 0) {
+      throw new IllegalArgumentException("bandwidth should be over 0")
+    }
+
+    val pweight = getSpatialweight(pdist, bw = finalBw, kernel = kernel, adaptive = adaptive)
+    val weight = getSpatialweight(dist, bw = finalBw, kernel = kernel, adaptive = adaptive)
+    _spWeight = weight
+
+    //prediction
+    val xtw = pweight.map(w => {
+      val each_col_mat = _dvecX.map(t => t * w).flatMap(_.toArray)
+      new DenseMatrix(rows = _rows, cols = _cols, data = each_col_mat).t
+    })
+    val betas = xtw.map(xtw => {
+      try {
+        val xtwx = xtw * X
+        val xtwy = xtw * Y
+        val xtwx_inv = inv(xtwx)
+        xtwx_inv * xtwy
+      } catch {
+        case e: breeze.linalg.MatrixSingularException =>
+          try {
+            val regularized = inv(regularizeMatrix(xtw * X))
+            regularized * xtw * Y
+          } catch {
+            case e: Exception =>
+              throw new IllegalStateException("Matrix inversion failed")
+          }
+        case e: Exception =>
+          println(s"An unexpected error occurred: ${e.getMessage}")
+          DenseVector.zeros[Double](_cols)
       }
+    }).collect()
+    val yhat = getYHat(pX, betas)//predict value
 
-      val pweight = getSpatialweight(pdist, bw = finalBw, kernel = kernel, adaptive = adaptive)
-      val weight = getSpatialweight(dist, bw = finalBw, kernel = kernel, adaptive = adaptive)
-      _spWeight = weight
-
-      //prediction
-      val xtw = pweight.map(w => {
-        val each_col_mat = _dvecX.map(t => t * w).flatMap(_.toArray)
-        new DenseMatrix(rows = _rows, cols = _cols, data = each_col_mat).t
-      })
-      val betas = xtw.map(xtw => {
-        try {
-          val xtwx = xtw * X
-          val xtwy = xtw * Y
-          val xtwx_inv = inv(xtwx)
-          xtwx_inv * xtwy
-        } catch {
-          case e: breeze.linalg.MatrixSingularException =>
-            try {
-              val regularized = inv(regularizeMatrix(xtw * X))
-              regularized * xtw * Y
-            } catch {
-              case e: Exception =>
-                throw new IllegalStateException("Matrix inversion failed")
-            }
-          case e: Exception =>
-            println(s"An unexpected error occurred: ${e.getMessage}")
-            DenseVector.zeros[Double](_cols)
-        }
-      }).collect()
-      val yhat = getYHat(pX, betas)//predict value
-
-      //prediction variation
-      val gwResidual = fitFunction()
-      val Shat = gwResidual._4.t
+    //prediction variation
+    val gwResidual = fitFunction()
+    val Shat = gwResidual._4.t
 //      println(f"Shat:\n$Shat\n")
-      val traceS = trace(Shat)
-      val traceStS = sum(Shat.map(t=>t*t))
-      val diagN = DenseMatrix.eye[Double](_rows)
-      val Q = (diagN - Shat).t * (diagN - Shat)
-      val RSSgw = Y.t * Q * Y
+    val traceS = trace(Shat)
+    val traceStS = sum(Shat.map(t=>t*t))
+    val diagN = DenseMatrix.eye[Double](_rows)
+    val Q = (diagN - Shat).t * (diagN - Shat)
+    val RSSgw = Y.t * Q * Y
 
 //      val residuals = gwResidual._3
 //      val rss = residuals.map(t => t*t).sum
 //      val enp = _cols + 1.0
 
-      val sigmaHat2 = RSSgw / (_rows - 2 * traceS + traceStS)
+    val sigmaHat2 = RSSgw / (_rows - 2 * traceS + traceStS)
 
-      val xtw2 = pweight.map(w => {
-        val w2 = w.map(t => t*t)
-        val each_col_mat = _dvecX.map(t => t * w2).flatMap(_.toArray)
-        new DenseMatrix(rows = _rows, cols = _cols, data = each_col_mat).t
-      })
-      val xtw_xtw2 = xtw.zip(xtw2)
-      val S0 = xtw_xtw2.map{case(xtw, xtw2) => {
-        try {
-          val xtwx = xtw * X
-          val xtw2x = xtw2 * X
-          val xtwx_inv = inv(xtwx)
-          val s0 = xtwx_inv * xtw2x * xtwx_inv
-          s0
-        } catch {
-          case e: breeze.linalg.MatrixSingularException =>
-            try {
-              val xtw2x = xtw2 * X
-              val regularized = inv(regularizeMatrix(xtw * X))
-              val s0 = regularized * xtw2x * regularized
-              s0
-            } catch {
-              case e: Exception =>
-                throw new IllegalStateException("Matrix inversion failed")
-            }
-          case e: Exception =>
-            println(s"An unexpected error occurred: ${e.getMessage}")
-            DenseMatrix.zeros[Double](var_n,var_n)
-        }
-      }}.collect()
+    val xtw2 = pweight.map(w => {
+      val w2 = w.map(t => t*t)
+      val each_col_mat = _dvecX.map(t => t * w2).flatMap(_.toArray)
+      new DenseMatrix(rows = _rows, cols = _cols, data = each_col_mat).t
+    })
+    val xtw_xtw2 = xtw.zip(xtw2)
+    val S0 = xtw_xtw2.map{case(xtw, xtw2) => {
+      try {
+        val xtwx = xtw * X
+        val xtw2x = xtw2 * X
+        val xtwx_inv = inv(xtwx)
+        val s0 = xtwx_inv * xtw2x * xtwx_inv
+        s0
+      } catch {
+        case e: breeze.linalg.MatrixSingularException =>
+          try {
+            val xtw2x = xtw2 * X
+            val regularized = inv(regularizeMatrix(xtw * X))
+            val s0 = regularized * xtw2x * regularized
+            s0
+          } catch {
+            case e: Exception =>
+              throw new IllegalStateException("Matrix inversion failed")
+          }
+        case e: Exception =>
+          println(s"An unexpected error occurred: ${e.getMessage}")
+          DenseMatrix.zeros[Double](var_n,var_n)
+      }
+    }}.collect()
 
-      val predictVar = (0 until pd_n).map{ t =>{
-        val px = pX(t,::).inner.toDenseMatrix
-        val s0 = S0(t)
-        val s1_mat = px * s0 * px.t
-        val s1 = s1_mat(0,0)
-        val pse = sqrt(sigmaHat2) * sqrt(1+s1)
-        val pvar = pse * pse
-        pvar
-      }}.toArray
+    val predictVar = (0 until pd_n).map{ t =>{
+      val px = pX(t,::).inner.toDenseMatrix
+      val s0 = S0(t)
+      val s1_mat = px * s0 * px.t
+      val s1 = s1_mat(0,0)
+      val pse = sqrt(sigmaHat2) * sqrt(1+s1)
+      val pvar = pse * pse
+      pvar
+    }}.toArray
 //      println(f"S1: ${predictVar.toList}")
 
-      val shpRDDidx = pRDD.collect().zipWithIndex
-      shpRDDidx.foreach(t => t._1._2._2.clear())
-      shpRDDidx.map(t => {
-        t._1._2._2 += ("predicted" -> yhat(t._2))
-        t._1._2._2 += ("predictVar" -> predictVar(t._2))
-      })
+    val shpRDDidx = pRDD.collect().zipWithIndex
+    shpRDDidx.foreach(t => t._1._2._2.clear())
+    shpRDDidx.map(t => {
+      t._1._2._2 += ("predicted" -> yhat(t._2))
+      t._1._2._2 += ("predictVar" -> predictVar(t._2))
+    })
 
-      //系数和预测值的总结矩阵
-      def getPercentTile(arr:Array[Double], percent: Double)={
-        val sorted = arr.sorted
-        val length = arr.length.toDouble
-        val idx = (length+1.0) * percent
-        val i = idx.floor.toInt
-        val j = idx -i.toDouble
-        sorted(i-1) * j + sorted(i) * (1-j)
+    //系数和预测值的总结矩阵
+    def getPercentTile(arr:Array[Double], percent: Double)={
+      val sorted = arr.sorted
+      val length = arr.length.toDouble
+      val idx = (length+1.0) * percent
+      val i = idx.floor.toInt
+      val j = idx -i.toDouble
+      sorted(i-1) * j + sorted(i) * (1-j)
 
-      }
+    }
 
-      def summary(arr: Array[Double])={
-        val arrMin = arr.min
-        val arrMax = arr.max
-        val sorted = arr.sorted
-        val q1 = getPercentTile(sorted, 0.25)
-        val q2 = getPercentTile(sorted, 0.5)
-        val q3 = getPercentTile(sorted, 0.75)
-        val res = Array(arrMin, q1, q2, q3, arrMax)
-        DenseVector(res.map(_.formatted("%.2f")))
-      }
+    def summary(arr: Array[Double])={
+      val arrMin = arr.min
+      val arrMax = arr.max
+      val sorted = arr.sorted
+      val q1 = getPercentTile(sorted, 0.25)
+      val q2 = getPercentTile(sorted, 0.5)
+      val q3 = getPercentTile(sorted, 0.75)
+      val res = Array(arrMin, q1, q2, q3, arrMax)
+      DenseVector(res.map(_.formatted("%.2f")))
+    }
 
-      val coefSummaryMatrix = DenseMatrix.zeros[String](_cols+1,6)
-      val colNames = DenseVector(Array("","Min.", "1st Qu.", "Median", "3rd Qu.", "Max."))
-      val coefNames = DenseVector(Array("Intercept_coef")++_nameX.map(_+"_coef"))
-      //println(f"coefNames: ${coefNames}")
-      coefSummaryMatrix(0 to 0,::) := colNames
-      coefSummaryMatrix(1 to _cols,0 to 0) := coefNames
-      for(i <- 1 to _cols){
-        val betasCol = betas.map(t => t(i-1))
-        coefSummaryMatrix(i to i, 1 to 5) := summary(betasCol)
-      }
+    val coefSummaryMatrix = DenseMatrix.zeros[String](_cols+1,6)
+    val colNames = DenseVector(Array("","Min.", "1st Qu.", "Median", "3rd Qu.", "Max."))
+    val coefNames = DenseVector(Array("Intercept_coef")++_nameX.map(_+"_coef"))
+    //println(f"coefNames: ${coefNames}")
+    coefSummaryMatrix(0 to 0,::) := colNames
+    coefSummaryMatrix(1 to _cols,0 to 0) := coefNames
+    for(i <- 1 to _cols){
+      val betasCol = betas.map(t => t(i-1))
+      coefSummaryMatrix(i to i, 1 to 5) := summary(betasCol)
+    }
 
-      val predictionSummaryMatrix = DenseMatrix.zeros[String](3,6)
-      predictionSummaryMatrix(0 to 0, ::) := colNames
-      predictionSummaryMatrix(1,0) = "prediction"
-      predictionSummaryMatrix(2,0) = "prediction_var"
-      predictionSummaryMatrix(1 to 1, 1 to 5) := summary(yhat.toArray)
-      predictionSummaryMatrix(2 to 2, 1 to 5) := summary(predictVar)
+    val predictionSummaryMatrix = DenseMatrix.zeros[String](3,6)
+    predictionSummaryMatrix(0 to 0, ::) := colNames
+    predictionSummaryMatrix(1,0) = "prediction"
+    predictionSummaryMatrix(2,0) = "prediction_var"
+    predictionSummaryMatrix(1 to 1, 1 to 5) := summary(yhat.toArray)
+    predictionSummaryMatrix(2 to 2, 1 to 5) := summary(predictVar)
 
-      val bw_type = if (adaptive) {
-        "Adaptive"
-      }else{
-        "Fixed"
-      }
-      val fitFormula = _nameY + " ~ " + _nameX.mkString(" + ")
-      val fitString = "\n*********************************************************************************\n" +
-        "*               Results of Geographically Weighted Regression                   *\n" +
-        "*********************************************************************************\n" +
-        "**************************Model calibration information**************************\n" +
-        s"Formula: $fitFormula" +
-        s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$finalBw%.2f\n" +
-        s"Prediction established for $pn points \n" +
-        "*********************************************************************************\n" +
-        "*********************Summary of GWR coefficient estimates:***********************\n" +
-        s"${coefSummaryMatrix.toString}\n" +
-        "***************************Results of GW prediction******************************\n" +
-        s"${predictionSummaryMatrix.toString}\n" +
-        "*********************************************************************************\n"
+    val bw_type = if (adaptive) {
+      "Adaptive"
+    }else{
+      "Fixed"
+    }
+    val fitFormula = _nameY + " ~ " + _nameX.mkString(" + ")
+    val fitString = "\n*********************************************************************************\n" +
+      "*               Results of Geographically Weighted Regression                   *\n" +
+      "*********************************************************************************\n" +
+      "**************************Model calibration information**************************\n" +
+      s"Formula: $fitFormula" +
+      s"\nKernel function: $kernel\n$bw_type bandwidth: " + f"$finalBw%.2f\n" +
+      s"Prediction established for $pn points \n" +
+      "*********************************************************************************\n" +
+      "*********************Summary of GWR coefficient estimates:***********************\n" +
+      s"${coefSummaryMatrix.toString}\n" +
+      "***************************Results of GW prediction******************************\n" +
+      s"${predictionSummaryMatrix.toString}\n" +
+      "*********************************************************************************\n"
 //      println(f"length of yhat: ${yhat.length}")
 //      println(f"yhat: \n${yhat}")
 //      shpRDDidx.foreach(t=>println(t._1._2._2))
 //      println(fitString)
-      (shpRDDidx.map(t => t._1), fitString)
-    }
+    (shpRDDidx.map(t => t._1), fitString)
+  }
 
   // public functions, written for MGWR
 //  def getBandwidth(kernel: String = "gaussian", approach: String = "AICc", adaptive: Boolean = true): Double={
