@@ -13,7 +13,7 @@ import whu.edu.cn.algorithms.SpatialStats.Utils.FeatureSpatialWeight._
 import whu.edu.cn.algorithms.SpatialStats.Utils.Optimize.goldenSelection
 import whu.edu.cn.oge.Service
 
-import scala.actors.migration.ActWithStash.continue
+//import scala.actors.migration.ActWithStash.continue
 import scala.math._
 import scala.util.Random
 
@@ -275,7 +275,7 @@ class GWPCA(inputRDD: RDD[(String, (Geometry, mutable.Map[String, Any]))]) exten
       f"\nLocal variance:\n${summaryLocalVar(variance, k)}" +
       f"\nLocal Proportion of Variance:\n${summaryLocalPropVar(localPV,k)}"
 
-    println(fitString)
+    // println(fitString)
     (shpRDDidx.map(t => t._1), fitString)
   }
 

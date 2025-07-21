@@ -73,11 +73,11 @@ object test {
     //    GWAverage.cal(sc, shpfile, "aging", "GDP,pop", 50)
     //    testGTWRpredict()
     
-    //    GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
+        GWPCA.fit(sc, shpfile3, "PURCHASE,FLOORSZ,UNEMPLOY,PROF", adaptive = false, kernel = "gaussian", bandwidth = -1, k =2)
     //    testGWRpredict()
 
-    val ras = SplineInterpolation.BSpline(sc, shpfile2, "z", 10, 10)
-    interpolationUtils.makeTiff(ras, "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/", "b-spline")
+    //    val ras = SplineInterpolation.BSpline(sc, shpfile2, "z", 10, 10)
+    //    interpolationUtils.makeTiff(ras, "src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/", "b-spline")
     //    val ras = SplineInterpolation.thinPlateSpline(sc,shpfile2,"z",10,10)
     //    interpolationUtils.makeTiff(ras,"src/main/scala/whu/edu/cn/algorithms/SpatialStats/Test/testdata/","thin-plate-spline")
     //    val ras = IDW.fit(sc,shpfile2,"z",10,10)
